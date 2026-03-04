@@ -1,0 +1,926 @@
+{
+  "name": "email loop",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "email_subject"
+            },
+            {
+              "name": "email_body"
+            },
+            {
+              "name": "email_sender_Name"
+            },
+            {
+              "name": "sender_email_id"
+            },
+            {
+              "name": "Delay_Min",
+              "type": "number"
+            },
+            {
+              "name": "Delay_Max",
+              "type": "number"
+            },
+            {
+              "name": "chatid",
+              "type": "number"
+            },
+            {
+              "name": "lead_list",
+              "type": "any"
+            }
+          ]
+        }
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        112,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        592,
+        368
+      ],
+      "id": "a3a733f2-3f9c-4b5a-ad40-3235a7d1295d",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "67342d54-39c2-4e62-9dc4-96097119ccd9",
+              "name": "data",
+              "value": "={{ $json.data }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1280,
+        224
+      ],
+      "id": "a1582f62-85ba-43a6-905d-cc9ef3142e21",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "lead_list",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        320,
+        320
+      ],
+      "id": "ad1a6267-09b7-4e9b-8aca-7be47b323790",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Get current lead data\n// We use the specific syntax you found to be sure we get the loop item\nconst lead = $('Loop Over Items').item.json;\n\n// 2. Get the config (Trigger Node)\nconst config = $('When Executed by Another Workflow').first().json;\n\nlet body = config.email_body || \"\";\nlet subject = config.email_subject || \"\";\nlet senderName = config.email_sender_Name || \"Moazzam\";\n\n// 3. Replacements\nconst replacements = {\n  \"{{business_name}}\": lead[\"Business Name\"] || \"there\",\n  \"{{address}}\": lead[\"Address\"] || \"\",\n  \"{{phone}}\": lead[\"Phone\"] || \"\",\n  \"{{website}}\": lead[\"Website\"] || \"\",\n  \"{{rating}}\": lead[\"Rating\"] || \"\",\n  \"{{review_count}}\": lead[\"Review Count\"] || \"0\",\n  \"{{sender_name}}\": senderName\n};\n\n// 4. Execute Replacement\nfor (const [placeholder, value] of Object.entries(replacements)) {\n  const escapedPlaceholder = placeholder.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');\n  const regex = new RegExp(escapedPlaceholder, 'g');\n  body = body.replace(regex, value);\n  subject = subject.replace(regex, value);\n}\n\n// 5. Return\nreturn {\n  json: {\n    ...lead,\n    final_email_body: body,\n    final_email_subject: subject,\n    sender_email: config.sender_email_id,\n    sender_name: senderName\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        464
+      ],
+      "id": "4ae3ae19-fc09-4dc7-8315-72e905781357",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "mLtYTYDwlitIvbl6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/mLtYTYDwlitIvbl6",
+          "cachedResultName": "email sub"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [
+            "Email",
+            "final_email_subject",
+            "final_email_body"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        496
+      ],
+      "name": "Call email sub",
+      "id": "cb1aa109-a5da-4ce1-8968-c685ad12af54"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        800,
+        272
+      ],
+      "id": "55247266-a8d7-42ca-9a72-4bf669a63ad6",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('When Executed by Another Workflow').item.json.chatid }}",
+        "text": "=Your email was sent to {{ $('Code in JavaScript').item.json.Email }} with subject :  {{ $('Code in JavaScript').item.json.final_email_subject }} ",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1392,
+        608
+      ],
+      "id": "e6997526-0dd7-4661-8959-6ff5fd64b752",
+      "name": "Send a text message",
+      "webhookId": "0f98d57f-14e3-4170-96fe-6df8d467c604",
+      "credentials": {
+        "telegramApi": {
+          "id": "SsXJag9k05HbIlEx",
+          "name": "cold_email_bot_1"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "email_subject": "Saw your Name in Epstein Files on Page ....",
+          "email_body": "It's Private but not for long..........\n\nJust kidding man, but what I saw was worse.\n\nI went to your website and it felt crapy old and CHEAP !\nYa man , I am saying that , coz it hurts your business more than my words would hurt you.\n\nLet's make a deal, I would make a Premium website for you, then we hope on a 10-15 minutes meeting and discuss everything.\n\nIf you don't Like it , You don't need to pay for it .\n\nDon't wanna make it long , Just reply me \"I want it\" , and I will book a meeting with you at your convenience.\n\nBest Regards\n{{sender_name}}.\n",
+          "email_sender_Name": "Moazzam",
+          "sender_email_id": "demgrowonline@gmail.com",
+          "Delay_Min": 1,
+          "Delay_Max": 5,
+          "chatid": 1768608006,
+          "lead_list": [
+            {
+              "Business Name": "",
+              "Phone": "062688 84077",
+              "Email": "hello@manmachinecarcare.com, info@thedetailingmafia.com",
+              "Address": "The Detailing Mafia Indore",
+              "Website": "https://www.thedetailingmafia.com/locate-our-outlets/indore",
+              "Rating": "4.6",
+              "Review Count": "0",
+              "Latitude": "22.7608843",
+              "Longitude": "75.8894545",
+              "Instagram": "http://twitter.com/detailingmafia, https://www.facebook.com/thedetailingmafia.official/, https://www.instagram.com/thedetailingmafia_official/, https://www.instagram.com/thedetailingmafia_official, https://www.linkedin.com/company/the-detailing-mafia-official/, https://www.youtube.com/channel/UCTHuZsrvbnhrwNVmOEAhSDw, https://www.facebook.com/profile.php?id=100083647562639, https://www.facebook.com/thedetailingmafia.official, https://www.instagram.com/thedetailingmafia.indore",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/The+Detailing+Mafia+Indore/data=!4m7!3m6!1s0x3963038ad7f8785b:0x5c213bc96004eebb!8m2!3d22.7608843!4d75.8894545!16s%2Fg%2F11t4wvgh48!19sChIJW3j414oDYzkRu-4EYMk7IVw?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJW3j414oDYzkRu-4EYMk7IVw",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 2,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "098742 41406",
+              "Email": "care@detailingdevils.com",
+              "Address": "Detailing Devils Howrah | Premium Car Wash, Car Ceramic Coating, PPF & Detailing",
+              "Website": "https://www.detailingdevils.com/detailing-studios/howrah",
+              "Rating": "4.9",
+              "Review Count": "0",
+              "Latitude": "22.5646363",
+              "Longitude": "88.32746879999999",
+              "Instagram": "https://www.facebook.com/DetailingDevils/, https://www.youtube.com/channel/UCixCVs6Aucy83FJsbMysKYg, https://twitter.com/detailingdevils, https://instagram.com/detailingdevils?igshid=YmMyMTA2M2Y=, https://www.instagram.com/DetailingDevils",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/Detailing+Devils+Howrah+%7C+Premium+Car+Wash,+Car+Ceramic+Coating,+PPF+%26+Detailing/data=!4m7!3m6!1s0x3a0277f9e4ce428b:0xcd37e5bc67af4e0a!8m2!3d22.5646363!4d88.3274688!16s%2Fg%2F11l75f4qrk!19sChIJi0LO5Pl3AjoRCk6vZ7zlN80?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJi0LO5Pl3AjoRCk6vZ7zlN80",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 1,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "070444 80775",
+              "Email": "c3carcarecenter.kolkata46@gmail.com, support@c3carcarecenter.com",
+              "Address": "C3 Car Care Center",
+              "Website": "https://c3carcarecenter.com/",
+              "Rating": "4.9",
+              "Review Count": "0",
+              "Latitude": "22.5418646",
+              "Longitude": "88.3866571",
+              "Instagram": "https://www.facebook.com/c3carcarecenter.kolkata46, https://www.instagram.com/c3_carcarecenter/, https://www.youtube.com/@c3.kolkata",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/C3+Car+Care+Center/data=!4m7!3m6!1s0x3a02771eb82705dd:0x6e9942b46b11a550!8m2!3d22.5418646!4d88.3866571!16s%2Fg%2F11rwxrf93s!19sChIJ3QUnuB53AjoRUKURa7RCmW4?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJ3QUnuB53AjoRUKURa7RCmW4",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 2,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "085850 52925",
+              "Email": "care@aonecarpolish.com",
+              "Address": "A-One Car Polish - Best Car Detailing Services in Newtown, Kolkata",
+              "Website": "https://www.aonecarpolish.com/",
+              "Rating": "5",
+              "Review Count": "0",
+              "Latitude": "22.624223399999998",
+              "Longitude": "88.4430005",
+              "Instagram": "https://www.youtube.com/watch?v=q0j8SU-uvLU, https://youtube.com/, https://www.instagram.com/aonecarpolish/, https://www.facebook.com/aonecarpolish",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/A-One+Car+Polish+-+Best+Car+Detailing+Services+in+Newtown,+Kolkata/data=!4m7!3m6!1s0x39f89fd27f6fffff:0x84745510a8927ba2!8m2!3d22.6242234!4d88.4430005!16s%2Fg%2F11l6djtkxk!19sChIJ__9vf9Kf-DkRonuSqBBVdIQ?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJ__9vf9Kf-DkRonuSqBBVdIQ",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 1,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "098096 44444",
+              "Email": "info@rosho.in",
+              "Address": "ROSHO The Auto Detailer",
+              "Website": "https://rosho.in/",
+              "Rating": "4.9",
+              "Review Count": "0",
+              "Latitude": "10.029141",
+              "Longitude": "76.3459568",
+              "Instagram": "https://www.youtube.com/@roshotheautodetailer, https://www.facebook.com/roshotheautodetailer/, https://www.instagram.com/roshotheautodetailer/, https://www.youtube.com/@roshotheautodetailer/featured",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/ROSHO+The+Auto+Detailer/data=!4m7!3m6!1s0x3b080d7517c8f4f5:0x5cb0cebd55691f83!8m2!3d10.029141!4d76.3459568!16s%2Fg%2F11smvfdkjp!19sChIJ9fTIF3UNCDsRgx9pVb3OsFw?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJ9fTIF3UNCDsRgx9pVb3OsFw",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 1,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "+1 415-637-0485",
+              "Email": "reflectautoaesthetics@gmail.com",
+              "Address": "Reflect Auto Aesthetics",
+              "Website": "https://reflectauto.wixsite.com/detail",
+              "Rating": "5",
+              "Review Count": "0",
+              "Latitude": "37.7848269",
+              "Longitude": "-122.7072972",
+              "Instagram": "https://www.instagram.com/reflectautoaesthetics/, https://www.youtube.com/@ReflectAutoAesthetics",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/Reflect+Auto+Aesthetics/data=!4m7!3m6!1s0x29d6fb9a9dc91e23:0xc3e159c85f896507!8m2!3d37.7848269!4d-122.7072972!16s%2Fg%2F11xcx54gzl!19sChIJIx7JnZr71ikRB2WJX8hZ4cM?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJIx7JnZr71ikRB2WJX8hZ4cM",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 1,
+              "emails_rejected": 6,
+              "rejection_details": "18d2f96d279149989b95faf0a4b41882@sentry-next.wixpress.com: No MX records; 5d1795a2db124a268f1e1bd88f503500@sentry.wixpress.com: No MX records; 605a7baede844d278b89dc95ae0a9123@sentry-next.wixpress.com: No MX records; 8c4075d5481d476e945486754f783364@sentry.io: Junk scraped domain: sentry.io; c183baa23371454f99f417f6616b724d@sentry.wixpress.com: No MX records; dd0a55ccb8124b9c9d938e3acf41f8aa@sentry.wixpress.com: No MX records"
+            },
+            {
+              "Business Name": "",
+              "Phone": "098753 38477",
+              "Email": "sales@primecarcare.in",
+              "Address": "Prime Car Care",
+              "Website": "https://primecarcare.in/",
+              "Rating": "4.7",
+              "Review Count": "0",
+              "Latitude": "22.5796602",
+              "Longitude": "88.4403439",
+              "Instagram": "https://www.youtube.com/channel/UCHYuY6RXjXst5jESdCG80gg, https://www.facebook.com/carcareprime/, https://facebook.com/carcareprime, https://www.linkedin.com/company/prime-car-care, https://www.instagram.com/carcareprime, https://instagram.com/carcareprime",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/Prime+Car+Care/data=!4m7!3m6!1s0x3a027595ba3bd9bb:0x4f1f21e20908de1b!8m2!3d22.5796602!4d88.4403439!16s%2Fg%2F11ppdg0q8p!19sChIJu9k7upV1AjoRG94ICeIhH08?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJu9k7upV1AjoRG94ICeIhH08",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 1,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "093301 47371",
+              "Email": "hello@manmachinecarcare.com, info@thedetailingmafia.com",
+              "Address": "The Detailing Mafia",
+              "Website": "https://www.thedetailingmafia.com/locate-our-outlets/Kolkata",
+              "Rating": "4.6",
+              "Review Count": "0",
+              "Latitude": "22.538096499999998",
+              "Longitude": "88.39070699999999",
+              "Instagram": "https://www.instagram.com/thedetailingmafiakolkata, http://twitter.com/detailingmafia, https://www.facebook.com/thedetailingmafia.official/, https://www.instagram.com/thedetailingmafia_official/, https://www.instagram.com/thedetailingmafia_official, https://www.linkedin.com/company/the-detailing-mafia-official/, https://www.youtube.com/channel/UCTHuZsrvbnhrwNVmOEAhSDw, https://www.facebook.com/thedetailingmafiatopsiakolkata/, https://www.facebook.com/thedetailingmafia.official",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/The+Detailing+Mafia/data=!4m7!3m6!1s0x3a0277631e871771:0x93dff2bc7f808e12!8m2!3d22.5380965!4d88.390707!16s%2Fg%2F11mpj5x7wm!19sChIJcReHHmN3AjoREo6Af7zy35M?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJcReHHmN3AjoREo6Af7zy35M",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 2,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "095420 45420",
+              "Email": "hello@manmachinecarcare.com, info@thedetailingmafia.com",
+              "Address": "The Detailing Mafia Vizag | Car Detailing | Paint Protection Film | Ceramic & Graphene Coating",
+              "Website": "https://www.thedetailingmafia.com/locate-our-outlets/Vizag",
+              "Rating": "4.8",
+              "Review Count": "0",
+              "Latitude": "17.739349699999998",
+              "Longitude": "83.32449919999999",
+              "Instagram": "https://www.facebook.com/ThedetailingmafiaVisakhapatnam/?ref=pages_you_manage, http://twitter.com/detailingmafia, https://www.facebook.com/thedetailingmafia.official/, https://www.instagram.com/thedetailingmafia_official/, https://www.instagram.com/thedetailingmafia_official, https://www.linkedin.com/company/the-detailing-mafia-official/, https://www.youtube.com/channel/UCTHuZsrvbnhrwNVmOEAhSDw, https://www.instagram.com/thedetailingmafiavizag, https://www.facebook.com/thedetailingmafia.official",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/The+Detailing+Mafia+Vizag+%7C+Car+Detailing+%7C+Paint+Protection+Film+%7C+Ceramic+%26+Graphene+Coating/data=!4m7!3m6!1s0x3a39433c65820523:0x8917b04c23ea2b0c!8m2!3d17.7393497!4d83.3244992!16s%2Fg%2F11j8v5zhdh!19sChIJIwWCZTxDOToRDCvqI0ywF4k?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJIwWCZTxDOToRDCvqI0ywF4k",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 2,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "090384 43433",
+              "Email": "sparklecars2020@gmail.com",
+              "Address": "SPARKLE Shine Your Ride Car Detailing Studio in Kolkata",
+              "Website": "https://sparklecars.com/",
+              "Rating": "4.9",
+              "Review Count": "0",
+              "Latitude": "22.564497799999998",
+              "Longitude": "88.48378629999999",
+              "Instagram": "https://www.instagram.com/p/DUfCDYVEY9q/, https://www.instagram.com/p/DT994guEZZx/, https://www.instagram.com/p/DUNHBhaEZmf/, https://www.instagram.com/sparkle.automotive.detailers, https://www.instagram.com/sparkle.automotive.detailers/, https://www.instagram.com/reel/DTsbKElEbc6/, https://www.instagram.com/reel/DTc3jjkARQ_/, https://www.instagram.com/reel/DTiNwsAkZrw/, https://www.facebook.com/sparklekolkata/, https://www.instagram.com/p/DT2tqw3ESz7/, https://www.youtube.com/@sparkleshineyourride9181, https://www.instagram.com/reel/DTfHYRvkY0X/, https://www.instagram.com/sparkle.shineyourride/",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/SPARKLE+Shine+Your+Ride+Car+Detailing+Studio+in+Kolkata/data=!4m7!3m6!1s0x39f89f56e36fb3d1:0x5aed3aaf89d4cc3d!8m2!3d22.5644978!4d88.4837863!16s%2Fg%2F11ll16tk5n!19sChIJ0bNv41af-DkRPczUia867Vo?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJ0bNv41af-DkRPczUia867Vo",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 1,
+              "emails_rejected": 1,
+              "rejection_details": "john@doe.com: Rejected pattern: ^john@doe"
+            },
+            {
+              "Business Name": "",
+              "Phone": "+1 415-747-7164",
+              "Email": "help@biocarcare.com",
+              "Address": "Bio Car Care: Mobile Car Wash & Detailing",
+              "Website": "https://biocarcare.com/",
+              "Rating": "5",
+              "Review Count": "0",
+              "Latitude": "37.748082",
+              "Longitude": "-122.67667279999999",
+              "Instagram": "https://twitter.com/biocarcare, https://www.instagram.com/biocarcare/, https://www.facebook.com/Bio-Car-Care-209540852531969",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/Bio+Car+Care:+Mobile+Car+Wash+%26+Detailing/data=!4m7!3m6!1s0x808581154a29101d:0xc3f0e1a31c570c78!8m2!3d37.748082!4d-122.6766728!16s%2Fg%2F11fszl8525!19sChIJHRApShWBhYAReAxXHKPh8MM?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJHRApShWBhYAReAxXHKPh8MM",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 1,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "+1 415-861-0224",
+              "Email": "info@pssalessf.com",
+              "Address": "P & S Sales of San Francisco",
+              "Website": "https://pssalessf.com/",
+              "Rating": "4.9",
+              "Review Count": "0",
+              "Latitude": "37.772056",
+              "Longitude": "-122.410361",
+              "Instagram": "https://www.facebook.com/PSsalesSF/, https://www.youtube.com/channel/UCH_h-NBYWQG8qoFFcoETUPw, https://www.instagram.com/PSsalesSF/",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/P+%26+S+Sales+of+San+Francisco/data=!4m7!3m6!1s0x808f7e28fa360b3d:0x8c806aa578fb5ca6!8m2!3d37.772056!4d-122.410361!16s%2Fg%2F1hd_q0p2r!19sChIJPQs2-ih-j4ARplz7eKVqgIw?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJPQs2-ih-j4ARplz7eKVqgIw",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 1,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "+1 415-570-4376",
+              "Email": "richard@heroautodetailing.com",
+              "Address": "Hero Auto Detailing",
+              "Website": "https://www.heroautodetailing.com/",
+              "Rating": "5",
+              "Review Count": "0",
+              "Latitude": "37.789047",
+              "Longitude": "-122.40794629999999",
+              "Instagram": "https://www.facebook.com/people/Hero-Auto-Detailing/61572496404735, https://www.instagram.com/heroautodetailing_bayarea/",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/Hero+Auto+Detailing/data=!4m7!3m6!1s0xaf3ab534f73c686d:0xe02affc2a1553de3!8m2!3d37.789047!4d-122.4079463!16s%2Fg%2F11x8ddvy2k!19sChIJbWg89zS1Oq8R4z1VocL_KuA?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJbWg89zS1Oq8R4z1VocL_KuA",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 1,
+              "emails_rejected": 1,
+              "rejection_details": "user@domain.com: Rejected pattern: ^user@domain"
+            },
+            {
+              "Business Name": "",
+              "Phone": "079808 96248",
+              "Email": "care@detailingdevils.com",
+              "Address": "Detailing Devils Kolkata | Premium Car Wash, Car Ceramic Coating, PPF & Detailing",
+              "Website": "https://www.detailingdevils.com/detailing-studios/kolkata",
+              "Rating": "4.8",
+              "Review Count": "0",
+              "Latitude": "22.5812572",
+              "Longitude": "88.4677466",
+              "Instagram": "https://www.facebook.com/DetailingDevils/, https://www.youtube.com/channel/UCixCVs6Aucy83FJsbMysKYg, https://twitter.com/detailingdevils, https://instagram.com/detailingdevils?igshid=YmMyMTA2M2Y=, https://www.instagram.com/DetailingDevils",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/Detailing+Devils+Kolkata+%7C+Premium+Car+Wash,+Car+Ceramic+Coating,+PPF+%26+Detailing/data=!4m7!3m6!1s0x39f89febd3a4b723:0xf8dea9c59e5fa379!8m2!3d22.5812572!4d88.4677466!16s%2Fg%2F11v42gn4qw!19sChIJI7ek0-uf-DkReaNfnsWp3vg?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJI7ek0-uf-DkReaNfnsWp3vg",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 1,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "+1 415-222-9999",
+              "Email": "wax@waterlessdetails.com",
+              "Address": "Waterless Details",
+              "Website": "https://waterlessdetails.com/",
+              "Rating": "0.0",
+              "Review Count": "0",
+              "Latitude": "37.878637999999995",
+              "Longitude": "-122.42033749999999",
+              "Instagram": "",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/Waterless+Details/data=!4m7!3m6!1s0x4d2aa90fd4c3d741:0x7ab42622ab440732!8m2!3d37.878638!4d-122.4203375!16s%2Fg%2F11srgt6bs4!19sChIJQdfD1A-pKk0RMgdEqyImtHo?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJQdfD1A-pKk0RMgdEqyImtHo",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 1,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "+1 650-346-8793",
+              "Email": "kmlewis280@gmail.com",
+              "Address": "Bay Area Auto Detailing",
+              "Website": "http://bayareaautodetailing.com/",
+              "Rating": "4.9",
+              "Review Count": "0",
+              "Latitude": "37.496426899999996",
+              "Longitude": "-122.15835179999999",
+              "Instagram": "https://www.facebook.com/bayareaautodetailing, https://www.instagram.com/bayareaautodetailing01/",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/Bay+Area+Auto+Detailing/data=!4m7!3m6!1s0x808f7f858d97f963:0xd70197df949a06c!8m2!3d37.4964269!4d-122.1583518!16s%2Fg%2F11qmbsp0yh!19sChIJY_mXjYV_j4ARbKBJ-X0ZcA0?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJY_mXjYV_j4ARbKBJ-X0ZcA0",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 1,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "+1 415-967-1514",
+              "Email": "support@qweex.co",
+              "Address": "Qweex: On-Demand Mobile Car Wash",
+              "Website": "http://qweex.co/",
+              "Rating": "4.6",
+              "Review Count": "0",
+              "Latitude": "37.526484499999995",
+              "Longitude": "-122.3593422",
+              "Instagram": "https://twitter.com/qweexapp, https://www.facebook.com/qweexapp, https://www.instagram.com/qweexapp",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/Qweex:+On-Demand+Mobile+Car+Wash/data=!4m7!3m6!1s0x808f7e30c081e125:0x236408140ec44df9!8m2!3d37.5264845!4d-122.3593422!16s%2Fg%2F11cs3_f21b!19sChIJJeGBwDB-j4AR-U3EDhQIZCM?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJJeGBwDB-j4AR-U3EDhQIZCM",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 1,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "083010 16683",
+              "Email": "hello@manmachinecarcare.com, info@thedetailingmafia.com",
+              "Address": "The Detailing Mafia Kochi",
+              "Website": "https://www.thedetailingmafia.com/locate-our-outlets/kochi",
+              "Rating": "4.5",
+              "Review Count": "0",
+              "Latitude": "9.9831451",
+              "Longitude": "76.2995801",
+              "Instagram": "http://twitter.com/detailingmafia, https://www.facebook.com/thedetailingmafia.official/, https://www.instagram.com/thedetailingmafia_official/, https://www.instagram.com/thedetailingmafia_official, https://www.linkedin.com/company/the-detailing-mafia-official/, https://www.instagram.com/thedetailingmafiakochi, https://www.youtube.com/channel/UCTHuZsrvbnhrwNVmOEAhSDw, https://www.facebook.com/TheDetailingMafiaKochi/?ref=pages_you_manage, https://www.facebook.com/thedetailingmafia.official",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/The+Detailing+Mafia+Kochi/data=!4m7!3m6!1s0x3b080df6bc9e1ffb:0x36e206b11c201051!8m2!3d9.9831451!4d76.2995801!16s%2Fg%2F11h5w791w1!19sChIJ-x-evPYNCDsRURAgHLEG4jY?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJ-x-evPYNCDsRURAgHLEG4jY",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 2,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "+1 510-963-0839",
+              "Email": "admin@ggceramicco.com",
+              "Address": "GG Ceramic & Co LLC",
+              "Website": "https://ggceramicco.com/",
+              "Rating": "5",
+              "Review Count": "0",
+              "Latitude": "37.7848269",
+              "Longitude": "-122.7072972",
+              "Instagram": "https://www.instagram.com/gg_ceramic_co/",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/GG+Ceramic+%26+Co+LLC/data=!4m7!3m6!1s0xd16a55f374f8057:0xbf182d4454e1e7a0!8m2!3d37.7848269!4d-122.7072972!16s%2Fg%2F11xkfx0bfk!19sChIJV4BPN1-lFg0RoOfhVEQtGL8?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJV4BPN1-lFg0RoOfhVEQtGL8",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 1,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "",
+              "Email": "ethan.sargent@gmail.com",
+              "Address": "Ethan's Car Wash & Detailing",
+              "Website": "https://ethanscarwash.simplybook.me/v2/",
+              "Rating": "4.6",
+              "Review Count": "0",
+              "Latitude": "37.7828464",
+              "Longitude": "-122.4776272",
+              "Instagram": "",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/Ethan%27s+Car+Wash+%26+Detailing/data=!4m7!3m6!1s0x808587b320e885f5:0xe98a1be7220341a6!8m2!3d37.7828464!4d-122.4776272!16s%2Fg%2F11mqw6___s!19sChIJ9YXoILOHhYARpkEDIucbiuk?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJ9YXoILOHhYARpkEDIucbiuk",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 1,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "082704 73731",
+              "Email": "hello@manmachinecarcare.com, info@thedetailingmafia.com",
+              "Address": "The Detailing Mafia Berhampur | Car Detailing | Paint Protection Film | Ceramic & Graphene Coating",
+              "Website": "https://www.thedetailingmafia.com/locate-our-outlets/Brahmapur",
+              "Rating": "4.8",
+              "Review Count": "0",
+              "Latitude": "19.2920815",
+              "Longitude": "84.7824964",
+              "Instagram": "http://twitter.com/detailingmafia, https://www.instagram.com/thedetailingmafia.berhampur, https://www.facebook.com/thedetailingmafia.official/, https://www.facebook.com/profile.php?id=100083216198347, https://www.instagram.com/thedetailingmafia_official/, https://www.instagram.com/thedetailingmafia_official, https://www.linkedin.com/company/the-detailing-mafia-official/, https://www.youtube.com/channel/UCTHuZsrvbnhrwNVmOEAhSDw, https://www.facebook.com/thedetailingmafia.official",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/The+Detailing+Mafia+Berhampur+%7C+Car+Detailing+%7C+Paint+Protection+Film+%7C+Ceramic+%26+Graphene+Coating/data=!4m7!3m6!1s0x3a3d5bdcc28ad7a5:0xaf8f7e568d99fb74!8m2!3d19.2920815!4d84.7824964!16s%2Fg%2F11s2q3s0pv!19sChIJpdeKwtxbPToRdPuZjVZ-j68?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJpdeKwtxbPToRdPuZjVZ-j68",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 2,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "096615 44500",
+              "Email": "gearplusautocare@gmail.com, gearplusautocaret@gmail.com",
+              "Address": "Gear Plus Auto Care | Detailing | Ceramic | PPF",
+              "Website": "https://gearplusautocare.com/",
+              "Rating": "4.5",
+              "Review Count": "0",
+              "Latitude": "25.581926",
+              "Longitude": "85.11238689999999",
+              "Instagram": "",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/Gear+Plus+Auto+Care+%7C+Detailing+%7C+Ceramic+%7C+PPF/data=!4m7!3m6!1s0x39ed593f786e766d:0x2fb6ea74ea53834f!8m2!3d25.581926!4d85.1123869!16s%2Fg%2F11mwzw5txn!19sChIJbXZueD9Z7TkRT4NT6nTqti8?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJbXZueD9Z7TkRT4NT6nTqti8",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 2,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            },
+            {
+              "Business Name": "",
+              "Phone": "+1 415-799-6354",
+              "Email": "mcarppfsf@gmail.com",
+              "Address": "MCAR PPF & TINT",
+              "Website": "https://mcarsanfrancisco.com/",
+              "Rating": "4.9",
+              "Review Count": "0",
+              "Latitude": "37.773584299999996",
+              "Longitude": "-122.41962219999999",
+              "Instagram": "https://www.instagram.com/mcarppfsanfrancisco/",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/MCAR+PPF+%26+TINT/data=!4m7!3m6!1s0x808581a4903a058f:0xa66ef18db5a6f774!8m2!3d37.7735843!4d-122.4196222!16s%2Fg%2F11y4ym4xr3!19sChIJjwU6kKSBhYARdPemtY3xbqY?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJjwU6kKSBhYARdPemtY3xbqY",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 1,
+              "emails_rejected": 1,
+              "rejection_details": "your@email.com: Rejected pattern: ^your@email"
+            },
+            {
+              "Business Name": "",
+              "Phone": "+1 415-622-8237",
+              "Email": "sales@californiadetailing.com",
+              "Address": "California Detailing - Ceramic Pro San Francisco Elite Dealer - PPF, Window Tint, Ceramic Coating, Detailing",
+              "Website": "http://www.californiadetailing.com/",
+              "Rating": "5",
+              "Review Count": "0",
+              "Latitude": "37.7681395",
+              "Longitude": "-122.4152366",
+              "Instagram": "https://www.facebook.com/CaliforniaDetailing, https://www.instagram.com/californiadetailing/?hl=en",
+              "Facebook": "",
+              "LinkedIn": "",
+              "Maps Link": "https://www.google.com/maps/place/California+Detailing+-+Ceramic+Pro+San+Francisco+Elite+Dealer+-+PPF,+Window+Tint,+Ceramic+Coating,+Detailing/data=!4m7!3m6!1s0x80858098ae666a91:0x2f0ea5edc05f7f1b!8m2!3d37.7681395!4d-122.4152366!16s%2Fg%2F1vv2sggn!19sChIJkWpmrpiAhYARG39fwO2lDi8?authuser=0&hl=en&rclk=1",
+              "Category": "car detailers 94102",
+              "City": "",
+              "State": "",
+              "Country": "",
+              "Zip Code": "",
+              "Place ID": "ChIJkWpmrpiAhYARG39fwO2lDi8",
+              "validation_status": "valid",
+              "validation_stage": "all_passed",
+              "emails_validated": 1,
+              "emails_rejected": 0,
+              "rejection_details": "none"
+            }
+          ]
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Call email sub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call email sub": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "92b48746-0fcb-453f-bda3-1908a3039ac0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e95b57b2bece8732c81adc82c145a54980cd67cb44ba1592629f261d01ef9a2c"
+  },
+  "id": "rwYSH58nw0KdsRNz",
+  "tags": []
+}

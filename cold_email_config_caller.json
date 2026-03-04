@@ -1,0 +1,81 @@
+{
+  "name": "cold_email_config_caller",
+  "nodes": [
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1yTHNNPtWvZviiGhLC1Tq81Y-preLPfb4w1DHvtdtxFk",
+          "mode": "list",
+          "cachedResultName": "Cold email Automation Config",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1yTHNNPtWvZviiGhLC1Tq81Y-preLPfb4w1DHvtdtxFk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1yTHNNPtWvZviiGhLC1Tq81Y-preLPfb4w1DHvtdtxFk/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -64,
+        -32
+      ],
+      "id": "a990d0a1-312d-48d5-978a-60c336d2952e",
+      "name": "Get row(s) in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "lae5qrrZkOg0YRVG",
+          "name": "demgrow sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "f5a351e9-772a-4034-abe4-8eb4ad0e23e9",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -304,
+        -32
+      ],
+      "id": "d157b512-43cc-491f-8320-714e124151cc",
+      "name": "Webhook",
+      "webhookId": "f5a351e9-772a-4034-abe4-8eb4ad0e23e9"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "7eda3e94-b9f0-4263-8e20-9a65b154ac0f",
+  "meta": {
+    "instanceId": "e95b57b2bece8732c81adc82c145a54980cd67cb44ba1592629f261d01ef9a2c"
+  },
+  "id": "QvikTy3MoUJQFbKY",
+  "tags": []
+}

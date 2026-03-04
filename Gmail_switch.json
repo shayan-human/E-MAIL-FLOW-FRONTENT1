@@ -1,0 +1,497 @@
+{
+  "name": "Gmail_switch",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "Email",
+              "type": "any"
+            },
+            {
+              "name": "final_email_subject",
+              "type": "any"
+            },
+            {
+              "name": "final_email_body",
+              "type": "any"
+            },
+            {
+              "name": "sender_email"
+            }
+          ]
+        }
+      },
+      "id": "13f9ec54-64e8-44e7-ba03-74db6d84b6cd",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        1664,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "demgrowonline@gmail.com",
+                    "rightValue": "={{ $json.sender_email }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "a99851ac-a3a3-406b-99f0-e4c13efd26c3"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "demgrowonline@gmail.com"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "e30336d0-9169-4422-ae69-92b3a9ac5d70",
+                    "leftValue": "masoodmoazzam16@gmail.com",
+                    "rightValue": "={{ $json.sender_email }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "masoodmoazzam16@gmail.com"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "8bec95b8-9f3b-4ba1-baf6-49d90c8d5066",
+                    "leftValue": "growwithmoazzam@gmail.com",
+                    "rightValue": "={{ $json.sender_email }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "growwithmoazzam@gmail.com"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "9be1fbde-c763-4fa6-9e21-373046957513",
+                    "leftValue": "moazzam.jpeg@gmail.com",
+                    "rightValue": "={{ $json.sender_email }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "moazzam.jpeg@gmail.com"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "7afed2f9-33ad-4180-aaab-7bb2f0b96fd9",
+                    "leftValue": "moazzam.exe@gmail.com",
+                    "rightValue": "={{ $json.sender_email }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "moazzam.exe@gmail.com"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "4d956cb6-5297-46a6-bf06-62aa37002083",
+                    "leftValue": "moazzam.demgrow@gmail.com",
+                    "rightValue": "={{ $json.sender_email }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "moazzam.demgrow@gmail.com"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "c5406b9d-f661-42d7-b8ba-88889608a1e4",
+                    "leftValue": "demgroww@gmail.com",
+                    "rightValue": "={{ $json.sender_email }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "demgroww@gmail.com"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": 0
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1872,
+        624
+      ],
+      "id": "24ceaf75-709f-4edc-9bcc-6b769ff7cf5e",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Start').item.json.Email }}",
+        "subject": "={{ $('Start').item.json.final_email_subject }}",
+        "emailType": "text",
+        "message": "={{ $('Start').item.json.final_email_body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2144,
+        464
+      ],
+      "id": "cfeec49e-aadf-460b-a9e2-c64729927b42",
+      "name": "demgrowonline@gmail.com",
+      "webhookId": "965783ff-0e4f-43ae-a0ee-f13b1ad13395",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ADzfrYw03TKbfowl",
+          "name": "Shayan mail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Start').item.json.Email }}",
+        "subject": "={{ $('Start').item.json.final_email_subject }}",
+        "emailType": "text",
+        "message": "={{ $('Start').item.json.final_email_body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2352,
+        512
+      ],
+      "id": "bb7add11-58fd-415f-9e9b-e0b0784864dd",
+      "name": "masoodmoazzam16@gmail.com",
+      "webhookId": "965783ff-0e4f-43ae-a0ee-f13b1ad13395",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "vItO7ig3MKPHA58K",
+          "name": "masoodmoazzam16@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Start').item.json.Email }}",
+        "subject": "={{ $('Start').item.json.final_email_subject }}",
+        "emailType": "text",
+        "message": "={{ $('Start').item.json.final_email_body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2576,
+        576
+      ],
+      "id": "87e883f4-b3fb-4188-823b-a0a11f61bbc5",
+      "name": "growwithmoazzam@gmail.com",
+      "webhookId": "965783ff-0e4f-43ae-a0ee-f13b1ad13395",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "q4p9jpChcIf7JCI7",
+          "name": "growwithmoazzam@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Start').item.json.Email }}",
+        "subject": "={{ $('Start').item.json.final_email_subject }}",
+        "emailType": "text",
+        "message": "={{ $('Start').item.json.final_email_body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2416,
+        704
+      ],
+      "id": "13279b0f-4987-4c0d-a6e6-e0879180fdbb",
+      "name": "moazzam.jpeg@gmail.com",
+      "webhookId": "965783ff-0e4f-43ae-a0ee-f13b1ad13395",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "FKbZFmVv1FOjAa8L",
+          "name": "moazzam.jpeg@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Start').item.json.Email }}",
+        "subject": "={{ $('Start').item.json.final_email_subject }}",
+        "emailType": "text",
+        "message": "={{ $('Start').item.json.final_email_body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2624,
+        816
+      ],
+      "id": "686eaab6-b2db-4b2a-8ff3-b84e3a95f07b",
+      "name": "moazzam.exe@gmail.com",
+      "webhookId": "965783ff-0e4f-43ae-a0ee-f13b1ad13395",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "KoSsNAasfPMbAGX2",
+          "name": "moazzam.exe@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Start').item.json.Email }}",
+        "subject": "={{ $('Start').item.json.final_email_subject }}",
+        "emailType": "text",
+        "message": "={{ $('Start').item.json.final_email_body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2432,
+        912
+      ],
+      "id": "25bf261e-ddaf-4a1e-b505-060d48fb5112",
+      "name": "moazzam.demgrow@gmail.com",
+      "webhookId": "965783ff-0e4f-43ae-a0ee-f13b1ad13395",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "2yR6pjsZXx6bRQEq",
+          "name": "moazzam.demgrow@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Start').item.json.Email }}",
+        "subject": "={{ $('Start').item.json.final_email_subject }}",
+        "emailType": "text",
+        "message": "={{ $('Start').item.json.final_email_body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2592,
+        1072
+      ],
+      "id": "4c324739-27c0-4b26-a7bf-bb369da9fea0",
+      "name": "demgroww@gmail.com",
+      "webhookId": "965783ff-0e4f-43ae-a0ee-f13b1ad13395",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "1I9nG92OEqVDN3k2",
+          "name": "demgroww@gmail.com"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Start": [
+      {
+        "json": {
+          "Email": "care@detailingdevils.com",
+          "final_email_subject": "Quick question for Detailing Devils Howrah | Premium Car Wash, Car Ceramic Coating, PPF & Detailing",
+          "final_email_body": "Hey Detailing Devils Howrah | Premium Car Wash, Car Ceramic Coating, PPF & Detailing,\n\nI noticed your shop at Detailing Devils Howrah | Premium Car Wash, Car Ceramic Coating, PPF & Detailing, 102/23, Foreshore Rd, Choura Bustee, Shibpur, Howrah, West Bengal 711102 has 0 reviews and a 4.9⭐ rating — clearly you guys do great work.\n\nWe should Definitely Have a Talk !\n\nInterested?\n\nBest,\nMoazzam",
+          "sender_email": "masoodmoazzam16@gmail.com"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "demgrowonline@gmail.com",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "masoodmoazzam16@gmail.com",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "growwithmoazzam@gmail.com",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "moazzam.jpeg@gmail.com",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "moazzam.exe@gmail.com",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "moazzam.demgrow@gmail.com",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "demgroww@gmail.com",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "a5ea5466-1035-4f90-9416-4f671f4b3f11",
+  "meta": {
+    "instanceId": "e95b57b2bece8732c81adc82c145a54980cd67cb44ba1592629f261d01ef9a2c"
+  },
+  "id": "Ej1joDGVEZxzGClU",
+  "tags": []
+}

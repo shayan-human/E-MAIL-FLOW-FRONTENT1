@@ -91,7 +91,8 @@ export default function AccountsPage() {
     }, [isLoaded]);
 
     const handleConnectGmail = async () => {
-        toast.info("InsForge OAuth logic should be implemented here.");
+        setIsConnecting(true);
+        window.location.href = "/api/auth/google?redirect=/accounts";
     };
 
     const handleDisconnect = async (id: string) => {

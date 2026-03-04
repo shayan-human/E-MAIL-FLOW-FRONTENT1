@@ -1,0 +1,327 @@
+{
+  "name": "email nested sub loop",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "2c91010f-dc2b-40f0-a308-d249a2ca3a40",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        1120,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1568,
+        592
+      ],
+      "id": "a21ebdf3-4e26-4e27-8a66-42c2ce96155f",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 6) + 2 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2336,
+        640
+      ],
+      "id": "0829c525-b49a-4e4b-9d83-842e0afe2de0",
+      "name": "Wait",
+      "webhookId": "4ae5951d-36a8-43bc-b480-c67c3188c0df",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the email string from input\nconst emailString = $input.first().json.Email;\n\n// Split emails by comma and trim whitespace\nconst emails = emailString.split(',').map(email => email.trim());\n\n// Create a separate item for each email\nconst items = emails.map(email => {\n  return {\n    json: {\n      ...($input.first().json), // Copy all original data\n      Email: email              // Replace with single email\n    }\n  };\n});\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        496
+      ],
+      "id": "9b219adb-b796-465f-b296-a8894e6f2533",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1840,
+        464
+      ],
+      "id": "fbeb7339-d192-47d1-997f-572ba1dcd464",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fa7d75b3-8e2f-4916-85f3-b75fcce30f59",
+              "name": "data",
+              "value": "={{ $json.data }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2256,
+        480
+      ],
+      "id": "e26b68f7-8434-4d39-b71c-88fc534f36a5",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "amount": "={{ 50 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2080,
+        624
+      ],
+      "id": "71872f8a-bfa1-4925-b2a5-b16c4b5d0c7a",
+      "name": "Wait1",
+      "webhookId": "729c6f36-1c14-4d0f-a2d4-61244de024f5"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "Ej1joDGVEZxzGClU",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Ej1joDGVEZxzGClU",
+          "cachedResultName": "Gmail_switch"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{ $json.Email }}",
+            "final_email_subject": "={{ $('Start').item.json.final_email_subject }}",
+            "final_email_body": "={{ $('Start').item.json.final_email_body }}",
+            "sender_email": "={{ $json.sender_email }}"
+          },
+          "matchingColumns": [
+            "Email",
+            "final_email_subject",
+            "final_email_body"
+          ],
+          "schema": [
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "final_email_subject",
+              "displayName": "final_email_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "final_email_body",
+              "displayName": "final_email_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sender_email",
+              "displayName": "sender_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1872,
+        624
+      ],
+      "name": "Call Gmail_switch",
+      "id": "d3ac10ab-f123-45d3-86fb-a013a3720cc8"
+    }
+  ],
+  "pinData": {
+    "Start": [
+      {
+        "json": {
+          "Business Name": "The Detailing Mafia Indore",
+          "Phone": "062688 84077",
+          "Email": "hello@manmachinecarcare.com, info@thedetailingmafia.com",
+          "Address": "The Detailing Mafia Indore, Scheme No. 78, near Vrindavan Restaurant, Sector B, Vijay Nagar, Aranya Nagar, Scheme 78, Vijay Nagar, Indore, Madhya Pradesh 452010",
+          "Website": "https://www.thedetailingmafia.com/locate-our-outlets/indore",
+          "Rating": "4.6",
+          "Review Count": "0",
+          "Latitude": "22.7608843",
+          "Longitude": "75.8894545",
+          "Instagram": "http://twitter.com/detailingmafia, https://www.facebook.com/thedetailingmafia.official/, https://www.instagram.com/thedetailingmafia_official/, https://www.instagram.com/thedetailingmafia_official, https://www.linkedin.com/company/the-detailing-mafia-official/, https://www.youtube.com/channel/UCTHuZsrvbnhrwNVmOEAhSDw, https://www.facebook.com/profile.php?id=100083647562639, https://www.facebook.com/thedetailingmafia.official, https://www.instagram.com/thedetailingmafia.indore",
+          "Facebook": "",
+          "LinkedIn": "",
+          "Maps Link": "https://www.google.com/maps/place/The+Detailing+Mafia+Indore/data=!4m7!3m6!1s0x3963038ad7f8785b:0x5c213bc96004eebb!8m2!3d22.7608843!4d75.8894545!16s%2Fg%2F11t4wvgh48!19sChIJW3j414oDYzkRu-4EYMk7IVw?authuser=0&hl=en&rclk=1",
+          "Category": "car detailers 94102",
+          "City": "",
+          "State": "",
+          "Country": "",
+          "Zip Code": "",
+          "Place ID": "ChIJW3j414oDYzkRu-4EYMk7IVw",
+          "validation_status": "valid",
+          "validation_stage": "all_passed",
+          "emails_validated": 2,
+          "emails_rejected": 0,
+          "rejection_details": "none",
+          "final_email_body": "Hey The Detailing Mafia Indore,\n\nI noticed your shop at The Detailing Mafia Indore, Scheme No. 78, near Vrindavan Restaurant, Sector B, Vijay Nagar, Aranya Nagar, Scheme 78, Vijay Nagar, Indore, Madhya Pradesh 452010 has 0 reviews and a 4.6⭐ rating — clearly you guys do great work.\n\n[YOUR PITCH HERE]\n\nInterested?\n\nBest,\nMoazzam",
+          "final_email_subject": "Quick question for The Detailing Mafia Indore",
+          "sender_email": "moazzammasood123@gmail.com",
+          "sender_name": "Moazzam"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call Gmail_switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        []
+      ]
+    },
+    "Call Gmail_switch": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "48c3b9c8-a1cf-4685-b376-fa18a5694347",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e95b57b2bece8732c81adc82c145a54980cd67cb44ba1592629f261d01ef9a2c"
+  },
+  "id": "mLtYTYDwlitIvbl6",
+  "tags": []
+}

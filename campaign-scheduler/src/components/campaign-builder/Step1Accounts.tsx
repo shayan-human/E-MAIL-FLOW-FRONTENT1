@@ -85,7 +85,8 @@ export function Step1Accounts({ onNext }: Step1Props) {
     }, []);
 
     const handleConnectGmail = async () => {
-        toast.info("InsForge OAuth logic should be implemented here.");
+        setIsConnecting(true);
+        window.location.href = "/api/auth/google?redirect=/campaigns/new";
     };
 
     // Use upsert to prevent duplicates — the email column has a unique constraint

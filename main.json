@@ -1,0 +1,1651 @@
+{
+  "name": "main",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "0aec06bf-994e-4c73-b57a-4e396533447c",
+      "name": "Telegram Trigger",
+      "position": [
+        592,
+        128
+      ],
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "webhookId": "62b15524-751f-4c29-b02e-60411e3e6f94",
+      "credentials": {
+        "telegramApi": {
+          "id": "SsXJag9k05HbIlEx",
+          "name": "cold_email_bot_1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "cachedResultName": "Intelligent Lead Processor - Aggressive Email Detection",
+          "cachedResultUrl": "/workflow/Th5foCZclAGAnZ77",
+          "mode": "list",
+          "value": "Th5foCZclAGAnZ77"
+        },
+        "workflowInputs": {
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true,
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "schema": [],
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "c4a8c281-674a-4246-89b9-3930c0b01a7e",
+      "name": "Organise/Format + enrich Leads",
+      "position": [
+        2288,
+        816
+      ],
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the leads array from the input\nconst leads = $input.item.json.leads;\n\n// Filter: Only keep leads with email\nconst withEmail = leads.filter(item => {\n  const email = item.json.Email;\n  return email && email.trim().length > 0;\n});\n\n// Return filtered leads\nreturn withEmail;"
+      },
+      "id": "aa478f9f-548f-4726-be29-569cf2b9658c",
+      "name": "filter only leads with emails",
+      "position": [
+        2256,
+        1056
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ========================================\n// REGEX EMAIL VALIDATION\n// Fast filter to catch obviously invalid emails\n// Handles multiple emails per lead (comma/semicolon separated)\n// ========================================\n\nconst items = $input.all();\nconst validEmails = [];\nconst invalidEmails = [];\n\n// Comprehensive email regex (RFC 5322 compliant)\nconst emailRegex = /^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;\n\n// Common invalid patterns\nconst invalidPatterns = [\n  /noreply/i,\n  /no-reply/i,\n  /donotreply/i,\n  /hello@/i,\n  /test@/i,\n  /example@/i\n];\n\nfunction validateEmail(email) {\n  const cleanEmail = email.trim().toLowerCase();\n  \n  const isValidFormat = emailRegex.test(cleanEmail) &&\n                       cleanEmail.length <= 254 &&\n                       !cleanEmail.includes('..') &&\n                       !cleanEmail.startsWith('.') &&\n                       !cleanEmail.endsWith('.');\n  \n  if (!isValidFormat) {\n    return { valid: false, reason: 'Invalid email format' };\n  }\n  \n  const hasInvalidPattern = invalidPatterns.some(pattern => pattern.test(cleanEmail));\n  \n  if (hasInvalidPattern) {\n    return { valid: false, reason: 'Generic or no-reply email address' };\n  }\n  \n  return { valid: true, email: cleanEmail };\n}\n\nfor (const item of items) {\n  const emailField = item.json.Email;\n  \n  if (!emailField) {\n    invalidEmails.push({\n      json: {\n        ...item.json,\n        validation_status: 'no_email',\n        validation_stage: 'regex',\n        rejection_reason: 'No email provided'\n      }\n    });\n    continue;\n  }\n  \n  const emailList = emailField.split(/[,;]+/).map(e => e.trim()).filter(e => e.length > 0);\n  \n  const validatedEmails = [];\n  const rejectedEmails = [];\n  \n  for (const email of emailList) {\n    const result = validateEmail(email);\n    \n    if (result.valid) {\n      validatedEmails.push(result.email);\n    } else {\n      rejectedEmails.push({ email, reason: result.reason });\n    }\n  }\n  \n  if (validatedEmails.length > 0) {\n    validEmails.push({\n      json: {\n        ...item.json,\n        Email: validatedEmails.join(', '),\n        validation_stage: 'regex_passed',\n        emails_kept: validatedEmails.length,\n        emails_removed: rejectedEmails.length,\n        removed_emails: rejectedEmails.map(r => r.email).join(', ') || 'none'\n      }\n    });\n  } else {\n    invalidEmails.push({\n      json: {\n        ...item.json,\n        validation_status: 'all_emails_invalid',\n        validation_stage: 'regex',\n        rejection_reason: `All ${rejectedEmails.length} email(s) failed validation`,\n        rejected_details: rejectedEmails.map(r => `${r.email} (${r.reason})`).join('; ')\n      }\n    });\n  }\n}\n\nconsole.log(`Regex Validation: ${validEmails.length} leads passed, ${invalidEmails.length} failed`);\n\nreturn validEmails;"
+      },
+      "id": "dd33f394-5af2-43d1-9882-475dd7935dc7",
+      "name": "1. Regex Email Validation",
+      "position": [
+        2240,
+        1280
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ========================================\n// SIMPLIFIED DOMAIN VALIDATION\n// Skip DNS check, only filter disposable domains\n// ========================================\n\nconst items = $input.all();\nconst validDomains = [];\n\nconst disposableDomains = [\n  'tempmail.com', 'guerrillamail.com', 'mailinator.com',\n  '10minutemail.com', 'throwaway.email', 'maildrop.cc',\n  'temp-mail.org', 'getnada.com', 'trashmail.com',\n  'yopmail.com', 'sharklasers.com', 'guerrillamail.info'\n];\n\nfor (const item of items) {\n  const emailField = item.json.Email;\n  const firstEmail = emailField.split(/[,;]+/)[0].trim();\n  const domain = firstEmail.split('@')[1].toLowerCase();\n  \n  if (!disposableDomains.includes(domain)) {\n    validDomains.push(item);\n  }\n}\n\nconsole.log(`Domain Check: ${validDomains.length} passed`);\nreturn validDomains;"
+      },
+      "id": "591ca31a-9f06-42f4-95fa-9bbf7501e8b4",
+      "name": "2. Disposable Domain Check1",
+      "position": [
+        2496,
+        832
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ========================================\n// DNS/MX RECORD CHECK VIA GOOGLE DoH\n// Checks if the email domain actually has mail servers\n// Uses domain caching to avoid duplicate lookups\n// ========================================\n\nconst items = $input.all();\nconst validItems = [];\nconst invalidItems = [];\n\n// Cache: check each unique domain only once\nconst domainCache = {};\n\nasync function checkMX(domain) {\n  if (domainCache[domain] !== undefined) {\n    return domainCache[domain];\n  }\n  \n  try {\n    const response = await fetch(\n      `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=MX`\n    );\n    const data = await response.json();\n    \n    // Status 0 = NOERROR, Answer array with MX records\n    const hasMX = data.Status === 0 && data.Answer && data.Answer.length > 0;\n    \n    domainCache[domain] = {\n      valid: hasMX,\n      mx_server: hasMX ? data.Answer[0].data : null,\n      reason: hasMX ? 'MX records found' : 'No MX records - domain cannot receive email'\n    };\n  } catch (error) {\n    // If DNS lookup fails, give benefit of doubt\n    domainCache[domain] = {\n      valid: true,\n      mx_server: null,\n      reason: 'DNS lookup failed - assuming valid'\n    };\n  }\n  \n  return domainCache[domain];\n}\n\n// Process all items\nfor (const item of items) {\n  const emailField = item.json.Email;\n  if (!emailField) continue;\n  \n  const firstEmail = emailField.split(/[,;]+/)[0].trim();\n  const domain = firstEmail.split('@')[1]?.toLowerCase();\n  \n  if (!domain) {\n    invalidItems.push({\n      json: { ...item.json, mx_status: 'invalid', mx_reason: 'No domain found' }\n    });\n    continue;\n  }\n  \n  const result = await checkMX(domain);\n  \n  if (result.valid) {\n    validItems.push({\n      json: {\n        ...item.json,\n        mx_status: 'valid',\n        mx_server: result.mx_server,\n        mx_reason: result.reason,\n        validation_stage: 'dns_passed'\n      }\n    });\n  } else {\n    invalidItems.push({\n      json: {\n        ...item.json,\n        mx_status: 'invalid',\n        mx_reason: result.reason,\n        validation_stage: 'dns_failed'\n      }\n    });\n  }\n}\n\nconsole.log(`DNS/MX Check: ${validItems.length} passed, ${invalidItems.length} failed (${Object.keys(domainCache).length} unique domains checked)`);\n\nreturn validItems;"
+      },
+      "id": "dns-mx-check",
+      "name": "3. DNS MX Check",
+      "position": [
+        2464,
+        1040
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Remove the junk leads from the input given and out the list in the same format as given .\n\nDon't ask for a feedback , or anything at last , and don't inlcude anything other than the list in the response , this is critical or the workflow will break .",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a Junk emails remover .\n\nTask: Analyze The list of leads the emails of the list of leads , given to you , and dispose junk emails , and output the same list , with only those emails which look real and good.\n\nCRITICAL RULES:\n1. IGNORE other columns - analyze emails only\n2. Don't remove any real emai , even if it's a support email , or of any type , Just remove the junk.\n\nexample of emails you should definitely remove :\n1. 5d1795a2db124a268f1e1bd88f503500@sentry.wixpress.com\n2. user@domain.com\n3. 13e49d785d8d4f828038b6136f3b48ba@sentry.io\n\nbecause real emails don't usually look like this.\n\n\noutput only in the format you were given input , Just remove the leads with junk emails .\n\nimportant note : You need to remove the lead ( Row) who has a junk email , not only the email.  "
+        }
+      },
+      "id": "44ce2efd-8ec3-4e87-a372-01f2cf777260",
+      "name": "AI Agent",
+      "position": [
+        2400,
+        1248
+      ],
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "1e1aa8ac-ec64-4cea-8f3c-b4c29782b327",
+      "name": "Azure OpenAI",
+      "position": [
+        2336,
+        1376
+      ],
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "Fw8jBYtK0e3Xwp9O",
+          "name": "Azure Open AI api credentials"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"mappings\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"input_header\": { \"type\": \"string\" },\n          \"standard_field\": {\n            \"type\": \"string\",\n            \"enum\": [\n              \"Business Name\", \"Phone\", \"Email\", \"Address\", \"Website\",\n              \"Rating\", \"Review Count\", \"Latitude\", \"Longitude\",\n              \"Instagram\", \"Facebook\", \"LinkedIn\", \"Maps Link\",\n              \"Category\", \"City\", \"State\", \"Country\", \"Zip Code\", \"Place ID\"\n            ]\n          },\n          \"confidence\": {\n            \"type\": \"string\",\n            \"enum\": [\"high\", \"medium\", \"low\"]\n          }\n        },\n        \"required\": [\"input_header\", \"standard_field\", \"confidence\"]\n      }\n    }\n  },\n  \"required\": [\"mappings\"]\n}"
+      },
+      "id": "0138df7c-9522-44bd-81d8-f32a1159937d",
+      "name": "Structured Output Parser",
+      "position": [
+        2528,
+        1392
+      ],
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').first().json.message.chat.id }}"
+      },
+      "id": "488efe75-acbe-42c2-a1a7-56c54f33c41a",
+      "name": "Simple Memory",
+      "position": [
+        2432,
+        1376
+      ],
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ========================================\n// PROCESS AI RESPONSE\n// Parse Claude's analysis and categorize leads\n// ========================================\n\nconst items = $input.all();\nconst highQuality = [];\nconst mediumQuality = [];\nconst lowQuality = [];\nconst failed = [];\n\nfor (const item of items) {\n  try {\n    const content = item.json.content;\n    \n    if (!content || !Array.isArray(content) || content.length === 0) {\n      throw new Error('Invalid response format from AI');\n    }\n    \n    const textContent = content.find(c => c.type === 'text');\n    if (!textContent || !textContent.text) {\n      throw new Error('No text content in AI response');\n    }\n    \n    let aiResponse = textContent.text.trim();\n    aiResponse = aiResponse.replace(/```json\\s*/g, '').replace(/```\\s*/g, '');\n    \n    const analysis = JSON.parse(aiResponse);\n    \n    const originalData = item.json.inputData || item.json;\n    \n    const enrichedLead = {\n      json: {\n        ...originalData,\n        ai_quality_score: analysis.quality_score || 5,\n        ai_reasoning: analysis.reasoning || 'No reasoning provided',\n        send_recommendation: analysis.send_recommendation || 'maybe',\n        personalization_tips: analysis.personalization_tips || '',\n        red_flags: analysis.red_flags || [],\n        confidence: analysis.confidence || 'medium',\n        validation_stage: 'ai_complete',\n        timestamp: new Date().toISOString()\n      }\n    };\n    \n    const score = analysis.quality_score || 5;\n    const recommendation = (analysis.send_recommendation || 'maybe').toLowerCase();\n    \n    if (score >= 7 && (recommendation === 'yes' || recommendation === 'maybe')) {\n      highQuality.push(enrichedLead);\n    } else if (score >= 4 && score < 7) {\n      mediumQuality.push(enrichedLead);\n    } else {\n      lowQuality.push(enrichedLead);\n    }\n    \n  } catch (error) {\n    console.error('AI Response Parsing Error:', error.message);\n    \n    failed.push({\n      json: {\n        ...item.json,\n        ai_quality_score: 0,\n        ai_reasoning: 'AI analysis failed: ' + error.message,\n        send_recommendation: 'no',\n        validation_status: 'ai_failed',\n        validation_stage: 'ai_error',\n        error_details: error.message\n      }\n    });\n  }\n}\n\nconsole.log(`AI Analysis: ${highQuality.length} high quality, ${mediumQuality.length} medium, ${lowQuality.length} low, ${failed.length} failed`);\n\nreturn highQuality;"
+      },
+      "id": "a9d15bea-8e6a-4890-9148-6846ed5087bc",
+      "name": "4. Process AI Response",
+      "position": [
+        2688,
+        848
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "batchSize": 10,
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "8065f391-5f40-4795-b940-dfa245d41678",
+      "name": "5. Split Into Batches",
+      "position": [
+        2656,
+        1056
+      ],
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "amount": 60
+      },
+      "id": "668a5207-d23a-410a-8dad-2c3b61f6091f",
+      "name": "6. Rate Limit (Wait)",
+      "position": [
+        2688,
+        1248
+      ],
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "webhookId": "fe9b402f-c0a5-452f-aac4-54131030a4d3",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ========================================\n// GENERATE PERSONALIZED EMAIL\n// Create email content using AI insights\n// ========================================\n\nconst items = $input.all();\nconst emails = [];\n\nfor (const item of items) {\n  const lead = item.json;\n  \n  const businessName = lead[\"Business Name\"] || \"there\";\n  const firstName = businessName.split(' ')[0];\n  const category = lead.Category || \"your business\";\n  const location = lead.City ? `${lead.City}, ${lead.Country}` : lead.Country;\n  const personalizationTips = lead.personalization_tips || \"\";\n  \n  const subjectLines = [\n    `Quick question about ${businessName}`,\n    `Idea for ${businessName}'s ${category}`,\n    `${firstName}, thought you'd find this interesting`,\n    `Growing ${businessName} in ${location}`\n  ];\n  \n  const subject = subjectLines[Math.floor(Math.random() * subjectLines.length)];\n  \n  const emailBody = `Hi ${firstName},\n\nI came across ${businessName} and was impressed by your work in ${category}.\n\n${personalizationTips ? personalizationTips + '\\n\\n' : ''}I wanted to reach out because we've been helping similar businesses in ${location} [YOUR VALUE PROPOSITION HERE].\n\nWould you be open to a quick 15-minute call next week to explore how we might help ${businessName}?\n\nBest regards,\n[YOUR NAME]\n[YOUR COMPANY]\n[YOUR CONTACT INFO]`;\n  \n  emails.push({\n    json: {\n      ...lead,\n      email_subject: subject,\n      email_body: emailBody,\n      ready_to_send: true,\n      generated_at: new Date().toISOString()\n    }\n  });\n}\n\nreturn emails;"
+      },
+      "id": "144a3e0c-8f3d-4113-9ccf-46c0075cb055",
+      "name": "7. Generate Personalized Email",
+      "position": [
+        2848,
+        880
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "toEmail": "={{ $json.Email }}",
+        "subject": "={{ $json.email_subject }}",
+        "options": {}
+      },
+      "id": "6eb4a2c3-156f-4337-b14a-84ac12ca2aee",
+      "name": "8. Send Email",
+      "position": [
+        2896,
+        1024
+      ],
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "webhookId": "29d6aed8-646f-4a80-ab7c-2e1c52f906a5",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ========================================\n// LOG RESULTS\n// Track success/failure for analytics\n// ========================================\n\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const lead = item.json;\n  \n  const status = item.error ? 'failed' : 'sent';\n  const errorMessage = item.error ? item.error.message : null;\n  \n  results.push({\n    json: {\n      email: lead.Email,\n      business_name: lead[\"Business Name\"],\n      status: status,\n      error_message: errorMessage,\n      ai_quality_score: lead.ai_quality_score,\n      sent_at: new Date().toISOString(),\n      subject: lead.email_subject,\n      campaign_id: 'cold-email-' + new Date().toISOString().split('T')[0]\n    }\n  });\n}\n\nconsole.log(`Email Campaign: ${results.filter(r => r.json.status === 'sent').length} sent, ${results.filter(r => r.json.status === 'failed').length} failed`);\n\nreturn results;"
+      },
+      "id": "788388c0-bd67-4947-b073-98cdb3b5f9a4",
+      "name": "9. Log Results",
+      "position": [
+        2912,
+        1232
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "YOUR_GOOGLE_SHEET_ID"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ai_quality_score": "={{ $json.ai_quality_score }}",
+            "business_name": "={{ $json.business_name }}",
+            "campaign_id": "={{ $json.campaign_id }}",
+            "email": "={{ $json.email }}",
+            "error_message": "={{ $json.error_message }}",
+            "sent_at": "={{ $json.sent_at }}",
+            "status": "={{ $json.status }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "a0d0eea4-48e4-4e91-a7b3-42ac3e4594ea",
+      "name": "10. Save to Google Sheets",
+      "position": [
+        2896,
+        1376
+      ],
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Wq29qTrdlovnks3V",
+          "name": "Google Sheets moazzammasood123@gmail.com"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User Message: {{ $json.message.caption }}\n\nLeads File ID: {{ $json.message.document.file_id }}",
+        "options": {
+          "systemMessage": "You are an expert Cold Email Automation Orchestrator. Your goal is to process lead lists from Telegram and send personalized cold emails using the available tools.\n\n### Your Workflow:\n1.  **Receive File:** When the user uploads a CSV or xlsx file (e.g., \"process these leads\"), use the `Get_sheet_tool` to retrieve the file data in json.\n2.  **Normalize:** Pass the leads json data to the `Normalizer` tool to clean and structure the leads into standardized JSON.\n3.  **Validate:** Send the normalized JSON to the `Validator` tool to filter out invalid emails (junk, disposable, invalid MX).\n4.  **Report Status:** Always inform the user of the validation results (e.g., \"Found 100 leads, 85 valid. 15 rejected.\").\n5.  **Get Configuration:** \n    -   Check if the user provided email content (Subject, Body, Sender Name) in the message.\n    -   If not, use the `cold_email_format` tool to fetch the default configuration and templates from Google Sheets.\n6.  **Execute Sending:** \n    -   Once you have the **Validated Leads** and the **Email Configuration** (Subject, Body, Sender Name, Delay), call the `Email List email sender` tool.\n    -   **CRITICAL:** Pass the *entire* list of valid leads to this tool as a JSON string in the `lead_list` argument.\n7.  **Final Report:** Confirm to the user that the sending loop has started.\n\n### Tool Usage Guidelines:\n-   **`Get_csv_tool`**: ONLY use if a file is present in the Telegram message.\n-   **`Normalizer`**: Input is the json data from `Get_csv_tool`. Output is a list of leads.\n-   **`Validator`**: Input is the JSON list from `Normalizer`. Output is the filtered list of valid leads.\n-   **`cold_email_format`**: Use this to get default templates if the user didn't write a specific email body in the chat.\n-   **`Email List email sender`**: This is the FINAL step. It triggers the actual sending loop. Required inputs: `lead_list` (JSON string), `email_subject`, `email_body`, `sender_email_id`.\n\n### Important Rules:\n-   If you encounter an error in any step, report it clearly to the user via Telegram.\n-   Do **NOT** hallucinate lead data. Only use what is returned by the tools.\n-   Always prioritize \"Valid\" leads for sending. Do not send to \"Invalid\" leads."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2400,
+        1456
+      ],
+      "id": "8ad5e1c0-cfa1-4c5f-91b1-1420554d30fd",
+      "name": "AI Agent1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "toolDescription": "this tool helps to Validates email addresses in a lead list using MX records, disposable checks, and junk filtering. Returns valid/invalid results.",
+        "method": "POST",
+        "url": "https://moazzammasood5--email-validator-fastapi-app.modal.run/validate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"leads\": [\n    {\n      \"Business Name\": \"Test Biz\",\n      \"Email\": \"test@example.com\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        2336,
+        1856
+      ],
+      "id": "e21a9539-d051-496c-a84d-7f7b2ba99421",
+      "name": "Validator",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "toolDescription": "this tool helps to Standardizes json lead data ( converted from csv/xlsx) , detects columns (Name, Email, Phone), and extracts hidden emails. Returns clean JSON leads.\n\nthis tool takes binary data (csv as input) , you need to call the get_sheet tool to get the data",
+        "method": "POST",
+        "url": "https://moazzammasood5--csv-normalizer-fastapi-app.modal.run/normalize-json",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"leads\": [\n    {\n      \"name\": \"John Doe\",\n      \"email\": \"john@example.com\"\n    },\n    {\n      \"column_2\": \"Some data\",\n      \"column_3\": \"More data\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        2480,
+        1888
+      ],
+      "id": "1571308a-099e-408a-b5d9-9ac8ba5ef529",
+      "name": "Normalizer",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Call this tool whenever you want to send workflow updates to user in the form of text",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Text', ``, 'string') }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegramTool",
+      "typeVersion": 1.2,
+      "position": [
+        2816,
+        1728
+      ],
+      "id": "c9fd3a05-4675-4060-bad2-8b3834a1e3e7",
+      "name": "Send a text message in Telegram",
+      "webhookId": "1b5c96e8-3627-482c-9571-5aac9b991bd4",
+      "credentials": {
+        "telegramApi": {
+          "id": "SsXJag9k05HbIlEx",
+          "name": "cold_email_bot_1"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Call this tool whenever you want to send some kind of document to the user",
+        "operation": "sendDocument",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "binaryData": true,
+        "binaryPropertyName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Input_Binary_Field', ``, 'string') }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTool",
+      "typeVersion": 1.2,
+      "position": [
+        2688,
+        1792
+      ],
+      "id": "3ac09c7c-292b-47ce-8151-1b35d1a57773",
+      "name": "Send a document in Telegram",
+      "webhookId": "c8360db4-6283-4712-9c8c-bf167e82e4f5",
+      "credentials": {
+        "telegramApi": {
+          "id": "SsXJag9k05HbIlEx",
+          "name": "cold_email_bot_1"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "description": "Call this tool to start the email sending loop.\nget the users preference of choosing the type of format he wants (He would provide format name) to send cold email as .\n\nand if user gaves a new format from the chat input ( telegram in this case ) , then you need to comply.\n\ngather :  \n\nSubject\nBody\nSender_Name\nSender_Email\nActive\nDelay_Min\nDelay_Max\n\nfrom the cold_email_format tool or user chat before calling this. \t\t\t\t\n\t\t\t",
+        "workflowId": {
+          "__rl": true,
+          "value": "rwYSH58nw0KdsRNz",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/rwYSH58nw0KdsRNz",
+          "cachedResultName": "email loop"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email_subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('email_subject', ``, 'string') }}",
+            "email_body": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('email_body', ``, 'string') }}",
+            "email_sender_Name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('email_sender_Name', ``, 'string') }}",
+            "sender_email_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('sender_email_id', ``, 'string') }}",
+            "Delay_Min": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Delay_Min', ``, 'string') }}",
+            "Delay_Max": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Delay_Max', ``, 'string') }}",
+            "lead_list": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('lead_list', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "email_subject",
+              "displayName": "email_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "email_body",
+              "displayName": "email_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "email_sender_Name",
+              "displayName": "email_sender_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "sender_email_id",
+              "displayName": "sender_email_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Delay_Min",
+              "displayName": "Delay_Min",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Delay_Max",
+              "displayName": "Delay_Max",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "lead_list",
+              "displayName": "lead_list",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2592,
+        1808
+      ],
+      "id": "034807c5-ac31-43be-bcab-961cb76cb985",
+      "name": "Email List email sender",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Get row(s) in sheet in Google Sheets",
+        "documentId": {
+          "__rl": true,
+          "value": "1yTHNNPtWvZviiGhLC1Tq81Y-preLPfb4w1DHvtdtxFk",
+          "mode": "list",
+          "cachedResultName": "Cold email Automation Config",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1yTHNNPtWvZviiGhLC1Tq81Y-preLPfb4w1DHvtdtxFk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1yTHNNPtWvZviiGhLC1Tq81Y-preLPfb4w1DHvtdtxFk/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        2400,
+        2032
+      ],
+      "id": "343f8a6a-0ee7-43eb-aed1-e6f2e939eb24",
+      "name": "cold_email_format",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "lae5qrrZkOg0YRVG",
+          "name": "demgrow sheets account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "8af449fd-994d-4be1-a785-fe9949dae2ee",
+      "name": "Azure OpenAI1",
+      "position": [
+        2240,
+        2016
+      ],
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "Fw8jBYtK0e3Xwp9O",
+          "name": "Azure Open AI api credentials"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "Over and Out",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2912,
+        1472
+      ],
+      "id": "a468ad4f-d52f-4ce5-bd44-fc782b9029c8",
+      "name": "Send a text message",
+      "webhookId": "1344bb9e-1c82-4c7d-a164-ed6f74590cb4",
+      "credentials": {
+        "telegramApi": {
+          "id": "SsXJag9k05HbIlEx",
+          "name": "cold_email_bot_1"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        2544,
+        2016
+      ],
+      "id": "4b22d730-6420-40f7-9f4b-116b48e5a12c",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "m3XEnJjhUqrrhMb1",
+          "name": "Postgres account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "description": "=Call this tool when you need to get the csv or xlsx etc kind of files out of telegram into the google sheet for the workflow \n\ntake the file id from the telegram input data you have.\nit may look something like {{ $json.message.document.file_id }}\nand also pass a random name to name the google sheet \n\nthis tool returns the google sheet data like link , id etc",
+        "workflowId": {
+          "__rl": true,
+          "value": "Jy6ZgV8zP8FfUNxX",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Jy6ZgV8zP8FfUNxX",
+          "cachedResultName": "Get_sheet"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "telegram_document_file_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('telegram_document_file_id', ``, 'string') }}",
+            "sheet_name_ai_generated_randomly": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('sheet_name_ai_generated_randomly', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "telegram_document_file_id"
+          ],
+          "schema": [
+            {
+              "id": "telegram_document_file_id",
+              "displayName": "telegram_document_file_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "sheet_name_ai_generated_randomly",
+              "displayName": "sheet_name_ai_generated_randomly",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2864,
+        1984
+      ],
+      "id": "03bf8f14-245b-4ea5-80e8-111ef8f6db6e",
+      "name": "get_sheet_tool",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "processed_data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        160
+      ],
+      "id": "f50e3da9-c371-4d17-a178-e631377d299d",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1232,
+        -64
+      ],
+      "id": "a3a06ac0-dd37-4adc-8a41-1955594658f5",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "operation": "sendDocument",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "binaryData": true,
+        "additionalFields": {
+          "caption": "=✅ Leads processed with AGGRESSIVE email detection!  📊\n\nStatistics:\n• Total leads: {{ $('Normalize+validate+enrich').item.json.total_leads }}\n• Valid leads for email : {{ $('Normalize+validate+enrich').item.json.valid_leads }}\n• Junk leads removed:  {{ $('Normalize+validate+enrich').item.json.invalid_leads }}\n\n🔍 Emails extracted from ALL columns!  \n\n🧠 AI analyzes content + Regex scans for @ ✨ Works even with scattered/sparse emails!"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1536,
+        -80
+      ],
+      "id": "6209d413-d870-4be0-a25d-1ae1727a22fe",
+      "name": "Send a document",
+      "webhookId": "9284f012-c22d-40b5-8318-5293e3ae811d",
+      "credentials": {
+        "telegramApi": {
+          "id": "SsXJag9k05HbIlEx",
+          "name": "cold_email_bot_1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "rwYSH58nw0KdsRNz",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/rwYSH58nw0KdsRNz",
+          "cachedResultName": "email loop"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email_subject": "={{ $json.selected_config.Subject }}",
+            "email_body": "={{ $json.selected_config.Body }}{{ $json.Body }}",
+            "sender_email_id": "={{ $json.selected_config.Sender_Email }}{{ $json.Sender_Email }}",
+            "email_sender_Name": "={{ $json.selected_config.Sender_Name }}{{ $json.Sender_Name }}",
+            "Delay_Min": "={{ $json.selected_config.Delay_Min }}{{ $json.Delay_Min }}",
+            "Delay_Max": "={{ $json.selected_config.Delay_Max }}{{ $json.Delay_Max }}",
+            "lead_list": "={{ $('Normalize+validate+enrich').first().json.processed_data }}",
+            "chatid": "={{ $('Telegram Trigger').first().json.message.chat.id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "email_subject",
+              "displayName": "email_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "email_body",
+              "displayName": "email_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "email_sender_Name",
+              "displayName": "email_sender_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "sender_email_id",
+              "displayName": "sender_email_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Delay_Min",
+              "displayName": "Delay_Min",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "Delay_Max",
+              "displayName": "Delay_Max",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "chatid",
+              "displayName": "chatid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "lead_list",
+              "displayName": "lead_list",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2512,
+        80
+      ],
+      "id": "addd14fc-18ee-4ce3-b3b3-b7a64c9c2141",
+      "name": "Call 'email loop'"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        160
+      ],
+      "id": "56ded22b-b746-4019-9b43-70db74c9f1a7",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "08962ec4-8078-438f-a1f7-b630678afe0b",
+      "name": "Azure OpenAI2",
+      "position": [
+        2112,
+        1056
+      ],
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "Fw8jBYtK0e3Xwp9O",
+          "name": "Azure Open AI api credentials"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://masoodmoazzam16--config-selector-agent-fastapi-app.modal.run/select-config",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user_intent",
+              "value": "={{ $('Telegram Trigger').item.json.message.caption }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1808,
+        192
+      ],
+      "id": "0ab77122-ca2a-4da3-bdf7-7e4fa9b5770e",
+      "name": "email_config_finder",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://masoodmoazzam16--cold-email-agent-fastapi-app.modal.run/start-campaign",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "file_id",
+              "value": "={{ $json.message.document.file_id }}"
+            },
+            {
+              "name": "telegram_bot_token",
+              "value": "=8432623987:AAEAuORnWYFvQxTgJnyU_Vt2hThZRTLs66Y"
+            },
+            {
+              "name": "chat_id",
+              "value": "={{ $json.message.chat.id }}"
+            },
+            {
+              "name": "user_prompt",
+              "value": "={{ $json.message.caption }}"
+            },
+            {
+              "name": "config_webhook",
+              "value": "https://n8nai.demgrow.space/webhook/f5a351e9-772a-4034-abe4-8eb4ad0e23e9"
+            },
+            {
+              "name": "openai_api_key",
+              "value": "73ZYytN2KXg0kmtgL67NqNK3VuB2ltNNZaA5DxHC0DG304npfL2aJQQJ99CBACYeBjFXJ3w3AAAAACOGczBD"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        800,
+        128
+      ],
+      "id": "6f46b52d-c6ce-465c-a627-b6013c224cbc",
+      "name": "Normalize+validate+enrich"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "Task Completed",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2768,
+        144
+      ],
+      "id": "47dbdd9e-aa26-4ced-a740-0b92163f785b",
+      "name": "Send a text message1",
+      "webhookId": "783a39d9-6c08-46da-8da3-79b9f88fc50e",
+      "credentials": {
+        "telegramApi": {
+          "id": "SsXJag9k05HbIlEx",
+          "name": "cold_email_bot_1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the caption from Telegram Trigger\nconst caption = $('Telegram Trigger').first().json.message.caption || '';\n\n// Regex to extract email (standard email pattern)\nconst emailRegex = /[\\w.-]+@[\\w.-]+\\.\\w+/;\nconst emailMatch = caption.match(emailRegex);\n\n// Regex to extract workflow name (pattern: word_word, can have multiple underscores)\n// This looks for words connected by underscores (like secret_formula, epstien_formula, hello_world)\nconst workflowRegex = /\\b[a-zA-Z0-9]+_[a-zA-Z0-9_]+\\b/;\nconst workflowMatch = caption.match(workflowRegex);\n\n// Return the extracted data\nreturn [{\n  json: {\n    extracted_email: emailMatch ? emailMatch[0] : null,\n    workflow_name: workflowMatch ? workflowMatch[0] : null,\n    original_caption: caption,\n    // Include a flag to check if both were found\n    has_email: !!emailMatch,\n    has_workflow: !!workflowMatch\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2032,
+        400
+      ],
+      "id": "a77b0fa0-4082-401c-8099-260d7bdd6bc1",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1yTHNNPtWvZviiGhLC1Tq81Y-preLPfb4w1DHvtdtxFk",
+          "mode": "list",
+          "cachedResultName": "Cold email Automation Config",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1yTHNNPtWvZviiGhLC1Tq81Y-preLPfb4w1DHvtdtxFk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1yTHNNPtWvZviiGhLC1Tq81Y-preLPfb4w1DHvtdtxFk/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Format name",
+              "lookupValue": "={{ $json.workflow_name }}"
+            },
+            {
+              "lookupColumn": "Sender_Email",
+              "lookupValue": "={{ $json.extracted_email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2240,
+        384
+      ],
+      "id": "9357bac2-b1a3-4f61-b36e-e96f3f4748e3",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "lae5qrrZkOg0YRVG",
+          "name": "demgrow sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "rwYSH58nw0KdsRNz",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/rwYSH58nw0KdsRNz",
+          "cachedResultName": "email loop"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email_subject": "={{ $json.Subject }}",
+            "email_body": "={{ $json.Body }}",
+            "sender_email_id": "={{ $json.Sender_Email }}",
+            "email_sender_Name": "={{ $json.Sender_Name }}",
+            "Delay_Min": "={{ $json.Delay_Min }}",
+            "Delay_Max": "={{ $json.Delay_Max }}",
+            "lead_list": "={{ $('Normalize+validate+enrich').first().json.processed_data }}",
+            "chatid": "={{ $('Telegram Trigger').first().json.message.chat.id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "email_subject",
+              "displayName": "email_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "email_body",
+              "displayName": "email_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "email_sender_Name",
+              "displayName": "email_sender_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "sender_email_id",
+              "displayName": "sender_email_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Delay_Min",
+              "displayName": "Delay_Min",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "Delay_Max",
+              "displayName": "Delay_Max",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "chatid",
+              "displayName": "chatid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "lead_list",
+              "displayName": "lead_list",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2544,
+        448
+      ],
+      "id": "efc73c2d-9d65-4706-bb8f-e2f637977a80",
+      "name": "Call 'email loop'1"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "Task Completed",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2880,
+        384
+      ],
+      "id": "2d258564-b5a9-4f01-a8a7-ccbcb69f53ea",
+      "name": "Send a text message2",
+      "webhookId": "783a39d9-6c08-46da-8da3-79b9f88fc50e",
+      "credentials": {
+        "telegramApi": {
+          "id": "SsXJag9k05HbIlEx",
+          "name": "cold_email_bot_1"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Telegram Trigger": [
+      {
+        "json": {
+          "update_id": 86530401,
+          "message": {
+            "message_id": 122,
+            "from": {
+              "id": 5169315169,
+              "is_bot": false,
+              "first_name": "SHAYAN",
+              "username": "SHAYAN637",
+              "language_code": "en"
+            },
+            "chat": {
+              "id": 5169315169,
+              "first_name": "SHAYAN",
+              "username": "SHAYAN637",
+              "type": "private"
+            },
+            "date": 1771508447,
+            "document": {
+              "file_name": "Untitled spreadsheet.csv",
+              "mime_type": "text/comma-separated-values",
+              "file_id": "BQACAgUAAxkBAAN6aZcS34q00jQyukVkK26H54j8YPEAAvscAAKdj7lUCOAajX7UG8A6BA",
+              "file_unique_id": "AgAD-xwAAp2PuVQ",
+              "file_size": 117
+            },
+            "caption": "Hi , run this with format 2"
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "1. Regex Email Validation": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "2. Disposable Domain Check1",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "2. Disposable Domain Check1": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "3. DNS MX Check",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "3. DNS MX Check": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "AI Agent",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "4. Process AI Response": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "5. Split Into Batches",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "5. Split Into Batches": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "6. Rate Limit (Wait)",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "6. Rate Limit (Wait)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "7. Generate Personalized Email",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "7. Generate Personalized Email": {
+      "main": [
+        []
+      ]
+    },
+    "8. Send Email": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "9. Log Results",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "9. Log Results": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "10. Save to Google Sheets",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "4. Process AI Response",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI": {
+      "ai_languageModel": [
+        [
+          {
+            "index": 0,
+            "node": "AI Agent",
+            "type": "ai_languageModel"
+          }
+        ]
+      ]
+    },
+    "Organise/Format + enrich Leads": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "filter only leads with emails",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "index": 0,
+            "node": "AI Agent",
+            "type": "ai_memory"
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "index": 0,
+            "node": "AI Agent",
+            "type": "ai_outputParser"
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize+validate+enrich",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "filter only leads with emails": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "1. Regex Email Validation",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Validator": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizer": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message in Telegram": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a document in Telegram": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email List email sender": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cold_email_format": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_sheet_tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Send a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a document": {
+      "main": [
+        []
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "email_config_finder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI2": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "email_config_finder": {
+      "main": [
+        [
+          {
+            "node": "Call 'email loop'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize+validate+enrich": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'email loop'": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Call 'email loop'1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'email loop'1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "6819044f-81f6-4a38-81e8-c7dd51586b62",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e95b57b2bece8732c81adc82c145a54980cd67cb44ba1592629f261d01ef9a2c"
+  },
+  "id": "8mfNZIHsUBA8H84q",
+  "tags": []
+}
