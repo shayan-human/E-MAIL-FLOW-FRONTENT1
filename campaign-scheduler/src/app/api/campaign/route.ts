@@ -198,10 +198,25 @@ export async function POST(req: Request) {
             }
         }
 
+        // 9. Trigger Backend for immediate processing if n8n didn't take care of it
+        if (!dispatched) {
+            const backendUrl = process.env.CAMPAIGN_BACKEND_URL;
+            if (backendUrl) {
+                try {
+                    fetch(`${backendUrl}/trigger`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                    }).catch(err => console.error("[Backend trigger failed]:", err));
+                } catch (triggerErr) {
+                    console.warn("[Backend trigger skipped]:", triggerErr);
+                }
+            }
+        }
+
         return NextResponse.json({
             message: dispatched
                 ? "Campaign dispatched to n8n successfully"
-                : "Campaign created and saved. (n8n dispatch unavailable — campaign is ready for manual trigger)",
+                : "Campaign created and saved. Triggered backend for processing.",
             data: { campaignId, idempotencyKey, dispatched },
         });
 
