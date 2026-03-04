@@ -18,6 +18,10 @@ export async function GET(req: Request) {
 
         console.log(`[OAuth Callback] Code: ${code ? "present" : "missing"}, Redirect Path: ${redirectPath}, URI: ${redirectUri}`);
 
+        if (!code) {
+            return NextResponse.redirect(new URL(`${redirectPath}?error=no_code`, req.url));
+        }
+
         // Exchange authorization code for tokens
         const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
             method: "POST",
@@ -68,15 +72,16 @@ export async function GET(req: Request) {
                 is_active: true,
             }], { onConflict: "email" });
 
-        console.error("[Upsert Sender Account Error]:", upsertError);
-        return NextResponse.redirect(new URL(`${redirectPath}?error=save_failed`, req.url));
-    }
+        if (upsertError) {
+            console.error("[Upsert Sender Account Error]:", upsertError);
+            return NextResponse.redirect(new URL(`${redirectPath}?error=save_failed`, req.url));
+        }
 
         console.log(`[OAuth Callback] Successfully connected account: ${email}`);
-    return NextResponse.redirect(new URL(`${redirectPath}?success=account_connected`, req.url));
+        return NextResponse.redirect(new URL(`${redirectPath}?success=account_connected`, req.url));
 
-} catch (error) {
-    console.error("[Google OAuth Callback Error]:", error);
-    return NextResponse.redirect(new URL("/accounts?error=unknown", req.url));
-}
+    } catch (error) {
+        console.error("[Google OAuth Callback Error]:", error);
+        return NextResponse.redirect(new URL("/accounts?error=unknown", req.url));
+    }
 }
