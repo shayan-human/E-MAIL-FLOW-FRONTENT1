@@ -13,12 +13,10 @@ export async function GET(req: Request) {
         const code = searchParams.get("code");
         const redirectPath = searchParams.get("state") || "/accounts";
 
-        if (!code) {
-            return NextResponse.redirect(new URL(`${redirectPath}?error=no_code`, req.url));
-        }
-
         const origin = new URL(req.url).origin;
-        const redirectUri = `${origin}/api/auth/google/callback`;
+        const redirectUri = `${origin}/api/auth/callback/google`;
+
+        console.log(`[OAuth Callback] Code: ${code ? "present" : "missing"}, Redirect Path: ${redirectPath}, URI: ${redirectUri}`);
 
         // Exchange authorization code for tokens
         const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
@@ -70,15 +68,15 @@ export async function GET(req: Request) {
                 is_active: true,
             }], { onConflict: "email" });
 
-        if (upsertError) {
-            console.error("[Upsert Sender Account Error]:", upsertError);
-            return NextResponse.redirect(new URL(`${redirectPath}?error=save_failed`, req.url));
-        }
-
-        return NextResponse.redirect(new URL(`${redirectPath}?success=account_connected`, req.url));
-
-    } catch (error) {
-        console.error("[Google OAuth Callback Error]:", error);
-        return NextResponse.redirect(new URL("/accounts?error=unknown", req.url));
+        console.error("[Upsert Sender Account Error]:", upsertError);
+        return NextResponse.redirect(new URL(`${redirectPath}?error=save_failed`, req.url));
     }
+
+        console.log(`[OAuth Callback] Successfully connected account: ${email}`);
+    return NextResponse.redirect(new URL(`${redirectPath}?success=account_connected`, req.url));
+
+} catch (error) {
+    console.error("[Google OAuth Callback Error]:", error);
+    return NextResponse.redirect(new URL("/accounts?error=unknown", req.url));
+}
 }
