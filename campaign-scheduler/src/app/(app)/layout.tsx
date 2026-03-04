@@ -11,9 +11,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
 
     useEffect(() => {
+        console.log("[AppLayout] Auth State:", { isLoaded, user: user?.email || "null" });
+
+        let timeoutId: NodeJS.Timeout;
+
         if (isLoaded && !user) {
-            router.replace("/");
+            console.warn("[AppLayout] No user found, waiting buffer before redirecting...");
+            // Add a 750ms buffer/debounce to prevent flash logouts when the provider hydrates
+            timeoutId = setTimeout(() => {
+                router.replace("/");
+            }, 750);
         }
+
+        return () => {
+            if (timeoutId) clearTimeout(timeoutId);
+        };
     }, [isLoaded, user, router]);
 
     if (!isLoaded) {

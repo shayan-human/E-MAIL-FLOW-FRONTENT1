@@ -2,7 +2,12 @@ import { InsforgeMiddleware } from '@insforge/nextjs/middleware';
 
 export default InsforgeMiddleware({
     baseUrl: process.env.NEXT_PUBLIC_INSFORGE_BASE_URL || 'https://4njfm5n4.us-east.insforge.app',
-    publicRoutes: ['/', '/auth/callback'],
+    publicRoutes: [
+        '/',
+        '/auth/callback',
+        '/api/auth/(.*)',
+        '/api/webhooks/(.*)'
+    ],
 });
 
 export const config = {
