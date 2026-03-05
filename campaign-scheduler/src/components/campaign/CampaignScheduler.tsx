@@ -477,7 +477,7 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
                                     control={form.control}
                                     name="skipWeekends"
                                     render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm bg-white dark:bg-background">
+                                        <FormItem className="flex flex-row items-center justify-between rounded-xl border-2 border-border p-4 shadow-sm bg-card hover:bg-muted/30 transition-colors">
                                             <div className="space-y-0.5">
                                                 <FormLabel className="text-base font-semibold">
                                                     Skip Weekends
@@ -554,67 +554,68 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
 
             {/* RIGHT COL: Output / Estimation Display */}
             <div className="flex flex-col gap-6">
-                <h3 className="text-xl font-bold font-heading px-1 text-foreground">Live Estimates</h3>
+                <div className="flex flex-col gap-4">
+                    <h3 className="text-xl font-bold font-heading px-1 text-foreground">Live Estimates</h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Card className="bg-white dark:bg-zinc-900 border-0 shadow-md ring-1 ring-black/5 dark:ring-white/10 shrink-0">
-                        <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                                Daily Capacity
-                            </CardTitle>
-                            <Mails className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-3xl font-bold font-heading text-primary">{capacity.toLocaleString()}</div>
-                            <p className="text-sm text-muted-foreground mt-1">Total emails across all accounts per day</p>
-                        </CardContent>
-                    </Card>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Card className="bg-card dark:bg-zinc-900 border shadow-sm shrink-0">
+                            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+                                <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                    Daily Capacity
+                                </CardTitle>
+                                <Mails className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-3xl font-bold font-heading text-foreground">{capacity.toLocaleString()}</div>
+                                <p className="text-xs text-muted-foreground mt-1 leading-snug">Total emails across all accounts per day</p>
+                            </CardContent>
+                        </Card>
 
-                    <Card className="bg-white dark:bg-zinc-900 border-0 shadow-md ring-1 ring-black/5 dark:ring-white/10 shrink-0">
-                        <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                                Active Sending Days
-                            </CardTitle>
-                            <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-3xl font-bold font-heading text-primary">{daysInt}</div>
-                            <p className="text-sm text-muted-foreground mt-1">Number of working days required</p>
-                        </CardContent>
-                    </Card>
+                        <Card className="bg-card dark:bg-zinc-900 border shadow-sm shrink-0">
+                            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+                                <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                    Active Sending Days
+                                </CardTitle>
+                                <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-3xl font-bold font-heading text-foreground">{daysInt}</div>
+                                <p className="text-xs text-muted-foreground mt-1 leading-snug">Number of working days required</p>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
 
-                <Card className="text-white border shadow-lg overflow-hidden shrink-0 relative" style={{ backgroundColor: "#1a1a1a", borderColor: "#222222" }}>
+                <Card className="text-white border shadow-lg overflow-hidden shrink-0 relative mt-2" style={{ backgroundColor: "#141414", borderColor: "#222222" }}>
                     {/* Decorative background circle */}
-                    <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+                    <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white/5 blur-2xl pointer-events-none" />
 
-                    <CardHeader className="pb-4 border-b border-white/10 flex flex-row items-center gap-3 relative z-10">
-                        <Clock className="w-5 h-5 text-white/80" />
-                        <CardTitle className="text-lg font-semibold tracking-tight text-white">Projected Completion</CardTitle>
+                    <CardHeader className="pb-4 border-b border-white/5 flex flex-row items-center gap-3 relative z-10">
+                        <Clock className="w-5 h-5 text-zinc-400" />
+                        <CardTitle className="text-sm font-semibold tracking-wide text-zinc-100 mt-0.5">Projected Completion</CardTitle>
                     </CardHeader>
-                    <CardContent className="pt-6 relative z-10">
-                        <div className="space-y-4">
+                    <CardContent className="pt-6 relative z-10 pb-6">
+                        <div className="space-y-6">
                             <div>
-                                <p className="text-white/60 text-sm font-medium mb-1 uppercase tracking-wider">Estimated End Date</p>
+                                <p className="text-zinc-500 text-xs font-bold mb-1.5 uppercase tracking-wider">Estimated End Date</p>
                                 <div className="text-4xl font-black font-heading tracking-tight text-white drop-shadow-sm">
                                     {estimate.estimatedEndDate || "---"}
                                 </div>
                             </div>
                             <div>
-                                <p className="text-white/60 text-sm font-medium mb-1 uppercase tracking-wider">Estimated End Time</p>
-                                <div className="text-2xl font-semibold font-body text-white/90">
+                                <p className="text-zinc-500 text-xs font-bold mb-1.5 uppercase tracking-wider">Estimated End Time</p>
+                                <div className="text-xl font-semibold font-body text-zinc-300">
                                     {estimate.estimatedEndTime || "---"}
                                 </div>
                             </div>
                         </div>
                     </CardContent>
-                    <CardFooter className="bg-black/15 py-3 relative z-10 border-t border-white/10">
-                        <p className="text-sm text-white/75 font-medium">
-                            Assuming standard successful deliveries. Calendar length: <strong className="text-white">{estimate.totalCalendarDaysScheduled} days total</strong>.
+                    <CardFooter className="bg-black/40 py-4 relative z-10 border-t border-white/5">
+                        <p className="text-xs text-zinc-400 font-medium">
+                            Assuming standard successful deliveries. Calendar length: <strong className="text-zinc-200">{estimate.totalCalendarDaysScheduled} days total</strong>.
                         </p>
                     </CardFooter>
                 </Card>
-
             </div>
 
             <div className="col-span-1 lg:col-span-2 flex items-center justify-start pt-4 border-t mt-4">
