@@ -34,14 +34,15 @@ const TABS = [
 ] as const;
 
 // ── Status badge ──────────────────────────────────────────────────────
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, completion = 0 }: { status: string, completion?: number }) {
+    const displayStatus = completion === 100 && status === 'RUNNING' ? 'COMPLETED' : status;
     const config: Record<string, { bg: string; text: string; dot: string; label: string }> = {
         DRAFT: { bg: "rgba(113,113,122,0.12)", text: "#71717a", dot: "#71717a", label: "Draft" },
         RUNNING: { bg: "rgba(22,163,106,0.12)", text: "#16a34a", dot: "#16a34a", label: "Active" },
         PAUSED: { bg: "rgba(234,179,8,0.12)", text: "#eab308", dot: "#eab308", label: "Paused" },
         COMPLETED: { bg: "rgba(113,113,122,0.12)", text: "#71717a", dot: "#71717a", label: "Completed" },
     };
-    const c = config[status] || config.DRAFT;
+    const c = config[displayStatus] || config.DRAFT;
     return (
         <span
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium"
@@ -353,7 +354,7 @@ export default function CampaignsPage() {
                                                 {new Date(c.created_at).toLocaleDateString()}
                                             </p>
                                         </td>
-                                        <td className="py-3 px-4"><StatusBadge status={c.status} /></td>
+                                        <td className="py-3 px-4"><StatusBadge status={c.status} completion={completionRate} /></td>
                                         <td className="py-3 px-4 text-right tabular-nums text-white text-[13px]">
                                             {c.sent_count}
                                         </td>
