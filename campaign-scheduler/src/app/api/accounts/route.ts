@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { insforge } from "@/lib/insforge";
+import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@insforge/nextjs/server";
+import { encrypt } from "@/lib/encryption";
 
 export async function GET() {
     try {
@@ -9,10 +10,10 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const insforge = await getInsforgeClient();
         const { data: accounts, error } = await insforge.database
             .from("sender_accounts")
             .select("*")
-            .eq("user_id", user.id)
             .order("created_at", { ascending: false });
 
         if (error) throw error;
@@ -36,6 +37,8 @@ export async function GET() {
 
         const accountsWithStats = (accounts || []).map(acc => ({
             ...acc,
+            google_access_token: "••••••••", // Sanitize
+            google_refresh_token: acc.google_refresh_token ? "••••••••" : null, // Sanitize
             sent_today: sentTodayMap[acc.id] || 0,
             last_synced_at: acc.created_at,
         }));
@@ -65,6 +68,7 @@ export async function POST(req: Request) {
         }
 
         // Check if account already exists
+        const insforge = await getInsforgeClient();
         const { data: existing } = await insforge.database
             .from("sender_accounts")
             .select("id, user_id")
@@ -80,8 +84,8 @@ export async function POST(req: Request) {
             const { data: updated, error } = await insforge.database
                 .from("sender_accounts")
                 .update({
-                    google_access_token,
-                    google_refresh_token: google_refresh_token || null,
+                    google_access_token: encrypt(google_access_token),
+                    google_refresh_token: google_refresh_token ? encrypt(google_refresh_token) : null,
                     is_active: true,
                 })
                 .eq("id", existing.id)
@@ -102,8 +106,8 @@ export async function POST(req: Request) {
             .insert([{
                 user_id: user.id,
                 email,
-                google_access_token,
-                google_refresh_token: google_refresh_token || null,
+                google_access_token: encrypt(google_access_token),
+                google_refresh_token: google_refresh_token ? encrypt(google_refresh_token) : null,
             }])
             .select()
             .single();

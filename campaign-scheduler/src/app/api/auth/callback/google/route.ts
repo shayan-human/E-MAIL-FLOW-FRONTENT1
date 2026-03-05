@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { insforge } from "@/lib/insforge";
+import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@insforge/nextjs/server";
+import { encrypt } from "@/lib/encryption";
 
 export async function GET(req: Request) {
     try {
@@ -63,14 +64,15 @@ export async function GET(req: Request) {
         }
 
         // Upsert sender account (update if exists, insert if new)
+        const insforge = await getInsforgeClient();
         const { error: upsertError } = await insforge.database
             .from("sender_accounts")
             .upsert([{
                 user_id: user.id,
                 email,
                 name: name || null,
-                google_access_token: accessToken,
-                google_refresh_token: refreshToken || null,
+                google_access_token: encrypt(accessToken),
+                google_refresh_token: refreshToken ? encrypt(refreshToken) : null,
                 is_active: true,
             }], { onConflict: "email" });
 

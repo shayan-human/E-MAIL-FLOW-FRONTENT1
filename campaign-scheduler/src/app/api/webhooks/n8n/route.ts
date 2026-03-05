@@ -39,59 +39,30 @@ export async function POST(req: Request) {
 
         const { campaignId, event, email, gmailMessageId, gmailThreadId } = validationResult.data;
 
-        // Find the specific lead in this campaign
-        const { data: lead, error: findError } = await insforge.database
-            .from("leads")
-            .select("id, status, sent_at")
-            .eq("campaign_id", campaignId)
-            .eq("email", email)
-            .limit(1)
-            .single();
+        // Use RPC to bypass RLS for this system update
+        const { data: rpcResult, error: rpcError } = await insforge.database.rpc(
+            "update_lead_status_from_webhook",
+            {
+                p_campaign_id: campaignId,
+                p_email: email,
+                p_event: event,
+                p_gmail_message_id: gmailMessageId || null,
+                p_gmail_thread_id: gmailThreadId || null,
+            }
+        );
 
-        if (findError || !lead) {
+        if (rpcError || (rpcResult as any)?.success === false) {
+            console.error("[Webhook RPC Error]:", rpcError || (rpcResult as any)?.error);
             return NextResponse.json(
-                { error: "Lead not found in specified campaign" },
-                { status: 404 }
-            );
-        }
-
-        // Build update data based on event type
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const updateData: Record<string, any> = {};
-
-        switch (event) {
-            case "EMAIL_SENT":
-                updateData.status = "SENT";
-                updateData.sent_at = new Date().toISOString();
-                break;
-            case "EMAIL_REPLY":
-                updateData.status = "REPLIED";
-                updateData.replied_at = new Date().toISOString();
-                updateData.reply_count = (lead as any).reply_count ? (lead as any).reply_count + 1 : 1;
-                break;
-            case "EMAIL_FAILED":
-                updateData.status = "FAILED";
-                break;
-        }
-
-        // Store Gmail message/thread IDs for reply tracking
-        if (gmailMessageId) updateData.gmail_message_id = gmailMessageId;
-        if (gmailThreadId) updateData.gmail_thread_id = gmailThreadId;
-
-        const { error: updateError } = await insforge.database
-            .from("leads")
-            .update(updateData)
-            .eq("id", lead.id);
-
-        if (updateError) {
-            console.error("[Webhook Update Error]:", updateError);
-            return NextResponse.json(
-                { error: "Failed to update lead status", details: updateError.message },
+                {
+                    error: "Failed to update lead status via RPC",
+                    details: rpcError?.message || (rpcResult as any)?.error
+                },
                 { status: 500 }
             );
         }
 
-        return NextResponse.json({ success: true, message: "Lead status updated" });
+        return NextResponse.json({ success: true, message: "Lead status updated via RPC" });
 
     } catch (error: unknown) {
         console.error("[Webhook Error]:", error);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { insforge } from "@/lib/insforge";
+import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@insforge/nextjs/server";
 
 export async function GET(
@@ -13,6 +13,7 @@ export async function GET(
         }
 
         const { id: campaignId } = await params;
+        const insforge = await getInsforgeClient();
 
         // 1. Verify ownership and fetch campaign metadata
         const { data: campaign, error: campaignError } = await insforge.database
@@ -24,7 +25,6 @@ export async function GET(
                 )
             `)
             .eq("id", campaignId)
-            .eq("user_id", user.id)
             .single();
 
         if (campaignError || !campaign) {

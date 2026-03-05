@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { insforge } from "@/lib/insforge";
+import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@insforge/nextjs/server";
 
 export async function GET() {
@@ -10,6 +10,7 @@ export async function GET() {
         }
 
         // Fetch replies along with lead and campaign info
+        const insforge = await getInsforgeClient();
         const { data, error } = await insforge.database
             .from("replies")
             .select(`
@@ -24,7 +25,6 @@ export async function GET() {
                     )
                 )
             `)
-            .eq("lead.campaign.user_id", user.id)
             .order("timestamp", { ascending: false });
 
         if (error) {

@@ -1,24 +1,25 @@
 import { NextResponse } from "next/server";
-import { insforge } from "@/lib/insforge";
+import { getInsforgeClient } from "@/lib/insforge-server";
+import { auth } from "@insforge/nextjs/server";
 
 export async function DELETE(
     request: Request,
     context: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { data: { user }, error: authError } = await (insforge.auth as any).getUser();
+        const { user } = await auth();
 
-        if (authError || !user) {
+        if (!user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const { id } = await context.params;
+        const insforge = await getInsforgeClient();
 
         const { error } = await insforge.database
             .from("sender_accounts")
             .delete()
-            .eq("id", id)
-            .eq("user_id", user.id);
+            .eq("id", id);
 
         if (error) throw error;
 

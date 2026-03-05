@@ -21,7 +21,7 @@ export default function LoginPage() {
       // Corrected parameters for InsForge SDK: redirectTo is top-level
       const { error } = await insforge.auth.signInWithOAuth({
         provider: 'google',
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/api/auth/callback`,
       });
 
       if (error) throw error;

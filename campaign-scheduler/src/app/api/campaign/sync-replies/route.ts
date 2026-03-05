@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { insforge } from "@/lib/insforge";
+import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@insforge/nextjs/server";
+import { decrypt, encrypt } from "@/lib/encryption";
+import { type InsForgeClient } from "@insforge/sdk";
 
 /**
  * POST /api/campaign/sync-replies
@@ -18,15 +20,14 @@ export async function POST() {
         }
 
         // 1. Fetch campaigns, sent leads, and sender accounts in parallel
+        const insforge = await getInsforgeClient();
         const [campaignsRes, allAccountsRes] = await Promise.all([
             insforge.database
                 .from("campaigns")
-                .select("id, subject")
-                .eq("user_id", user.id),
+                .select("id, subject"),
             insforge.database
                 .from("sender_accounts")
                 .select("id, email, google_access_token, google_refresh_token")
-                .eq("user_id", user.id)
                 .eq("is_active", true),
         ]);
 
@@ -67,8 +68,8 @@ export async function POST() {
             const acc = senderMap[ca.sender_account_id];
             if (acc?.google_access_token && !campaignTokenMap[ca.campaign_id]) {
                 campaignTokenMap[ca.campaign_id] = {
-                    accessToken: acc.google_access_token,
-                    refreshToken: acc.google_refresh_token || null,
+                    accessToken: decrypt(acc.google_access_token),
+                    refreshToken: acc.google_refresh_token ? decrypt(acc.google_refresh_token) : null,
                     senderAccountId: acc.id,
                 };
             }
@@ -94,6 +95,7 @@ export async function POST() {
 
                         if (lead.gmail_thread_id) {
                             hasReply = await checkReplyByThread(
+                                insforge,
                                 tokens.accessToken,
                                 tokens.refreshToken,
                                 lead.gmail_thread_id,
@@ -102,6 +104,7 @@ export async function POST() {
                             );
                         } else {
                             hasReply = await checkReplyByEmail(
+                                insforge,
                                 tokens.accessToken,
                                 tokens.refreshToken,
                                 lead.email,
@@ -188,8 +191,9 @@ export async function POST() {
             for (const sa of senderAccounts) {
                 if (sa.google_access_token) {
                     const count = await syncBounces(
-                        sa.google_access_token,
-                        sa.google_refresh_token,
+                        insforge,
+                        decrypt(sa.google_access_token),
+                        sa.google_refresh_token ? decrypt(sa.google_refresh_token) : null,
                         sa.id,
                         user.id
                     );
@@ -220,6 +224,7 @@ export async function POST() {
 
 // ── FAST PATH: Check reply via thread ID ──────────────────────────────
 async function checkReplyByThread(
+    insforge: any,
     accessToken: string,
     refreshToken: string | null,
     threadId: string,
@@ -228,7 +233,7 @@ async function checkReplyByThread(
 ): Promise<boolean> {
     const url = `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}`;
 
-    const { response, token } = await gmailFetchWithRefresh(url, accessToken, refreshToken, senderAccountId);
+    const { response, token } = await gmailFetchWithRefresh(insforge, url, accessToken, refreshToken, senderAccountId);
 
     if (!response.ok) {
         if (response.status === 404) return false;
@@ -278,6 +283,7 @@ async function checkReplyByThread(
 
 // ── FALLBACK: Check reply via email search ────────────────────────────
 async function checkReplyByEmail(
+    insforge: any,
     accessToken: string,
     refreshToken: string | null,
     leadEmail: string,
@@ -292,7 +298,7 @@ async function checkReplyByEmail(
 
     const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}`;
 
-    const { response, token } = await gmailFetchWithRefresh(url, accessToken, refreshToken, senderAccountId);
+    const { response, token } = await gmailFetchWithRefresh(insforge, url, accessToken, refreshToken, senderAccountId);
 
     if (!response.ok) {
         const errText = await response.text().catch(() => "");
@@ -378,6 +384,7 @@ function extractBody(message: any): string {
 
 // ── Gmail fetch with automatic token refresh + DB save ────────────────
 async function gmailFetchWithRefresh(
+    insforge: any,
     url: string,
     accessToken: string,
     refreshToken: string | null,
@@ -394,7 +401,7 @@ async function gmailFetchWithRefresh(
 
             await insforge.database
                 .from("sender_accounts")
-                .update({ google_access_token: token })
+                .update({ google_access_token: encrypt(token) })
                 .eq("id", senderAccountId);
 
             response = await fetch(url, {
@@ -436,6 +443,7 @@ async function refreshAccessToken(refreshToken: string): Promise<string> {
 
 // ── BOUNCE DETECTION: Check for delivery failures ─────────────────────
 async function syncBounces(
+    insforge: any,
     accessToken: string,
     refreshToken: string | null,
     senderAccountId: string,
@@ -444,7 +452,7 @@ async function syncBounces(
     const query = `from:mailer-daemon@googlemail.com OR subject:"Delivery Status Notification" OR subject:"Mail Delivery Subsystem" newer_than:30d`;
     const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}`;
 
-    const { response, token } = await gmailFetchWithRefresh(url, accessToken, refreshToken, senderAccountId);
+    const { response, token } = await gmailFetchWithRefresh(insforge, url, accessToken, refreshToken, senderAccountId);
     if (!response.ok) return 0;
 
     const data = await response.json();
@@ -495,7 +503,7 @@ async function syncBounces(
                 .in("status", ["SENT", "PENDING"]);
 
             if (leads && leads.length > 0) {
-                const leadIds = leads.map(l => l.id);
+                const leadIds = leads.map((l: any) => l.id);
                 const { error: updateError } = await insforge.database
                     .from("leads")
                     .update({ status: "BOUNCED" })

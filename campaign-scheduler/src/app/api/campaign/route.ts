@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
+import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@insforge/nextjs/server";
+import { decrypt } from "@/lib/encryption";
 import { CampaignPayloadSchema } from "@/lib/validations/campaign";
 import { globalRateLimiter } from "@/lib/rate-limit";
-import { insforge } from "@/lib/insforge";
 
 // Simple memory store for idempotency keys
 const processedIdempotencyKeys = new Set<string>();
@@ -54,6 +55,7 @@ export async function POST(req: Request) {
 
         // 5. Save Campaign to InsForge
         const campaignName = `Campaign-${idempotencyKey.slice(0, 8)}`;
+        const insforge = await getInsforgeClient();
 
         const { data: newCampaign, error: campaignError } = await insforge.database
             .from("campaigns")
@@ -102,10 +104,23 @@ export async function POST(req: Request) {
             senderMapById[acc.id] = acc.email;
         });
 
+        const sendingMode = campaignConfig.sendingMode || "round-robin";
         const verifiedAccountsCount = selectedAccountIds.length;
 
         const leadsToInsert = mappedLeads.map((lead, i) => {
-            const accId = selectedAccountIds[i % verifiedAccountsCount];
+            let accId;
+            if (sendingMode === "sequential") {
+                const batchSize = Math.ceil(mappedLeads.length / verifiedAccountsCount);
+                const accountIndex = Math.min(
+                    Math.floor(i / batchSize),
+                    verifiedAccountsCount - 1
+                );
+                accId = selectedAccountIds[accountIndex];
+            } else {
+                // Default: Round-Robin
+                accId = selectedAccountIds[i % verifiedAccountsCount];
+            }
+
             return {
                 campaign_id: campaignId,
                 email: lead.email,
@@ -159,7 +174,7 @@ export async function POST(req: Request) {
                     return {
                         ...lead,
                         assignedSenderEmail: acc?.email || "",
-                        assignedGoogleToken: acc?.google_access_token || "",
+                        assignedGoogleToken: acc?.google_access_token ? decrypt(acc.google_access_token) : "",
                     };
                 });
 

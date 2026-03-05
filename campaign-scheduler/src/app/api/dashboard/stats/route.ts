@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { insforge } from "@/lib/insforge";
+import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@insforge/nextjs/server";
 
 export async function GET() {
@@ -10,10 +10,10 @@ export async function GET() {
         }
 
         // 1. Fetch campaigns first to get IDs
+        const insforge = await getInsforgeClient();
         const { data: campaigns } = await insforge.database
             .from("campaigns")
-            .select("id")
-            .eq("user_id", user.id);
+            .select("id");
 
         const campaignIds = (campaigns || []).map((c: any) => c.id) || [];
 
@@ -68,7 +68,6 @@ export async function GET() {
             insforge.database
                 .from("sender_accounts")
                 .select("*", { count: "exact", head: true })
-                .eq("user_id", user.id)
                 .eq("is_active", true),
 
             // Average Reply Time (fetch processed leads with timestamps)

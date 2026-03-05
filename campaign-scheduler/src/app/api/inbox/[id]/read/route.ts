@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { insforge } from "@/lib/insforge";
+import { getInsforgeClient } from "@/lib/insforge-server";
+import { auth } from "@insforge/nextjs/server";
 
 export async function POST(
     request: Request,
@@ -7,15 +8,13 @@ export async function POST(
 ) {
     try {
         const { id } = await params;
-        const {
-            data: { user },
-            error: authError,
-        } = await (insforge.auth as any).getUser();
+        const { user } = await auth();
 
-        if (authError || !user) {
+        if (!user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const insforge = await getInsforgeClient();
         const { error } = await insforge.database
             .from("replies")
             .update({ is_read: true })
