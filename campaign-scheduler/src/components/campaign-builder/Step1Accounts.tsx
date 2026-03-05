@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { insforge } from "@/lib/insforge";
 import { useUser } from "@insforge/nextjs";
 import { toast } from "@/components/ui/toast-provider";
@@ -29,6 +30,8 @@ interface Step1Props {
 
 export function Step1Accounts({ onNext }: Step1Props) {
     const { user, isLoaded } = useUser();
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isConnecting, setIsConnecting] = useState(false);
@@ -77,12 +80,24 @@ export function Step1Accounts({ onNext }: Step1Props) {
                 }
             }
 
+            // 3. Handle OAuth Success Redirect
+            const successParam = searchParams.get("success");
+            if (successParam === "account_connected") {
+                toast.success("Gmail account connected successfully!");
+                // Remove the query param to prevent infinite loops on reload
+                router.replace("/campaigns/new", { scroll: false });
+                // Automatically move to the next step if we have accounts
+                if (existing.length > 0) {
+                    onNext();
+                }
+            }
+
             setIsLoading(false);
         };
 
         init();
         return () => { cancelled = true; };
-    }, []);
+    }, [searchParams, router, onNext]);
 
     const handleConnectGmail = async () => {
         setIsConnecting(true);

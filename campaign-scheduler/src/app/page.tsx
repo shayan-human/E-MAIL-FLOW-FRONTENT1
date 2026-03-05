@@ -30,7 +30,7 @@ export default function LoginPage() {
     }
   };
 
-  if (!isLoaded) {
+  if (!isLoaded || user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-white to-indigo-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
         <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
