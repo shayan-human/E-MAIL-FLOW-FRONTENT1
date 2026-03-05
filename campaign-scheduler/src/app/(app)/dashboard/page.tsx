@@ -20,9 +20,12 @@ import {
     ArrowUpRight,
     RefreshCw,
     Plus,
+    SlidersHorizontal,
+    Check
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "@/components/ui/toast-provider";
+import { useRef } from "react";
 
 interface CampaignWithStats {
     id: string;
@@ -82,7 +85,46 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [syncing, setSyncing] = useState(false);
     const [lastSynced, setLastSynced] = useState<Date | null>(null);
+    const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
+    const [visibleCards, setVisibleCards] = useState<string[]>([
+        "Total Campaigns",
+        "Emails Sent",
+        "Total Replies",
+        "Avg Reply Rate",
+        "Active Accounts",
+        "Bounced",
+        "Avg Reply Time"
+    ]);
+    const customizeRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
+
+    // Persistence: Load from localStorage
+    useEffect(() => {
+        const saved = localStorage.getItem("dashboard_visible_cards");
+        if (saved) {
+            try {
+                setVisibleCards(JSON.parse(saved));
+            } catch (e) {
+                console.error("Failed to parse visible cards from localStorage", e);
+            }
+        }
+    }, []);
+
+    // Persistence: Save to localStorage
+    useEffect(() => {
+        localStorage.setItem("dashboard_visible_cards", JSON.stringify(visibleCards));
+    }, [visibleCards]);
+
+    // Close dropdown on click outside
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (customizeRef.current && !customizeRef.current.contains(event.target as Node)) {
+                setIsCustomizeOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     const fetchData = async () => {
         if (!user) return;
@@ -206,7 +248,7 @@ export default function DashboardPage() {
         }
     };
 
-    const statCards = [
+    const allStatCards = [
         { label: "Total Campaigns", value: statsData.totalCampaigns },
         { label: "Emails Sent", value: statsData.emailsSent },
         { label: "Total Replies", value: statsData.totalReplies },
@@ -215,6 +257,8 @@ export default function DashboardPage() {
         { label: "Bounced", value: statsData.bouncedCount, color: statsData.bouncedCount > 0 ? "#EF4444" : "#888" },
         { label: "Avg Reply Time", value: statsData.avgReplyTime },
     ];
+
+    const statCards = allStatCards.filter(card => visibleCards.includes(card.label));
 
     if (loading) {
         return (
@@ -248,6 +292,57 @@ export default function DashboardPage() {
                     <p className="label-meta mt-1">Your campaign performance at a glance.</p>
                 </div>
                 <div className="flex items-center gap-3">
+                    <div className="relative" ref={customizeRef}>
+                        <button
+                            onClick={() => setIsCustomizeOpen(!isCustomizeOpen)}
+                            className="btn-secondary flex items-center gap-2"
+                        >
+                            <SlidersHorizontal className="w-4 h-4" />
+                            Customize
+                        </button>
+
+                        {isCustomizeOpen && (
+                            <div
+                                className="absolute right-0 mt-2 w-64 rounded-xl shadow-2xl z-50 p-4 animate-in fade-in zoom-in duration-200"
+                                style={{
+                                    backgroundColor: "#141414",
+                                    border: "1px solid #222222",
+                                    boxShadow: "0 10px 40px rgba(0,0,0,0.6)"
+                                }}
+                            >
+                                <h3 className="text-xs font-semibold text-[#666] uppercase tracking-wider mb-4">Visible Metrics</h3>
+                                <div className="space-y-1">
+                                    {allStatCards.map(card => {
+                                        const isVisible = visibleCards.includes(card.label);
+                                        return (
+                                            <button
+                                                key={card.label}
+                                                onClick={() => {
+                                                    if (isVisible) {
+                                                        setVisibleCards(prev => prev.filter(c => c !== card.label));
+                                                    } else {
+                                                        setVisibleCards(prev => [...prev, card.label]);
+                                                    }
+                                                }}
+                                                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors group"
+                                                style={{ backgroundColor: isVisible ? "rgba(245,158,11,0.05)" : "transparent" }}
+                                            >
+                                                <span className="text-sm" style={{ color: isVisible ? "#fff" : "#888" }}>
+                                                    {card.label}
+                                                </span>
+                                                <div
+                                                    className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${isVisible ? "bg-[#F59E0B] border-[#F59E0B]" : "border-[#333] group-hover:border-[#444]"}`}
+                                                >
+                                                    {isVisible && <Check className="w-3 h-3 text-black stroke-[3]" />}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     <div className="flex flex-col items-end">
                         <button
                             onClick={handleSyncReplies}
@@ -274,15 +369,17 @@ export default function DashboardPage() {
             </div>
 
             {/* Stat Cards */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-7">
+            <div className="flex flex-wrap gap-4">
                 {statCards.map((stat: any) => (
                     <div
                         key={stat.label}
-                        className="rounded-[10px] transition-colors duration-200 cursor-default"
+                        className="rounded-[10px] transition-all duration-200 cursor-default"
                         style={{
                             backgroundColor: "#141414",
                             border: "1px solid #222222",
                             padding: 24,
+                            minWidth: "160px",
+                            flex: statCards.length < 4 ? "1 1 0px" : "1 1 200px"
                         }}
                         onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#F59E0B")}
                         onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#222222")}
