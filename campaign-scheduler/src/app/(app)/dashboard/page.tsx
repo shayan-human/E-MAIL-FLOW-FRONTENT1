@@ -75,6 +75,8 @@ export default function DashboardPage() {
         totalReplies: 0,
         avgReplyRate: "0%",
         activeAccounts: 0,
+        bouncedCount: 0,
+        avgReplyTime: "---",
     });
     const [chartData, setChartData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -210,6 +212,8 @@ export default function DashboardPage() {
         { label: "Total Replies", value: statsData.totalReplies },
         { label: "Avg Reply Rate", value: statsData.avgReplyRate },
         { label: "Active Accounts", value: statsData.activeAccounts },
+        { label: "Bounced", value: statsData.bouncedCount, color: statsData.bouncedCount > 0 ? "#EF4444" : "#888" },
+        { label: "Avg Reply Time", value: statsData.avgReplyTime },
     ];
 
     if (loading) {
@@ -219,8 +223,8 @@ export default function DashboardPage() {
                     <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
                     <p className="text-muted-foreground mt-1">Your campaign performance at a glance.</p>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                    {[1, 2, 3, 4, 5].map(i => (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-7">
+                    {[1, 2, 3, 4, 5, 6, 7].map(i => (
                         <div
                             key={i}
                             className="rounded-[10px]"
@@ -270,8 +274,8 @@ export default function DashboardPage() {
             </div>
 
             {/* Stat Cards */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                {statCards.map((stat) => (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-7">
+                {statCards.map((stat: any) => (
                     <div
                         key={stat.label}
                         className="rounded-[10px] transition-colors duration-200 cursor-default"
@@ -286,7 +290,7 @@ export default function DashboardPage() {
                         <p className="text-[13px] font-medium" style={{ color: "#6b7280" }}>
                             {stat.label}
                         </p>
-                        <p className="text-2xl font-semibold text-white mt-1">
+                        <p className="text-2xl font-semibold mt-1" style={{ color: stat.color || "white" }}>
                             {stat.value}
                         </p>
                     </div>

@@ -38,7 +38,9 @@ export async function GET() {
         const [
             sentRes,
             repliedRes,
+            bouncedRes,
             activeAccountsRes,
+            avgReplyTimeRes,
             activityRes
         ] = await Promise.all([
             // Emails Sent (status SENT or REPLIED)
@@ -55,12 +57,28 @@ export async function GET() {
                 .in("campaign_id", campaignIds)
                 .eq("status", "REPLIED"),
 
+            // Bounced
+            insforge.database
+                .from("leads")
+                .select("*", { count: "exact", head: true })
+                .in("campaign_id", campaignIds)
+                .eq("status", "BOUNCED"),
+
             // Active Accounts
             insforge.database
                 .from("sender_accounts")
                 .select("*", { count: "exact", head: true })
                 .eq("user_id", user.id)
                 .eq("is_active", true),
+
+            // Average Reply Time (fetch processed leads with timestamps)
+            insforge.database
+                .from("leads")
+                .select("sent_at, replied_at")
+                .in("campaign_id", campaignIds)
+                .eq("status", "REPLIED")
+                .not("sent_at", "is", null)
+                .not("replied_at", "is", null),
 
             // Activity Chart (Last 30 days)
             insforge.database
@@ -72,7 +90,22 @@ export async function GET() {
 
         const sentCount = sentRes.count || 0;
         const replyCount = repliedRes.count || 0;
+        const bouncedCount = bouncedRes.count || 0;
+        const activeAccounts = activeAccountsRes.count || 0;
+
         const avgReplyRate = sentCount > 0 ? Math.round((replyCount / sentCount) * 100) : 0;
+
+        // Calculate avg reply time in hours
+        let avgReplyTimeHours: number | null = null;
+        if (avgReplyTimeRes.data && avgReplyTimeRes.data.length > 0) {
+            const times = avgReplyTimeRes.data.map((l: any) => {
+                const sent = new Date(l.sent_at).getTime();
+                const replied = new Date(l.replied_at).getTime();
+                return (replied - sent) / (1000 * 60 * 60);
+            });
+            const sum = times.reduce((a, b) => a + b, 0);
+            avgReplyTimeHours = Math.round(sum / times.length);
+        }
 
         // 3. Process activity data
         const activityData = activityRes.data || [];
@@ -108,7 +141,9 @@ export async function GET() {
                 emailsSent: sentCount,
                 totalReplies: replyCount,
                 avgReplyRate: `${avgReplyRate}%`,
-                activeAccounts: activeAccountsRes.count || 0,
+                activeAccounts: activeAccounts,
+                bouncedCount: bouncedCount,
+                avgReplyTime: avgReplyTimeHours !== null ? `${avgReplyTimeHours}h` : "---"
             },
             chartData
         });

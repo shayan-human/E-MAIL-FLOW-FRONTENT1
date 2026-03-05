@@ -182,10 +182,29 @@ export async function POST() {
             }
         }
 
+        // 5. Sync Bounces
+        let bouncesFound = 0;
+        try {
+            for (const sa of senderAccounts) {
+                if (sa.google_access_token) {
+                    const count = await syncBounces(
+                        sa.google_access_token,
+                        sa.google_refresh_token,
+                        sa.id,
+                        user.id
+                    );
+                    bouncesFound += count;
+                }
+            }
+        } catch (bounceErr) {
+            console.warn("[Bounce Sync Error]:", bounceErr);
+        }
+
         return NextResponse.json({
             message: "Reply sync completed",
             synced,
             repliesFound,
+            bouncesFound,
             campaignsUpdated: campaignIds.length,
             errors: errors.length > 0 ? errors.slice(0, 5) : undefined,
         });
@@ -413,5 +432,94 @@ async function refreshAccessToken(refreshToken: string): Promise<string> {
     if (!response.ok) throw new Error(`Token refresh failed: ${response.status}`);
     const data = await response.json();
     return data.access_token;
+}
+
+// ── BOUNCE DETECTION: Check for delivery failures ─────────────────────
+async function syncBounces(
+    accessToken: string,
+    refreshToken: string | null,
+    senderAccountId: string,
+    userId: string
+): Promise<number> {
+    const query = `from:mailer-daemon@googlemail.com OR subject:"Delivery Status Notification" OR subject:"Mail Delivery Subsystem" newer_than:30d`;
+    const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}`;
+
+    const { response, token } = await gmailFetchWithRefresh(url, accessToken, refreshToken, senderAccountId);
+    if (!response.ok) return 0;
+
+    const data = await response.json();
+    const messages = data.messages || [];
+    if (messages.length === 0) return 0;
+
+    let bouncesCount = 0;
+
+    for (const m of messages) {
+        // Skip if this bounce message already credited
+        const { data: existing } = await insforge.database
+            .from("replies")
+            .select("id")
+            .eq("gmail_message_id", m.id)
+            .maybeSingle();
+        if (existing) continue;
+
+        const msgUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}`;
+        const msgRes = await fetch(msgUrl, { headers: { Authorization: `Bearer ${token}` } });
+        if (!msgRes.ok) continue;
+
+        const msg = await msgRes.json();
+        const body = extractBody(msg);
+        const headers = msg.payload?.headers || [];
+        const subject = headers.find((h: any) => h.name.toLowerCase() === "subject")?.value || "";
+
+        // Extract failed recipient email from body or specific header
+        let failedEmail = "";
+        const failedHeader = headers.find((h: any) => h.name.toLowerCase() === "x-failed-recipient")?.value;
+        if (failedHeader) {
+            failedEmail = failedHeader.trim();
+        } else {
+            // Regex match for common bounce patterns in body
+            const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi;
+            const matches = body.match(emailRegex);
+            if (matches && matches.length > 0) {
+                // Usually the first email mentioned as a target in a bounce body is the failed recipient
+                failedEmail = matches.find(email => !email.includes("google") && !email.includes("mailer-daemon")) || "";
+            }
+        }
+
+        if (failedEmail) {
+            // Find the lead associated with this failed email for this user's campaigns
+            const { data: leads } = await insforge.database
+                .from("leads")
+                .select("id, campaign_id")
+                .eq("email", failedEmail)
+                .in("status", ["SENT", "PENDING"]);
+
+            if (leads && leads.length > 0) {
+                const leadIds = leads.map(l => l.id);
+                const { error: updateError } = await insforge.database
+                    .from("leads")
+                    .update({ status: "BOUNCED" })
+                    .in("id", leadIds);
+
+                if (!updateError) {
+                    bouncesCount++;
+                    // Also save the bounce message as a "reply" record to mark it as processed
+                    await insforge.database
+                        .from("replies")
+                        .insert([{
+                            lead_id: leads[0].id,
+                            subject: `BOUNCE: ${subject}`,
+                            body: body.slice(0, 1000), // Trim long bounce logs
+                            sender_email: "mailer-daemon@googlemail.com",
+                            timestamp: new Date(parseInt(msg.internalDate)).toISOString(),
+                            gmail_message_id: msg.id,
+                            is_read: true,
+                        }]);
+                }
+            }
+        }
+    }
+
+    return bouncesCount;
 }
 
