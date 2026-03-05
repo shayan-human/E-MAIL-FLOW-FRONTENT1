@@ -9,8 +9,16 @@ export default function AuthCallbackPage() {
     const router = useRouter();
 
     useEffect(() => {
-        if (isLoaded && user) {
-            router.replace("/dashboard");
+        if (isLoaded) {
+            if (user) {
+                router.replace("/dashboard");
+            } else {
+                console.warn("Auth callback loaded but no user found.");
+                // Give it a brief moment in case the session is still settling
+                setTimeout(() => {
+                    router.replace("/?error=auth_failed");
+                }, 2000);
+            }
         }
     }, [isLoaded, user, router]);
 
