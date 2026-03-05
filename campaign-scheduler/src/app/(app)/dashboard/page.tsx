@@ -37,41 +37,32 @@ interface CampaignWithStats {
     star_rating: number;
 }
 
-function getStarRating(replyRate: number): number {
-    if (replyRate >= 20) return 5;
-    if (replyRate >= 15) return 4;
-    if (replyRate >= 10) return 3;
-    if (replyRate >= 5) return 2;
-    return 1;
-}
+function StatusBadge({ status, completion = 0 }: { status: string, completion?: number }) {
+    // If completion is 100%, force it to COMPLETED visually
+    const displayStatus = completion === 100 && status === 'RUNNING' ? 'COMPLETED' : status;
 
-function StarRating({ rating }: { rating: number }) {
-    return (
-        <div className="flex items-center gap-0.5">
-            {[1, 2, 3, 4, 5].map((i) => (
-                <Star
-                    key={i}
-                    className={`w-3.5 h-3.5 ${i <= rating
-                        ? "fill-amber-400 text-amber-400"
-                        : "fill-muted text-muted"
-                        }`}
-                />
-            ))}
-        </div>
-    );
-}
+    if (displayStatus === 'COMPLETED') {
+        return (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide" style={{ color: "#10B981", backgroundColor: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#10B981", boxShadow: "0 0 4px #10B981" }} />
+                COMPLETED
+            </span>
+        );
+    }
 
-function StatusBadge({ status }: { status: string }) {
-    const config: Record<string, { bg: string; text: string }> = {
-        DRAFT: { bg: "bg-zinc-100 dark:bg-zinc-800", text: "text-zinc-600 dark:text-zinc-400" },
-        RUNNING: { bg: "bg-emerald-50 dark:bg-emerald-950", text: "text-emerald-700 dark:text-emerald-400" },
-        PAUSED: { bg: "bg-amber-50 dark:bg-amber-950", text: "text-amber-700 dark:text-amber-400" },
-        COMPLETED: { bg: "bg-blue-50 dark:bg-blue-950", text: "text-blue-700 dark:text-blue-400" },
-    };
-    const c = config[status] || config.DRAFT;
+    if (displayStatus === 'RUNNING') {
+        return (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide" style={{ color: "#F59E0B", backgroundColor: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#F59E0B", boxShadow: "0 0 4px #F59E0B" }} />
+                RUNNING
+            </span>
+        );
+    }
+
     return (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${c.bg} ${c.text}`}>
-            {status}
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide" style={{ color: "#888", backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)" }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#888" }} />
+            {displayStatus}
         </span>
     );
 }
@@ -315,11 +306,23 @@ export default function DashboardPage() {
             <EmailActivityChart data={chartData} />
 
             {/* Campaign Performance Table */}
-            <Card className="border shadow-sm">
-                <CardHeader>
-                    <CardTitle className="text-lg">Campaign Performance</CardTitle>
-                </CardHeader>
-                <CardContent>
+            {/* Campaign Performance Table */}
+            <div
+                className="rounded-[16px] overflow-hidden"
+                style={{ backgroundColor: "#141414", border: "1px solid #222", boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }}
+            >
+                {/* Custom Card Header */}
+                <div className="px-6 py-5 flex items-center justify-between border-b" style={{ borderColor: "#222" }}>
+                    <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "#F59E0B", boxShadow: "0 0 8px #F59E0B" }} />
+                        <h2 className="text-[16px] font-semibold text-white">Campaign Performance</h2>
+                        <span className="text-[12px] px-2 py-0.5 rounded-full ml-2" style={{ backgroundColor: "#1a1a1a", color: "#888", border: "1px solid #2a2a2a" }}>
+                            {campaigns.length} total • all completed
+                        </span>
+                    </div>
+                </div>
+
+                <div>
                     {campaigns.length === 0 ? (
                         <div className="py-12 text-center">
                             <Megaphone className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
@@ -333,51 +336,98 @@ export default function DashboardPage() {
                             </Link>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
+                        <div className="overflow-x-auto text-[13px]">
+                            <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="border-b text-muted-foreground">
-                                        <th className="text-left py-3 px-2 font-medium">Rank</th>
-                                        <th className="text-left py-3 px-2 font-medium">Campaign</th>
-                                        <th className="text-left py-3 px-2 font-medium">Status</th>
-                                        <th className="text-right py-3 px-2 font-medium">Sent</th>
-                                        <th className="text-right py-3 px-2 font-medium">Replies</th>
-                                        <th className="text-right py-3 px-2 font-medium">Reply Rate</th>
-                                        <th className="text-right py-3 px-2 font-medium">Completion</th>
-                                        <th className="text-left py-3 px-2 font-medium">Rating</th>
+                                    <tr style={{ backgroundColor: "#111" }}>
+                                        <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px]" style={{ color: "#444" }}>Rank</th>
+                                        <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px]" style={{ color: "#444" }}>Campaign</th>
+                                        <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px]" style={{ color: "#444" }}>Status</th>
+                                        <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px]" style={{ color: "#444" }}>Sent</th>
+                                        <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px]" style={{ color: "#444" }}>Replies</th>
+                                        <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px]" style={{ color: "#444" }}>Reply Rate</th>
+                                        <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px]" style={{ color: "#444" }}>Completion</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {campaigns.map((c, i) => (
-                                        <tr
-                                            key={c.id}
-                                            className="border-b last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
-                                            onClick={() => router.push(`/campaigns/${c.id}`)}
-                                        >
-                                            <td className="py-3 px-2 font-mono text-muted-foreground">#{i + 1}</td>
-                                            <td className="py-3 px-2 font-medium">{c.name}</td>
-                                            <td className="py-3 px-2"><StatusBadge status={c.status} /></td>
-                                            <td className="py-3 px-2 text-right tabular-nums">{c.sent_count}</td>
-                                            <td className="py-3 px-2 text-right tabular-nums">
-                                                <span className={c.reply_count > 0 ? "text-amber-500 font-medium" : ""}>
+                                    {campaigns.map((c, i) => {
+                                        const isTop2 = i < 2;
+                                        const isHighReply = c.reply_rate >= 50;
+                                        return (
+                                            <tr
+                                                key={c.id}
+                                                className="border-t cursor-pointer"
+                                                style={{ borderColor: "#1A1A1A", transition: "background-color 150ms ease" }}
+                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(245,158,11,0.02)"}
+                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                                                onClick={() => router.push(`/campaigns/${c.id}`)}
+                                            >
+                                                <td className="py-4 px-6">
+                                                    <div className="flex items-center justify-center w-[26px] h-[26px] rounded-[7px] text-[11px] font-bold"
+                                                        style={isTop2 ? { backgroundColor: "rgba(245,158,11,0.1)", color: "#F59E0B" } : { backgroundColor: "#181818", color: "#666" }}>
+                                                        #{i + 1}
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-6">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-[7px] h-[7px]"
+                                                            style={isHighReply ? { backgroundColor: "#F59E0B" } : { backgroundColor: "transparent", border: "1px solid #333" }}
+                                                        />
+                                                        <span className="font-mono transition-colors" style={{ color: "#bbb" }} onMouseEnter={(e) => e.currentTarget.style.color = "#f0f0f0"} onMouseLeave={(e) => e.currentTarget.style.color = "#bbb"}>
+                                                            {c.name}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-6">
+                                                    <StatusBadge status={c.status} completion={c.completion_rate} />
+                                                </td>
+                                                <td className="py-4 px-6 font-mono" style={{ color: "#888" }}>
+                                                    {c.sent_count}
+                                                </td>
+                                                <td className="py-4 px-6 font-mono" style={{ color: c.reply_count > 0 ? "#F59E0B" : "#555" }}>
                                                     {c.reply_count}
-                                                </span>
-                                            </td>
-                                            <td className="py-3 px-2 text-right tabular-nums">
-                                                <span className={c.reply_rate > 10 ? "text-emerald-500 font-medium" : ""}>
+                                                </td>
+                                                <td className="py-4 px-6 font-mono font-medium" style={{ color: c.reply_rate >= 50 ? "#10B981" : c.reply_rate > 0 ? "#F59E0B" : "#444" }}>
                                                     {c.reply_rate}%
-                                                </span>
-                                            </td>
-                                            <td className="py-3 px-2 text-right tabular-nums">{c.completion_rate}%</td>
-                                            <td className="py-3 px-2"><StarRating rating={c.star_rating} /></td>
-                                        </tr>
-                                    ))}
+                                                </td>
+                                                <td className="py-4 px-6">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="font-mono text-[11px]" style={{ color: c.completion_rate === 100 ? "#F59E0B" : "#888", width: "30px" }}>
+                                                            {c.completion_rate}%
+                                                        </span>
+                                                        <div className="w-[60px] h-[4px] rounded-full overflow-hidden" style={{ backgroundColor: "#1e1e1e" }}>
+                                                            <div
+                                                                className="h-full rounded-full transition-all duration-500"
+                                                                style={{
+                                                                    width: `${c.completion_rate}%`,
+                                                                    backgroundColor: c.completion_rate === 100 ? "#F59E0B" : "#555",
+                                                                    boxShadow: c.completion_rate === 100 ? "0 0 6px rgba(245,158,11,0.5)" : "none"
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+
+                {/* Footer Strip */}
+                {campaigns.length > 0 && (
+                    <div className="px-6 py-3 border-t flex items-center justify-between" style={{ borderColor: "#1A1A1A", backgroundColor: "#0f0f0f" }}>
+                        <span className="text-[11px]" style={{ color: "#555" }}>
+                            Showing {campaigns.length} of {campaigns.length} campaigns
+                        </span>
+                        <div className="flex items-center justify-center w-[20px] h-[20px] rounded" style={{ backgroundColor: "rgba(245,158,11,0.1)", color: "#F59E0B", fontSize: "10px", fontWeight: "bold" }}>
+                            1
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
