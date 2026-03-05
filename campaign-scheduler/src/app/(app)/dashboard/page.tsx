@@ -34,7 +34,6 @@ interface CampaignWithStats {
     reply_count: number;
     completion_rate: number;
     reply_rate: number;
-    star_rating: number;
 }
 
 function StatusBadge({ status, completion = 0 }: { status: string, completion?: number }) {
@@ -136,7 +135,6 @@ export default function DashboardPage() {
                     reply_count: replied,
                     completion_rate: c.total_leads > 0 ? Math.round((sent / c.total_leads) * 100) : 0,
                     reply_rate: replyRate,
-                    star_rating: getStarRating(replyRate),
                 };
             });
 
