@@ -56,6 +56,7 @@ export async function GET(req: Request) {
 
         const userInfo = await userInfoResponse.json();
         const email = userInfo.email;
+        const name = userInfo.name;
 
         if (!email) {
             return NextResponse.redirect(new URL(`${redirectPath}?error=no_email`, req.url));
@@ -67,6 +68,7 @@ export async function GET(req: Request) {
             .upsert([{
                 user_id: user.id,
                 email,
+                name: name || null,
                 google_access_token: accessToken,
                 google_refresh_token: refreshToken || null,
                 is_active: true,
