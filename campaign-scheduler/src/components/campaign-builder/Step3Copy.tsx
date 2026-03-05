@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { PenTool, KeySquare, HelpCircle, ArrowLeft, ArrowRight, UserCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,9 +18,24 @@ interface Step3Props {
     onBack: () => void;
 }
 
+const PERSONALIZATION_OPTIONS = [
+    { label: 'First Name', tag: '{{firstName}}' },
+    { label: 'Last Name', tag: '{{lastName}}' },
+    { label: 'Full Name', tag: '{{fullName}}' },
+    { label: 'Business Name', tag: '{{businessName}}' },
+    { label: 'Email', tag: '{{email}}' },
+    { label: 'Website', tag: '{{website}}' },
+];
+
 export function Step3Copy({ onNext, onBack }: Step3Props) {
     const [subject, setSubject] = useState("");
     const [body, setBody] = useState("");
+
+    // Popup state
+    const [isPopupOpen, setIsPopupOpen] = useState(false);
+    const [slashIndex, setSlashIndex] = useState<number | null>(null);
+    const [selectedIndex, setSelectedIndex] = useState(0);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
@@ -32,6 +47,21 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
             fetchAccounts();
         }
     }, [isLoaded, user]);
+
+    // Handle click outside for popup
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                setIsPopupOpen(false);
+            }
+        }
+        if (isPopupOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [isPopupOpen]);
 
     const fetchAccounts = async () => {
         if (!user) return;
@@ -79,6 +109,50 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
         onNext(subject, body, selectedAccountIds);
     };
 
+    const handleSubjectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setSubject(val);
+
+        const cursorPosition = e.target.selectionStart;
+        if (cursorPosition && val.charAt(cursorPosition - 1) === '/') {
+            setIsPopupOpen(true);
+            setSlashIndex(cursorPosition - 1);
+            setSelectedIndex(0);
+        } else if (isPopupOpen && cursorPosition && val.charAt(cursorPosition - 1) !== '/') {
+            setIsPopupOpen(false);
+        }
+    };
+
+    const handleSubjectKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (isPopupOpen) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setSelectedIndex(prev => (prev + 1) % PERSONALIZATION_OPTIONS.length);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setSelectedIndex(prev => (prev - 1 + PERSONALIZATION_OPTIONS.length) % PERSONALIZATION_OPTIONS.length);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSelectOption(PERSONALIZATION_OPTIONS[selectedIndex]);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                setIsPopupOpen(false);
+            }
+        }
+    };
+
+    const handleSelectOption = (option: { label: string, tag: string }) => {
+        if (slashIndex !== null) {
+            const before = subject.substring(0, slashIndex);
+            const after = subject.substring(slashIndex + 1);
+            setSubject(before + option.tag + after);
+        } else {
+            setSubject(prev => prev + option.tag);
+        }
+        setIsPopupOpen(false);
+        setSlashIndex(null);
+    };
+
     return (
         <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
             <div className="flex flex-col gap-2">
@@ -101,13 +175,36 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
                     <CardContent className="pt-6 space-y-6 flex-1 flex flex-col">
                         <div className="space-y-2">
                             <Label htmlFor="subject" className="text-base font-semibold">Subject Line</Label>
-                            <Input
-                                id="subject"
-                                placeholder="e.g. Quick question about {{firstName}}..."
-                                value={subject}
-                                onChange={(e) => setSubject(e.target.value)}
-                                className="text-base py-6"
-                            />
+                            <div className="relative" ref={containerRef}>
+                                <Input
+                                    id="subject"
+                                    placeholder="e.g. Quick question about {{firstName}}..."
+                                    value={subject}
+                                    onChange={handleSubjectChange}
+                                    onKeyDown={handleSubjectKeyDown}
+                                    className="text-base py-6"
+                                    autoComplete="off"
+                                />
+                                {isPopupOpen && (
+                                    <div className="absolute top-full left-0 mt-2 w-56 rounded-xl border shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200" style={{ backgroundColor: "#141414", borderColor: "#222" }}>
+                                        <div className="px-3 py-2 border-b bg-muted/10 text-xs font-semibold text-muted-foreground uppercase tracking-wider" style={{ borderColor: "#222" }}>
+                                            Insert Personalization
+                                        </div>
+                                        <div className="p-1 max-h-60 overflow-y-auto">
+                                            {PERSONALIZATION_OPTIONS.map((option, idx) => (
+                                                <button
+                                                    key={option.tag}
+                                                    onClick={() => handleSelectOption(option)}
+                                                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between group ${idx === selectedIndex ? 'bg-primary/10 text-primary' : 'text-zinc-300 hover:bg-zinc-800'}`}
+                                                >
+                                                    <span>{option.label}</span>
+                                                    <span className={`text-xs font-mono opacity-50 ${idx === selectedIndex ? 'text-primary' : 'group-hover:text-zinc-400'}`}>{option.tag}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <div className="space-y-2 flex-1 flex flex-col">
