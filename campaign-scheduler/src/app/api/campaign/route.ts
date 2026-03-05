@@ -64,6 +64,8 @@ export async function POST(req: Request) {
                 body: emailBody,
                 total_leads: mappedLeads.length,
                 status: "RUNNING",
+                min_delay: campaignConfig.minDelay || 5,
+                max_delay: campaignConfig.maxDelay || 15,
             }])
             .select("id")
             .single();
