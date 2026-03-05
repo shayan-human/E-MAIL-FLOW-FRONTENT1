@@ -44,8 +44,25 @@ export default function InboxPage() {
     useEffect(() => {
         fetchReplies();
 
-        // InsForge real-time would be initialized here if needed
-        // For now, we'll rely on the polling from the dashboard or manual sync
+        // Auto-refresh inbox data every 30 seconds
+        const pollInterval = setInterval(() => {
+            fetchReplies();
+        }, 30 * 1000);
+
+        // Auto-sync replies from Gmail every 2 minutes
+        const syncInterval = setInterval(async () => {
+            try {
+                const res = await fetch("/api/campaign/sync-replies", { method: "POST" });
+                if (res.ok) await fetchReplies();
+            } catch {
+                // Silent fail
+            }
+        }, 2 * 60 * 1000);
+
+        return () => {
+            clearInterval(pollInterval);
+            clearInterval(syncInterval);
+        };
     }, []);
 
     const handleSync = async () => {
