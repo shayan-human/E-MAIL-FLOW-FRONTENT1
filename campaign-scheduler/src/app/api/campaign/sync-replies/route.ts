@@ -239,7 +239,7 @@ async function checkReplyByThread(
 
         const { error: replyError } = await insforge.database
             .from("replies")
-            .upsert([{
+            .insert([{
                 lead_id: leadId,
                 subject,
                 body,
@@ -247,7 +247,7 @@ async function checkReplyByThread(
                 timestamp,
                 gmail_message_id: msg.id,
                 is_read: false,
-            }], { onConflict: "gmail_message_id" });
+            }]);
 
         if (!replyError) {
             newRepliesFound = true;
@@ -303,7 +303,7 @@ async function checkReplyByEmail(
 
         const { error: replyError } = await insforge.database
             .from("replies")
-            .upsert([{
+            .insert([{
                 lead_id: leadId,
                 subject,
                 body,
@@ -311,7 +311,7 @@ async function checkReplyByEmail(
                 timestamp,
                 gmail_message_id: msg.id,
                 is_read: false,
-            }], { onConflict: "gmail_message_id" });
+            }]);
 
         if (!replyError) newRepliesFound = true;
     }

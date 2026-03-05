@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { insforge } from "@/lib/insforge";
 import { toast } from "@/components/ui/toast-provider";
-import { Loader2, Search, Mail, MessageSquareText } from "lucide-react";
+import { Loader2, Search, Mail, MessageSquareText, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface ReplyThread {
@@ -24,6 +24,7 @@ export default function InboxPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [showOriginal, setShowOriginal] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [syncing, setSyncing] = useState(false);
 
     const fetchReplies = async () => {
         try {
@@ -46,6 +47,22 @@ export default function InboxPage() {
         // InsForge real-time would be initialized here if needed
         // For now, we'll rely on the polling from the dashboard or manual sync
     }, []);
+
+    const handleSync = async () => {
+        setSyncing(true);
+        toast.info("Syncing new replies...");
+        try {
+            const res = await fetch("/api/campaign/sync-replies", { method: "POST" });
+            if (!res.ok) throw new Error("Sync failed");
+            await fetchReplies();
+            toast.success("Inbox is up to date");
+        } catch (error) {
+            console.error("Error syncing replies:", error);
+            toast.error("Failed to sync replies");
+        } finally {
+            setSyncing(false);
+        }
+    };
 
     const handleSelectThread = async (thread: ReplyThread) => {
         setSelectedId(thread.id);
@@ -100,16 +117,16 @@ export default function InboxPage() {
                 <div className="px-4 pt-4 pb-3 shrink-0">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                            <h2 className="text-[16px] font-semibold text-white">Inbox v2</h2>
-                            {unreadCount > 0 && (
-                                <span
-                                    className="px-2 py-0.5 rounded-full text-[11px] font-semibold"
-                                    style={{ backgroundColor: "#F59E0B", color: "#0f0f0f" }}
-                                >
-                                    {unreadCount}
-                                </span>
-                            )}
+                            <h2 className="text-[16px] font-semibold text-white">Inbox</h2>
                         </div>
+                        <button
+                            onClick={handleSync}
+                            disabled={syncing}
+                            className="p-1.5 rounded-md hover:bg-[#222] transition-colors disabled:opacity-50"
+                            title="Sync Replies"
+                        >
+                            <RefreshCw className={`w-4 h-4 text-muted-foreground ${syncing ? 'animate-spin' : ''}`} />
+                        </button>
                     </div>
                     {/* Search */}
                     <div className="relative">
@@ -145,18 +162,13 @@ export default function InboxPage() {
                                     borderBottom: "1px solid #1a1a1a",
                                     backgroundColor: selectedId === thread.id
                                         ? "#1a1a1a"
-                                        : thread.isRead
-                                            ? "transparent"
-                                            : "rgba(245, 158, 11, 0.03)",
+                                        : "transparent",
                                 }}
                             >
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="flex items-center gap-2 min-w-0">
-                                        {!thread.isRead && (
-                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: "#F59E0B" }} />
-                                        )}
                                         <p
-                                            className={`text-[13px] truncate ${thread.isRead ? "font-normal" : "font-semibold"}`}
+                                            className="text-[13px] truncate font-normal"
                                             style={{ color: thread.isRead ? "#888" : "#fff" }}
                                         >
                                             {thread.senderEmail}
