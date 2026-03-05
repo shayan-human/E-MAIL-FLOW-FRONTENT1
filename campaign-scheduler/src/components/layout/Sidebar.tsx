@@ -39,7 +39,7 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
 
     return (
         <aside
-            className="relative h-screen sticky top-0 z-30 flex flex-col border-r transition-all duration-300 ease-in-out shrink-0"
+            className="h-full flex flex-col border-r transition-all duration-300 ease-in-out shrink-0"
             style={{
                 width: collapsed ? 64 : 240,
                 backgroundColor: "#0f0f0f",

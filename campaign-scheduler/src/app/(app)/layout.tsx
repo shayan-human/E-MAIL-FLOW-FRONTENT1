@@ -11,7 +11,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     }
 
     return (
-        <div className="min-h-screen bg-zinc-950 text-zinc-100 flex overflow-hidden">
+        <div className="h-screen bg-zinc-950 text-zinc-100 flex overflow-hidden">
             <AppSidebar user={user} />
             <main className="flex-1 relative overflow-y-auto bg-zinc-950">
                 {/* Background ambient glows */}
