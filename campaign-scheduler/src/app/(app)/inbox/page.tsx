@@ -83,7 +83,7 @@ export default function InboxPage() {
 
     const handleSelectThread = async (thread: ReplyThread) => {
         setSelectedId(thread.id);
-        setShowOriginal(false);
+        setShowOriginal(false); // always collapse quoted text on selection
 
         if (!thread.isRead) {
             try {
@@ -244,12 +244,51 @@ export default function InboxPage() {
 
                         {/* Email body */}
                         <div className="flex-1 overflow-y-auto px-6 py-5">
-                            <div
-                                className="text-[13px] leading-relaxed whitespace-pre-wrap"
-                                style={{ color: "#d4d4d4" }}
-                            >
-                                {selected.fullBody}
-                            </div>
+                            {(() => {
+                                // Split body at the quoted original email line
+                                const quotedPattern = /\r?\nOn [\s\S]+?wrote:\r?\n/;
+                                const match = selected.fullBody.match(quotedPattern);
+                                const replyText = match
+                                    ? selected.fullBody.slice(0, selected.fullBody.indexOf(match[0])).trim()
+                                    : selected.fullBody.trim();
+                                const quotedText = match
+                                    ? selected.fullBody.slice(selected.fullBody.indexOf(match[0])).trim()
+                                    : null;
+
+                                return (
+                                    <>
+                                        <div
+                                            className="text-[13px] leading-relaxed whitespace-pre-wrap"
+                                            style={{ color: "#d4d4d4" }}
+                                        >
+                                            {replyText}
+                                        </div>
+                                        {quotedText && (
+                                            <div className="mt-4">
+                                                <button
+                                                    onClick={() => setShowOriginal(v => !v)}
+                                                    className="text-[11px] px-2 py-1 rounded transition-colors"
+                                                    style={{
+                                                        color: "#666",
+                                                        border: "1px solid #333",
+                                                        backgroundColor: showOriginal ? "#1f1f1f" : "transparent",
+                                                    }}
+                                                >
+                                                    {showOriginal ? "Hide original" : "Show original"}
+                                                </button>
+                                                {showOriginal && (
+                                                    <div
+                                                        className="mt-3 text-[12px] leading-relaxed whitespace-pre-wrap border-l-2 pl-3"
+                                                        style={{ color: "#555", borderColor: "#333" }}
+                                                    >
+                                                        {quotedText}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </>
+                                );
+                            })()}
                         </div>
 
                         {/* Bottom bar */}
