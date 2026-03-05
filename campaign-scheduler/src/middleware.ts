@@ -5,6 +5,7 @@ export default InsforgeMiddleware({
     publicRoutes: [
         '/',
         '/auth/callback',
+        '/api/auth',
         '/api/auth/(.*)',
         '/api/webhooks/(.*)'
     ],
