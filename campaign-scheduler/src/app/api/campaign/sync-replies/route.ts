@@ -299,6 +299,14 @@ async function checkReplyByEmail(
 
         if (sentAt && new Date(internalDate) <= new Date(sentAt)) continue;
 
+        // Skip if this exact Gmail message already credited to another lead
+        const { data: existing } = await insforge.database
+            .from("replies")
+            .select("id")
+            .eq("gmail_message_id", msg.id)
+            .maybeSingle();
+        if (existing) continue;
+
         const timestamp = new Date(internalDate).toISOString();
 
         const { error: replyError } = await insforge.database
