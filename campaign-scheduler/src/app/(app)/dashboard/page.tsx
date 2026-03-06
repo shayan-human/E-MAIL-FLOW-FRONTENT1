@@ -22,6 +22,7 @@ export default async function DashboardPage() {
         insforge.database
             .from("sender_accounts")
             .select("*", { count: "exact", head: true })
+            .eq("user_id", user.id)
             .eq("is_active", true)
     ]);
 

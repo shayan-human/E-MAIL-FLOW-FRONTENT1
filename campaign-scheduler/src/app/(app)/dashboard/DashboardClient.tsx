@@ -113,6 +113,7 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
     }, []);
 
     const fetchData = async () => {
+        setLoading(true);
         try {
             const [campaignsRes, statsRes] = await Promise.all([
                 insforge.database
@@ -181,6 +182,7 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
     };
 
     useEffect(() => {
+        fetchData();
         const pollInterval = setInterval(fetchData, 60 * 1000); // 1 minute live poll
         const syncInterval = setInterval(autoSync, 5 * 60 * 1000); // 5 minute background sync
         return () => {

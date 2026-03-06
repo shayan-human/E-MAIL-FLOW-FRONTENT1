@@ -15,6 +15,7 @@ export async function getInsforgeClient() {
 
     return createClient({
         baseUrl,
-        anonKey: token || anonKey,
+        anonKey,
+        edgeFunctionToken: token || undefined,
     });
 }
