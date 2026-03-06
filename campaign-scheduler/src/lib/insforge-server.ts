@@ -10,11 +10,10 @@ const baseUrl = process.env.NEXT_PUBLIC_INSFORGE_BASE_URL || 'https://4njfm5n4.u
 export async function getInsforgeClient() {
     const { token } = await auth();
 
-    // If no session, return the default anon client (RLS will still block sensitive data)
-    const anonKey = process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY || '';
-
+    // We only pass the user's token. 
+    // Passing the anonKey would override the authenticated session for data fetching.
     return createClient({
         baseUrl,
-        anonKey: token || anonKey,
+        edgeFunctionToken: token || undefined,
     });
 }

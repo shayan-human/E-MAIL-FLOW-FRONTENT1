@@ -13,7 +13,7 @@ import {
     ChevronLeft,
     ChevronRight,
 } from "lucide-react";
-import { insforge } from "@/lib/insforge";
+import { useAuth } from "@insforge/nextjs";
 
 const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -31,9 +31,10 @@ interface SidebarProps {
 export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
     const pathname = usePathname();
     const [showLogout, setShowLogout] = useState(false);
+    const { signOut } = useAuth();
 
     const handleSignOut = async () => {
-        await insforge.auth.signOut();
+        await signOut();
         window.location.href = "/";
     };
 
