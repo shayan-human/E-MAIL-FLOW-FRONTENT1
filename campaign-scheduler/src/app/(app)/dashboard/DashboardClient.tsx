@@ -220,83 +220,25 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
     const statCards = allStatCards.filter(card => visibleCards.includes(card.label));
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-10 animate-in fade-in duration-700">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-white">Dashboard</h1>
-                    <p className="text-zinc-500 text-[13px] mt-1">Your campaign performance at a glance.</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Overview</h1>
+                    <p className="text-muted-foreground text-sm mt-2">Manage and monitor your cold outreach performance.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="relative" ref={customizeRef}>
-                        <button
-                            onClick={() => setIsCustomizeOpen(!isCustomizeOpen)}
-                            className="btn-secondary flex items-center gap-2"
-                        >
-                            <SlidersHorizontal className="w-4 h-4" />
-                            Customize
-                        </button>
-
-                        {isCustomizeOpen && (
-                            <div
-                                className="absolute right-0 mt-2 w-64 rounded-xl shadow-2xl z-50 p-4 animate-in fade-in zoom-in duration-200"
-                                style={{
-                                    backgroundColor: "#141414",
-                                    border: "1px solid #222222",
-                                    boxShadow: "0 10px 40px rgba(0,0,0,0.6)"
-                                }}
-                            >
-                                <h3 className="text-xs font-semibold text-[#666] uppercase tracking-wider mb-4">Visible Metrics</h3>
-                                <div className="space-y-1">
-                                    {allStatCards.map(card => {
-                                        const isVisible = visibleCards.includes(card.label);
-                                        return (
-                                            <button
-                                                key={card.label}
-                                                onClick={() => {
-                                                    if (isVisible) {
-                                                        setVisibleCards(prev => prev.filter(c => c !== card.label));
-                                                    } else {
-                                                        setVisibleCards(prev => [...prev, card.label]);
-                                                    }
-                                                }}
-                                                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors group"
-                                                style={{ backgroundColor: isVisible ? "rgba(245,158,11,0.05)" : "transparent" }}
-                                            >
-                                                <span className="text-sm" style={{ color: isVisible ? "#fff" : "#888" }}>
-                                                    {card.label}
-                                                </span>
-                                                <div
-                                                    className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${isVisible ? "bg-[#F59E0B] border-[#F59E0B]" : "border-[#333] group-hover:border-[#444]"}`}
-                                                >
-                                                    {isVisible && <Check className="w-3 h-3 text-black stroke-[3]" />}
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="flex flex-col items-end">
-                        <button
-                            onClick={handleSyncReplies}
-                            disabled={syncing}
-                            className="btn-secondary flex items-center gap-2"
-                        >
-                            <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
-                            {syncing ? "Syncing..." : "Sync Replies"}
-                        </button>
-                        {lastSynced && (
-                            <span className="text-[10px] text-[#6b7280] mt-1.5">
-                                Last synced {lastSynced.toLocaleTimeString()}
-                            </span>
-                        )}
-                    </div>
+                    <button
+                        onClick={handleSyncReplies}
+                        disabled={syncing}
+                        className="sidebar-link flex items-center gap-2 border border-card-border"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+                        {syncing ? "Syncing..." : "Sync Replies"}
+                    </button>
                     <Link
                         href="/campaigns/new"
-                        className="btn-primary flex items-center gap-2"
+                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-all shadow-lg shadow-blue-600/20"
                     >
                         <Plus className="w-4 h-4" />
                         New Campaign
@@ -305,153 +247,111 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
             </div>
 
             {/* Stat Cards */}
-            <div className="flex flex-wrap gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {statCards.map((stat: any) => (
                     <div
                         key={stat.label}
-                        className="rounded-[10px] transition-all duration-200 cursor-default"
-                        style={{
-                            backgroundColor: "#141414",
-                            border: "1px solid #222222",
-                            padding: 24,
-                            minWidth: "160px",
-                            flex: statCards.length < 4 ? "1 1 0px" : "1 1 200px"
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#F59E0B")}
-                        onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#222222")}
+                        className="glass-card premium-stats-card p-6 group"
                     >
-                        <p className="text-[13px] font-medium text-zinc-500">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground group-hover:text-blue-400 transition-colors">
                             {stat.label}
                         </p>
-                        <p className="text-2xl font-semibold mt-1" style={{ color: stat.color || "white" }}>
-                            {stat.value}
-                        </p>
+                        <div className="flex items-end justify-between mt-3">
+                            <p className="text-3xl font-bold text-foreground" style={{ color: stat.color }}>
+                                {stat.value}
+                            </p>
+                            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-blue-400">
+                                <ArrowUpRight className="w-4 h-4" />
+                            </div>
+                        </div>
                     </div>
                 ))}
             </div>
 
             {campaigns.length === 0 && (
-                <p className="text-center italic mt-6 text-zinc-500">
-                    No activity yet. Connect a Gmail account and launch your first campaign to see data here.
-                </p>
+                <div className="glass-card p-12 text-center border-dashed border-2">
+                    <Megaphone className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+                    <p className="text-lg font-medium text-foreground">No outreach activity yet</p>
+                    <p className="text-muted-foreground text-sm mt-2">Connect an account and launch your first campaign to see data here.</p>
+                    <Link href="/campaigns/new" className="inline-flex items-center gap-2 text-blue-400 font-medium mt-6 hover:underline">
+                        Start your first campaign <ArrowUpRight className="w-4 h-4" />
+                    </Link>
+                </div>
             )}
 
-            <EmailActivityChart data={chartData} />
+            {chartData.length > 0 && <EmailActivityChart data={chartData} />}
 
-            <div
-                className="rounded-[16px] overflow-hidden"
-                style={{ backgroundColor: "#141414", border: "1px solid #222", boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }}
-            >
-                <div className="px-6 py-5 flex items-center justify-between border-b" style={{ borderColor: "#222" }}>
+            <div className="glass-card overflow-hidden">
+                <div className="px-6 py-6 border-b border-card-border flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "#F59E0B", boxShadow: "0 0 8px #F59E0B" }} />
-                        <h2 className="text-[16px] font-semibold text-white">Campaign Performance</h2>
-                        <span className="text-[12px] px-2 py-0.5 rounded-full ml-2" style={{ backgroundColor: "#1a1a1a", color: "#888", border: "1px solid #2a2a2a" }}>
-                            {campaigns.length} total
-                        </span>
+                        <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                        <h2 className="text-lg font-semibold text-foreground">Campaign Performance</h2>
                     </div>
+                    <span className="text-xs font-medium px-3 py-1 rounded-full bg-white/5 text-muted-foreground border border-card-border">
+                        {campaigns.length} total
+                    </span>
                 </div>
 
-                <div>
+                <div className="overflow-x-auto">
                     {campaigns.length === 0 ? (
                         <div className="py-12 text-center">
-                            <Megaphone className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                            <p className="text-foreground font-medium">No campaigns yet</p>
-                            <Link href="/campaigns/new" className="inline-flex items-center gap-1 text-sm text-amber-500 font-medium mt-3 hover:underline">
-                                Create campaign <ArrowUpRight className="w-3 h-3" />
-                            </Link>
+                            <p className="text-muted-foreground">No campaigns to display</p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto text-[13px]">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr style={{ backgroundColor: "#111" }}>
-                                        <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px] text-zinc-600">Rank</th>
-                                        <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px] text-zinc-600">Campaign</th>
-                                        <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px] text-zinc-600">Status</th>
-                                        <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px] text-zinc-600">Sent</th>
-                                        <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px] text-zinc-600">Replies</th>
-                                        <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px] text-zinc-600">Reply Rate</th>
-                                        <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px] text-zinc-600">Completion</th>
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-white/[0.02]">
+                                    <th className="py-4 px-6 font-semibold uppercase tracking-wider text-[10px] text-muted-foreground">Campaign</th>
+                                    <th className="py-4 px-6 font-semibold uppercase tracking-wider text-[10px] text-muted-foreground">Status</th>
+                                    <th className="py-4 px-6 font-semibold uppercase tracking-wider text-[10px] text-muted-foreground">Sent</th>
+                                    <th className="py-4 px-6 font-semibold uppercase tracking-wider text-[10px] text-muted-foreground">Replies</th>
+                                    <th className="py-4 px-6 font-semibold uppercase tracking-wider text-[10px] text-muted-foreground">Reply Rate</th>
+                                    <th className="py-4 px-6 font-semibold uppercase tracking-wider text-[10px] text-muted-foreground">Progress</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-card-border">
+                                {campaigns.map((c) => (
+                                    <tr
+                                        key={c.id}
+                                        className="hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                                        onClick={() => router.push(`/campaigns/${c.id}`)}
+                                    >
+                                        <td className="py-5 px-6">
+                                            <span className="font-medium text-foreground group-hover:text-blue-400 transition-colors">
+                                                {c.name}
+                                            </span>
+                                        </td>
+                                        <td className="py-5 px-6">
+                                            <StatusBadge status={c.status} completion={c.completion_rate} />
+                                        </td>
+                                        <td className="py-5 px-6 font-medium text-muted-foreground">
+                                            {c.sent_count}
+                                        </td>
+                                        <td className="py-5 px-6 font-medium" style={{ color: c.reply_count > 0 ? "#3b82f6" : undefined }}>
+                                            {c.reply_count}
+                                        </td>
+                                        <td className="py-5 px-6 font-bold text-foreground">
+                                            {c.reply_rate}%
+                                        </td>
+                                        <td className="py-5 px-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex-1 max-w-[100px] h-1.5 rounded-full bg-white/5 overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-blue-500 rounded-full transition-all duration-1000"
+                                                        style={{ width: `${c.completion_rate}%` }}
+                                                    />
+                                                </div>
+                                                <span className="text-[11px] font-medium text-muted-foreground">
+                                                    {c.completion_rate}%
+                                                </span>
+                                            </div>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    {campaigns.map((c, i) => {
-                                        const isTop2 = i < 2;
-                                        const isHighReply = c.reply_rate >= 50;
-                                        return (
-                                            <tr
-                                                key={c.id}
-                                                className="border-t cursor-pointer"
-                                                style={{ borderColor: "#1A1A1A", transition: "background-color 150ms ease" }}
-                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(245,158,11,0.02)"}
-                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-                                                onClick={() => router.push(`/campaigns/${c.id}`)}
-                                            >
-                                                <td className="py-4 px-6">
-                                                    <div className="flex items-center justify-center w-[26px] h-[26px] rounded-[7px] text-[11px] font-bold"
-                                                        style={isTop2 ? { backgroundColor: "rgba(245,158,11,0.1)", color: "#F59E0B" } : { backgroundColor: "#181818", color: "#666" }}>
-                                                        #{i + 1}
-                                                    </div>
-                                                </td>
-                                                <td className="py-4 px-6">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-[7px] h-[7px]"
-                                                            style={isHighReply ? { backgroundColor: "#F59E0B" } : { backgroundColor: "transparent", border: "1px solid #333" }}
-                                                        />
-                                                        <span className="font-mono text-zinc-300 hover:text-white transition-colors">
-                                                            {c.name}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td className="py-4 px-6">
-                                                    <StatusBadge status={c.status} completion={c.completion_rate} />
-                                                </td>
-                                                <td className="py-4 px-6 font-mono text-zinc-500">
-                                                    {c.sent_count}
-                                                </td>
-                                                <td className="py-4 px-6 font-mono" style={{ color: c.reply_count > 0 ? "#F59E0B" : "#555" }}>
-                                                    {c.reply_count}
-                                                </td>
-                                                <td className="py-4 px-6 font-mono font-medium" style={{ color: c.reply_rate >= 50 ? "#10B981" : c.reply_rate > 0 ? "#F59E0B" : "#444" }}>
-                                                    {c.reply_rate}%
-                                                </td>
-                                                <td className="py-4 px-6">
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="font-mono text-[11px]" style={{ color: c.completion_rate === 100 ? "#F59E0B" : "#888", width: "30px" }}>
-                                                            {c.completion_rate}%
-                                                        </span>
-                                                        <div className="w-[60px] h-[4px] rounded-full overflow-hidden" style={{ backgroundColor: "#1e1e1e" }}>
-                                                            <div
-                                                                className="h-full rounded-full transition-all duration-500"
-                                                                style={{
-                                                                    width: `${c.completion_rate}%`,
-                                                                    backgroundColor: c.completion_rate === 100 ? "#F59E0B" : "#555",
-                                                                    boxShadow: c.completion_rate === 100 ? "0 0 6px rgba(245,158,11,0.5)" : "none"
-                                                                }}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
+                                ))}
+                            </tbody>
+                        </table>
                     )}
                 </div>
-
-                {campaigns.length > 0 && (
-                    <div className="px-6 py-3 border-t flex items-center justify-between" style={{ borderColor: "#1A1A1A", backgroundColor: "#0f0f0f" }}>
-                        <span className="text-[11px] text-zinc-600">
-                            Showing {campaigns.length} total campaigns
-                        </span>
-                        <div className="flex items-center justify-center w-[20px] h-[20px] rounded text-amber-500 text-[10px] font-bold" style={{ backgroundColor: "rgba(245,158,11,0.1)" }}>
-                            1
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );
@@ -460,27 +360,54 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
 function CustomTooltip({ active, payload, label }: any) {
     if (!active || !payload?.length) return null;
     return (
-        <div className="rounded-lg px-3 py-2 text-xs shadow-lg" style={{ backgroundColor: "#1f1f1f", border: "1px solid #333" }}>
-            <p className="font-medium text-white">{label}</p>
-            <p className="text-amber-500">{payload[0].value} emails sent</p>
+        <div className="glass-card px-4 py-3 shadow-2xl">
+            <p className="text-xs font-bold text-muted-foreground mb-1 uppercase tracking-wider">{label}</p>
+            <p className="text-lg font-bold text-blue-400">{payload[0].value} <span className="text-xs font-medium text-foreground/60">emails sent</span></p>
         </div>
     );
 }
 
 function EmailActivityChart({ data }: { data: any[] }) {
     return (
-        <div className="rounded-[10px]" style={{ backgroundColor: "#141414", border: "1px solid #222222" }}>
-            <div className="px-6 pt-5 pb-2">
-                <h3 className="text-[16px] font-medium text-white">Email Activity</h3>
+        <div className="glass-card p-6">
+            <div className="flex items-center justify-between mb-8">
+                <h3 className="text-lg font-semibold text-foreground">Outreach Activity</h3>
+                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground bg-white/5 px-2.5 py-1 rounded-md border border-card-border">
+                    Last 30 days
+                </div>
             </div>
-            <div className="px-4 pb-4">
-                <ResponsiveContainer width="100%" height={220}>
-                    <LineChart data={data} margin={{ top: 8, right: 12, left: -10, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="0" stroke="#1f1f1f" vertical={false} />
-                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "#6b7280", fontSize: 11 }} dy={8} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fill: "#6b7280", fontSize: 11 }} dx={-4} />
-                        <Tooltip content={<CustomTooltip />} cursor={{ stroke: "#333", strokeWidth: 1 }} />
-                        <Line type="monotone" dataKey="sent" stroke="#F59E0B" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#F59E0B", stroke: "#141414", strokeWidth: 2 }} />
+            <div className="w-full h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                        <defs>
+                            <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                        <XAxis
+                            dataKey="date"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 500 }}
+                            dy={10}
+                        />
+                        <YAxis
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 500 }}
+                        />
+                        <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(255,255,255,0.1)", strokeWidth: 1 }} />
+                        <Line
+                            type="monotone"
+                            dataKey="sent"
+                            stroke="#3b82f6"
+                            strokeWidth={3}
+                            dot={false}
+                            activeDot={{ r: 6, fill: "#3b82f6", stroke: "#09090b", strokeWidth: 2 }}
+                            animationDuration={1500}
+                        />
                     </LineChart>
                 </ResponsiveContainer>
             </div>
