@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { insforge } from "@/lib/insforge";
 import { useUser } from "@insforge/nextjs";
 
-import { Plus, Mail, Unplug, Cpu, Activity, Zap, Shield, Link as LinkIcon, RefreshCw, ChevronRight } from "lucide-react";
+import { Plus, Mail, Unplug } from "lucide-react";
 import { toast } from "@/components/ui/toast-provider";
 
 interface Account {
@@ -18,41 +18,36 @@ interface Account {
     last_synced_at: string;
 }
 
+// ── Status badge component ────────────────────────────────────────────
 function StatusBadge({ status }: { status: "active" | "rate_limited" | "error" }) {
-    if (status === 'active') {
-        return (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black tracking-widest bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse" />
-                LINKED_CORE
-            </span>
-        );
-    }
-    if (status === 'rate_limited') {
-        return (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black tracking-widest bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                THROTTLED
-            </span>
-        );
-    }
+    const config = {
+        active: { bg: "rgba(22,163,106,0.12)", text: "#16a34a", label: "Active" },
+        rate_limited: { bg: "rgba(234,179,8,0.12)", text: "#eab308", label: "Rate Limited" },
+        error: { bg: "rgba(239,68,68,0.12)", text: "#ef4444", label: "Error" },
+    };
+    const c = config[status];
     return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black tracking-widest bg-red-500/10 text-red-500 border border-red-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-            CRITICAL_FAULT
+        <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium"
+            style={{ backgroundColor: c.bg, color: c.text }}
+        >
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: c.text }} />
+            {c.label}
         </span>
     );
 }
 
+// ── Time ago helper ───────────────────────────────────────────────────
 function timeAgo(dateStr: string): string {
-    if (!dateStr) return "NEVER";
+    if (!dateStr) return "never";
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "SYNC_SYNCED";
-    if (mins < 60) return `${mins}M_AGO`;
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins} min${mins > 1 ? "s" : ""} ago`;
     const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}H_AGO`;
+    if (hrs < 24) return `${hrs} hr${hrs > 1 ? "s" : ""} ago`;
     const days = Math.floor(hrs / 24);
-    return `${days}D_AGO`;
+    return `${days} day${days > 1 ? "s" : ""} ago`;
 }
 
 export default function AccountsPage() {
@@ -69,7 +64,7 @@ export default function AccountsPage() {
             return data.data || [];
         } catch (err: unknown) {
             console.error(err);
-            toast.error("DATA_LINK_FAILURE");
+            toast.error("Failed to fetch accounts");
             return [];
         }
     };
@@ -86,7 +81,7 @@ export default function AccountsPage() {
                 setAccounts(existing);
             } catch (err) {
                 console.error("Error in accounts init:", err);
-                toast.error("KERNEL_INIT_ERROR");
+                toast.error("An unexpected error occurred loading accounts.");
             } finally {
                 if (!cancelled) setIsLoading(false);
             }
@@ -101,117 +96,161 @@ export default function AccountsPage() {
     };
 
     const handleDisconnect = async (id: string) => {
-        if (!confirm("INITIATE PERMANENT NODE SHUTDOWN?")) return;
+        if (!confirm("Disconnect this Gmail account? This cannot be undone.")) return;
         try {
             const { error } = await insforge.database.from("sender_accounts").delete().eq("id", id);
             if (error) throw error;
-            toast.success("CORE_DETACHED");
+            toast.info("Account removed");
             setAccounts(accounts.filter(acc => acc.id !== id));
         } catch (err: unknown) {
             console.error(err);
-            toast.error("DETACH_FAILED");
+            toast.error("Failed to disconnect account");
         }
     };
 
+    // Determine account status
     const getStatus = (acc: Account): "active" | "rate_limited" | "error" => {
         if (!acc.google_access_token && !acc.google_refresh_token) return "error";
         if (!acc.is_active) return "rate_limited";
         return "active";
     };
 
-    return (
-        <div className="space-y-10 pb-20">
-            {/* Control Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-8 bg-black/40 border border-white/5 rounded-[2.5rem] relative overflow-hidden group">
-                <div className="absolute inset-0 bg-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-2">
-                        <Cpu className="w-5 h-5 text-blue-500" />
-                        <h1 className="text-4xl font-outfit font-black tracking-tighter text-white uppercase">Node Management</h1>
-                    </div>
-                    <p className="text-zinc-500 font-black text-[10px] tracking-[0.3em] uppercase opacity-60">Authorize // Cluster Expansion</p>
+    // ── Loading state ─────────────────────────────────────────────────
+    if (isLoading) {
+        return (
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-2xl font-semibold tracking-tight text-white">Gmail Accounts</h1>
                 </div>
+                <div className="space-y-3">
+                    {[1, 2].map(i => (
+                        <div
+                            key={i}
+                            className="rounded-[10px] animate-pulse"
+                            style={{ backgroundColor: "#141414", border: "1px solid #222222", padding: 20 }}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full" style={{ backgroundColor: "#222" }} />
+                                <div className="space-y-2 flex-1">
+                                    <div className="h-4 w-48 rounded" style={{ backgroundColor: "#222" }} />
+                                    <div className="h-3 w-32 rounded" style={{ backgroundColor: "#1a1a1a" }} />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    // ── Empty state ───────────────────────────────────────────────────
+    if (accounts.length === 0) {
+        return (
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-2xl font-semibold tracking-tight text-white">Gmail Accounts</h1>
+                </div>
+                <div
+                    className="rounded-[10px] flex flex-col items-center justify-center py-20"
+                    style={{ backgroundColor: "#141414", border: "1px solid #222222" }}
+                >
+                    <div
+                        className="w-16 h-16 rounded-full flex items-center justify-center mb-5"
+                        style={{ backgroundColor: "#1a1a1a" }}
+                    >
+                        <Mail className="w-7 h-7" style={{ color: "#6b7280" }} />
+                    </div>
+                    <p className="text-white font-medium text-[15px]">No Gmail accounts connected</p>
+                    <p className="text-[13px] mt-1.5 mb-6" style={{ color: "#6b7280" }}>
+                        Connect an account to start sending campaigns
+                    </p>
+                    <button
+                        onClick={handleConnectGmail}
+                        disabled={isConnecting}
+                        className="btn-primary flex items-center gap-2"
+                    >
+                        <Plus className="w-4 h-4" />
+                        {isConnecting ? "Connecting..." : "Connect Account"}
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // ── Main view ─────────────────────────────────────────────────────
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-semibold tracking-tight text-white">Gmail Accounts</h1>
                 <button
                     onClick={handleConnectGmail}
                     disabled={isConnecting}
-                    className="relative z-10 px-8 py-4 bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-white/5 active:scale-95"
+                    className="btn-primary flex items-center gap-2"
                 >
-                    <Plus className="w-3.5 h-3.5 inline-block mr-2" />
-                    {isConnecting ? "AUTHORIZING..." : "LINK NEW NODE"}
+                    <Plus className="w-4 h-4" />
+                    {isConnecting ? "Connecting..." : "Connect Account"}
                 </button>
             </div>
 
-            {/* Matrix Content */}
-            {isLoading ? (
-                <div className="space-y-4">
-                    {[1, 2].map(i => (
-                        <div key={i} className="h-32 glass-card animate-pulse" />
-                    ))}
-                </div>
-            ) : accounts.length === 0 ? (
-                <div className="glass-card p-24 text-center">
-                    <Shield className="w-16 h-16 text-zinc-900 mx-auto mb-8 opacity-20" />
-                    <p className="text-zinc-500 font-black uppercase tracking-[0.5em] text-[12px]">No Nodes Detected in Active Network</p>
-                    <button onClick={handleConnectGmail} className="inline-block mt-10 text-[10px] font-black text-blue-500 uppercase tracking-widest hover:underline">
-                        Establish First Link //
-                    </button>
-                </div>
-            ) : (
-                <div className="grid gap-6">
-                    {accounts.map((acc) => {
-                        const status = getStatus(acc);
-                        return (
-                            <div
-                                key={acc.id}
-                                className="glass-card p-8 group transition-all hover:border-blue-500/50"
-                            >
-                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-                                    <div className="flex items-start gap-6">
-                                        <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 font-black text-xl shadow-[0_0_20px_rgba(59,130,246,0.1)] border border-blue-500/20">
-                                            {acc.email[0].toUpperCase()}
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-3 mb-1">
-                                                <h3 className="text-xl font-black font-outfit text-white tracking-tight uppercase">{acc.email}</h3>
-                                                <Shield className="w-3.5 h-3.5 text-blue-500 opacity-50" />
-                                            </div>
-                                            <div className="flex items-center gap-4">
-                                                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">OAUTH_LINKED_STABLE</span>
-                                                <span className="text-zinc-800 text-[10px] font-black">//</span>
-                                                <div className="flex items-center gap-2 text-[10px] font-black text-zinc-600 uppercase tracking-widest">
-                                                    <RefreshCw className="w-3 h-3" /> {timeAgo(acc.last_synced_at)}
-                                                </div>
-                                            </div>
-                                        </div>
+            {/* Account cards */}
+            <div className="space-y-3">
+                {accounts.map((acc) => {
+                    const status = getStatus(acc);
+                    return (
+                        <div
+                            key={acc.id}
+                            className="rounded-[10px] transition-colors duration-200 group"
+                            style={{ backgroundColor: "#141414", border: "1px solid #222222", padding: 20 }}
+                        >
+                            {/* Top row */}
+                            <div className="flex items-center justify-between">
+                                {/* Left: avatar + info */}
+                                <div className="flex items-center gap-3">
+                                    <div
+                                        className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold uppercase shrink-0"
+                                        style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
+                                    >
+                                        {acc.email[0]}
                                     </div>
-
-                                    <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-4 px-6 md:border-l border-white/5">
-                                        <StatusBadge status={status} />
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-1 w-24 bg-zinc-900 rounded-full overflow-hidden">
-                                                <div className="h-full bg-blue-500 shadow-[0_0_8px_#3b82f6]" style={{ width: '40%' }} />
-                                            </div>
-                                            <span className="text-[10px] font-black text-zinc-500 tracking-tighter">{acc.sent_today || 0} / 50 CYCLES</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-4">
-                                        <button
-                                            onClick={() => handleDisconnect(acc.id)}
-                                            className="w-12 h-12 flex items-center justify-center rounded-2xl bg-red-500/5 text-red-500 border border-red-500/10 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
-                                        >
-                                            <Unplug className="w-4 h-4" />
-                                        </button>
-                                        <div className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/5 text-zinc-500 border border-white/10 group-hover:border-blue-500 transition-all">
-                                            <ChevronRight className="w-4 h-4" />
-                                        </div>
+                                    <div>
+                                        <p className="text-[14px] font-medium text-white">{acc.email}</p>
+                                        <p className="text-[11px] mt-0.5" style={{ color: "#6b7280" }}>
+                                            Connected via OAuth
+                                        </p>
                                     </div>
                                 </div>
+
+                                {/* Right: status + meta */}
+                                <div className="flex items-center gap-4">
+                                    <div className="text-right hidden sm:block">
+                                        <p className="text-[11px]" style={{ color: "#6b7280" }}>
+                                            Last synced: {timeAgo(acc.last_synced_at)}
+                                        </p>
+                                    </div>
+                                    <StatusBadge status={status} />
+                                </div>
                             </div>
-                        );
-                    })}
-                </div>
-            )}
+
+                            {/* Bottom row */}
+                            <div className="flex items-center justify-between mt-4 pt-3" style={{ borderTop: "1px solid #1f1f1f" }}>
+                                <div className="flex items-center gap-4">
+                                    <span className="text-[11px]" style={{ color: "#6b7280" }}>
+                                        Sent today: <span className="text-white font-medium">{acc.sent_today || 0}</span>
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={() => handleDisconnect(acc.id)}
+                                    className="btn-destructive flex items-center gap-1.5 text-[12px] opacity-0 group-hover:opacity-100"
+                                >
+                                    <Unplug className="w-3.5 h-3.5" />
+                                    Disconnect
+                                </button>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 }

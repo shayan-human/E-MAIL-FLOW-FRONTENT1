@@ -1,23 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { insforge } from "@/lib/insforge";
 import { toast } from "@/components/ui/toast-provider";
-import {
-    Loader2,
-    Search,
-    Mail,
-    MessageSquareText,
-    RefreshCw,
-    Activity,
-    Terminal,
-    Wifi,
-    Database,
-    Zap,
-    Radio,
-    ShieldAlert,
-    Cpu,
-    ArrowRight
-} from "lucide-react";
+import { Loader2, Search, Mail, MessageSquareText, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface ReplyThread {
@@ -48,8 +34,8 @@ export default function InboxPage() {
                 setThreads(data.replies);
             }
         } catch (error) {
-            console.error("PROTOCOL_ERROR: INBOX_FETCH_FAILED", error);
-            toast.error("SIGNAL_LOSS: INBOX_UNREACHABLE");
+            console.error("Error fetching replies:", error);
+            toast.error("Failed to load inbox");
         } finally {
             setLoading(false);
         }
@@ -58,16 +44,18 @@ export default function InboxPage() {
     useEffect(() => {
         fetchReplies();
 
+        // Auto-refresh inbox data every 30 seconds
         const pollInterval = setInterval(() => {
             fetchReplies();
         }, 30 * 1000);
 
+        // Auto-sync replies from Gmail every 2 minutes
         const syncInterval = setInterval(async () => {
             try {
                 const res = await fetch("/api/campaign/sync-replies", { method: "POST" });
                 if (res.ok) await fetchReplies();
             } catch {
-                // Background silencer active
+                // Silent fail
             }
         }, 2 * 60 * 1000);
 
@@ -79,15 +67,15 @@ export default function InboxPage() {
 
     const handleSync = async () => {
         setSyncing(true);
-        toast.info("INITIATING_SYNC_SEQUENCE...");
+        toast.info("Syncing new replies...");
         try {
             const res = await fetch("/api/campaign/sync-replies", { method: "POST" });
-            if (!res.ok) throw new Error("SYNC_FAULT");
+            if (!res.ok) throw new Error("Sync failed");
             await fetchReplies();
-            toast.success("MATRIX_SYNCHRONIZED");
+            toast.success("Inbox is up to date");
         } catch (error) {
-            console.error("SYNC_ERROR", error);
-            toast.error("PROTOCOL_ERROR: SYNC_INTERRUPTED");
+            console.error("Error syncing replies:", error);
+            toast.error("Failed to sync replies");
         } finally {
             setSyncing(false);
         }
@@ -95,16 +83,18 @@ export default function InboxPage() {
 
     const handleSelectThread = async (thread: ReplyThread) => {
         setSelectedId(thread.id);
-        setShowOriginal(false);
+        setShowOriginal(false); // always collapse quoted text on selection
 
         if (!thread.isRead) {
             try {
+                // Optimistically update UI
                 setThreads(prev =>
                     prev.map(t => t.id === thread.id ? { ...t, isRead: true } : t)
                 );
+
                 await fetch(`/api/inbox/${thread.id}/read`, { method: "POST" });
             } catch (error) {
-                console.error("READ_STATE_FAULT", error);
+                console.error("Error marking as read:", error);
             }
         }
     };
@@ -120,152 +110,142 @@ export default function InboxPage() {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center h-[calc(100vh-140px)] bg-black/40 border border-white/5 rounded-[2.5rem] animate-pulse">
-                <Cpu className="w-8 h-8 text-blue-500 mb-4" />
-                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">Calibrating_Matrix // Signal_Wait</p>
+            <div className="flex items-center justify-center h-[calc(100vh-120px)] bg-[#141414] border border-[#222] rounded-[10px]">
+                <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
             </div>
         );
     }
 
     return (
-        <div className="flex h-[calc(100vh-140px)] gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* ── Signal_Stream Panel ─────────────────────────── */}
-            <div className="w-[400px] flex flex-col bg-black/20 border border-white/5 rounded-[2.5rem] overflow-hidden group">
-                {/* Panel Header */}
-                <div className="px-8 pt-8 pb-6 border-b border-white/5 bg-white/[0.02]">
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                                <Wifi className="w-4 h-4 text-blue-500 shadow-[0_0_8px_#3b82f6]" />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-black text-white uppercase tracking-tighter">Signal_Stream</h2>
-                                <p className="text-[8px] font-black text-zinc-500 uppercase tracking-widest leading-none mt-1">Ingress // {threads.length} Nodes</p>
-                            </div>
+        <div
+            className="flex rounded-[10px] overflow-hidden"
+            style={{
+                backgroundColor: "#141414",
+                border: "1px solid #222222",
+                height: "calc(100vh - 120px)",
+            }}
+        >
+            {/* ── Left Column: Thread list ─────────────────────────── */}
+            <div
+                className="flex flex-col shrink-0"
+                style={{ width: 360, borderRight: "1px solid #222222" }}
+            >
+                {/* Header */}
+                <div className="px-4 pt-4 pb-3 shrink-0">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-[16px] font-semibold text-white">Inbox</h2>
                         </div>
                         <button
                             onClick={handleSync}
                             disabled={syncing}
-                            className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center hover:bg-white/10 transition-all active:scale-95 disabled:opacity-50"
+                            className="p-1.5 rounded-md hover:bg-[#222] transition-colors disabled:opacity-50"
+                            title="Sync Replies"
                         >
-                            <RefreshCw className={`w-4 h-4 text-white ${syncing ? 'animate-spin' : ''}`} />
+                            <RefreshCw className={`w-4 h-4 text-muted-foreground ${syncing ? 'animate-spin' : ''}`} />
                         </button>
                     </div>
-
-                    {/* Search Component */}
+                    {/* Search */}
                     <div className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
+                        <Search
+                            className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5"
+                            style={{ color: "#555" }}
+                        />
                         <input
                             type="text"
-                            placeholder="FILTER_MATRIX..."
+                            placeholder="Search replies..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full h-12 bg-black/40 border border-white/5 rounded-2xl pl-11 pr-4 text-[10px] font-black text-white placeholder:text-zinc-700 uppercase tracking-widest focus:border-blue-500/50 outline-none transition-all"
+                            className="w-full pl-9 pr-3 py-2 rounded-lg text-[12px] text-white placeholder:text-[#555] outline-none transition-colors focus:ring-1 focus:ring-[#333]"
+                            style={{ backgroundColor: "#1a1a1a", border: "1px solid #222" }}
                         />
                     </div>
                 </div>
 
-                {/* Signals Queue */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
+                {/* Thread list */}
+                <div className="flex-1 overflow-y-auto">
                     {filtered.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 opacity-20">
-                            <Radio className="w-10 h-10 text-zinc-500 mb-4" />
-                            <p className="text-[10px] font-black uppercase tracking-widest">No_Active_Signals</p>
+                        <div className="flex flex-col items-center justify-center py-12">
+                            <Mail className="w-6 h-6 mb-2" style={{ color: "#333" }} />
+                            <p className="text-[12px]" style={{ color: "#555" }}>No replies found</p>
                         </div>
                     ) : (
                         filtered.map((thread) => (
                             <button
                                 key={thread.id}
                                 onClick={() => handleSelectThread(thread)}
-                                className={`w-full text-left p-6 rounded-[1.5rem] border transition-all relative overflow-hidden group/item ${selectedId === thread.id
-                                        ? "bg-blue-600/10 border-blue-500/50 shadow-[0_0_20px_rgba(37,99,235,0.05)]"
-                                        : "bg-white/5 border-white/5 hover:border-white/10"
-                                    }`}
+                                className="w-full text-left px-4 py-3 transition-colors"
+                                style={{
+                                    borderBottom: "1px solid #1a1a1a",
+                                    backgroundColor: selectedId === thread.id
+                                        ? "#1a1a1a"
+                                        : "transparent",
+                                }}
                             >
-                                {!thread.isRead && (
-                                    <div className="absolute top-0 right-0 w-1.5 h-1.5 rounded-bl-lg bg-blue-500 shadow-[0_0_8px_#3b82f6]" />
-                                )}
-
-                                <div className="flex items-start justify-between gap-4 relative z-10">
-                                    <div className="min-w-0">
-                                        <p className={`text-[10px] font-black uppercase tracking-widest truncate ${thread.isRead ? 'text-zinc-500' : 'text-white'}`}>
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <p
+                                            className="text-[13px] truncate font-normal"
+                                            style={{ color: thread.isRead ? "#888" : "#fff" }}
+                                        >
                                             {thread.senderEmail}
                                         </p>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-zinc-800" />
-                                            <p className="text-[8px] font-black text-zinc-600 uppercase tracking-tight truncate max-w-[150px]">
-                                                {thread.campaignName}
-                                            </p>
-                                        </div>
                                     </div>
-                                    <span className="text-[8px] font-black text-zinc-700 uppercase tracking-tighter shrink-0 mt-1">
-                                        {formatDistanceToNow(new Date(thread.timestamp), { addSuffix: false })} // AGO
+                                    <span className="text-[10px] shrink-0 mt-0.5" style={{ color: "#555" }}>
+                                        {formatDistanceToNow(new Date(thread.timestamp), { addSuffix: true })}
                                     </span>
                                 </div>
-                                <p className={`text-[11px] font-medium mt-3 line-clamp-2 leading-relaxed ${thread.isRead ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                                <p className="text-[11px] mt-0.5 truncate" style={{ color: "#555" }}>
+                                    {thread.campaignName}
+                                </p>
+                                <p className="text-[12px] mt-1 line-clamp-1" style={{ color: "#777" }}>
                                     {thread.preview}
                                 </p>
-
-                                {selectedId === thread.id && (
-                                    <div className="absolute bottom-0 left-0 h-[1px] bg-blue-500/50 w-full" />
-                                )}
                             </button>
                         ))
                     )}
                 </div>
             </div>
 
-            {/* ── Signal_Analyzer Panel ───────────────────────── */}
-            <div className="flex-1 flex flex-col bg-black/20 border border-white/5 rounded-[2.5rem] overflow-hidden relative">
+            {/* ── Right Column: Email viewer ───────────────────────── */}
+            <div className="flex-1 flex flex-col min-w-0">
                 {!selected ? (
-                    <div className="flex-1 flex flex-col items-center justify-center relative">
-                        <div className="absolute top-0 left-0 w-full h-full opacity-[0.02] pointer-events-none bg-[radial-gradient(circle_at_center,_#3b82f6_0%,_transparent_70%)]" />
-                        <div className="w-20 h-20 rounded-full bg-white/5 border border-white/5 flex items-center justify-center mb-6 relative">
-                            <Activity className="w-8 h-8 text-zinc-700 animate-pulse" />
-                            <div className="absolute inset-0 border border-blue-500/20 rounded-full animate-ping [animation-duration:3s]" />
+                    /* Empty state */
+                    <div className="flex-1 flex flex-col items-center justify-center">
+                        <div
+                            className="w-14 h-14 rounded-full flex items-center justify-center mb-4"
+                            style={{ backgroundColor: "#1a1a1a" }}
+                        >
+                            <MessageSquareText className="w-6 h-6" style={{ color: "#555" }} />
                         </div>
-                        <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Select_Node // Read_Output</h3>
-                        <p className="text-[9px] font-black text-zinc-600 uppercase mt-2 tracking-widest">Connect to a signal node to decode payload</p>
+                        <p className="text-[14px] font-medium text-white">Select a reply to read</p>
+                        <p className="text-[12px] mt-1" style={{ color: "#555" }}>
+                            Click on a thread from the left to view it here
+                        </p>
                     </div>
                 ) : (
                     <>
-                        {/* Analyzer Header */}
-                        <div className="px-10 py-8 border-b border-white/5 bg-white/[0.02]">
+                        {/* Email header */}
+                        <div className="px-6 py-4 shrink-0" style={{ borderBottom: "1px solid #1f1f1f" }}>
                             <div className="flex items-start justify-between">
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-3">
-                                        <Terminal className="w-4 h-4 text-blue-500" />
-                                        <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">Decoding_Sequence</span>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-3xl font-black text-white tracking-tighter uppercase leading-none">
-                                            {selected.senderEmail}
-                                        </h3>
-                                        <div className="flex items-center gap-3 mt-4">
-                                            <span className="text-[10px] font-black text-blue-500/70 uppercase tracking-widest bg-blue-500/5 px-3 py-1.5 rounded-lg border border-blue-500/10">
-                                                ID: {selected.id.slice(0, 8)}
-                                            </span>
-                                            <div className="w-1.5 h-1.5 rounded-full bg-zinc-800" />
-                                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
-                                                {selected.subject}
-                                            </span>
-                                        </div>
-                                    </div>
+                                <div>
+                                    <p className="text-[15px] font-semibold text-white">
+                                        {selected.senderEmail}
+                                    </p>
+                                    <p className="text-[12px] mt-1" style={{ color: "#888" }}>
+                                        {selected.subject}
+                                    </p>
                                 </div>
-                                <div className="flex flex-col items-end gap-2">
-                                    <span className="text-[10px] font-black text-zinc-600 uppercase tracking-widest p-2 border border-white/5 rounded-xl">
-                                        TS: {new Date(selected.timestamp).getTime()}
-                                    </span>
-                                    <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">
-                                        LINK_ESTABLISHED
-                                    </span>
-                                </div>
+                                <span className="text-[11px] shrink-0" style={{ color: "#555" }}>
+                                    {formatDistanceToNow(new Date(selected.timestamp), { addSuffix: true })}
+                                </span>
                             </div>
                         </div>
 
-                        {/* Analysis Body */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar p-10">
+                        {/* Email body */}
+                        <div className="flex-1 overflow-y-auto px-6 py-5">
                             {(() => {
+                                // Split body at the quoted original email line
                                 const quotedPattern = /\r?\nOn [\s\S]+?wrote:\r?\n/;
                                 const match = selected.fullBody.match(quotedPattern);
                                 const replyText = match
@@ -276,58 +256,50 @@ export default function InboxPage() {
                                     : null;
 
                                 return (
-                                    <div className="max-w-3xl">
-                                        <div className="p-8 rounded-[2rem] bg-white/[0.03] border border-white/5 relative group">
-                                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-30 transition-opacity">
-                                                <Zap className="w-4 h-4 text-blue-500" />
-                                            </div>
-                                            <div className="text-[14px] font-medium leading-relaxed text-zinc-300 whitespace-pre-wrap font-mono">
-                                                {replyText}
-                                            </div>
+                                    <>
+                                        <div
+                                            className="text-[13px] leading-relaxed whitespace-pre-wrap"
+                                            style={{ color: "#d4d4d4" }}
+                                        >
+                                            {replyText}
                                         </div>
-
                                         {quotedText && (
-                                            <div className="mt-8">
+                                            <div className="mt-4">
                                                 <button
                                                     onClick={() => setShowOriginal(v => !v)}
-                                                    className="flex items-center gap-3 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] hover:text-white transition-colors pl-4"
+                                                    className="text-[11px] px-2 py-1 rounded transition-colors"
+                                                    style={{
+                                                        color: "#666",
+                                                        border: "1px solid #333",
+                                                        backgroundColor: showOriginal ? "#1f1f1f" : "transparent",
+                                                    }}
                                                 >
-                                                    {showOriginal ? (
-                                                        <>CLOSE_ARCHIVE <ArrowRight className="w-3 h-3 rotate-90" /></>
-                                                    ) : (
-                                                        <>ACCESS_HISTORICAL_LOGS <ArrowRight className="w-3 h-3" /></>
-                                                    )}
+                                                    {showOriginal ? "Hide original" : "Show original"}
                                                 </button>
                                                 {showOriginal && (
-                                                    <div className="mt-6 p-8 rounded-[2rem] bg-black/40 border-l-2 border-zinc-800 text-[12px] leading-relaxed text-zinc-600 whitespace-pre-wrap font-mono">
+                                                    <div
+                                                        className="mt-3 text-[12px] leading-relaxed whitespace-pre-wrap border-l-2 pl-3"
+                                                        style={{ color: "#555", borderColor: "#333" }}
+                                                    >
                                                         {quotedText}
                                                     </div>
                                                 )}
                                             </div>
                                         )}
-                                    </div>
+                                    </>
                                 );
                             })()}
                         </div>
 
-                        {/* Status Guard */}
-                        <div className="px-10 py-6 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
-                                    NODE_STATUS: READ_ONLY_TRANSFORM
-                                </p>
-                            </div>
-                            <div className="flex items-center gap-6">
-                                <div className="flex items-center gap-2">
-                                    <Database className="w-3.5 h-3.5 text-zinc-700" />
-                                    <span className="text-[10px] font-black text-zinc-700 uppercase tracking-widest">STORAGE_STABLE</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <ShieldAlert className="w-3.5 h-3.5 text-blue-500/50" />
-                                    <span className="text-[10px] font-black text-blue-500/50 uppercase tracking-widest">ENCRYPTION_ACTIVE</span>
-                                </div>
-                            </div>
+                        {/* Bottom bar */}
+                        <div
+                            className="px-6 py-3 shrink-0 flex items-center gap-2"
+                            style={{ borderTop: "1px solid #1f1f1f" }}
+                        >
+                            <Mail className="w-3.5 h-3.5" style={{ color: "#444" }} />
+                            <p className="text-[11px]" style={{ color: "#555" }}>
+                                Read-only mode. Reply from your Gmail client.
+                            </p>
                         </div>
                     </>
                 )}

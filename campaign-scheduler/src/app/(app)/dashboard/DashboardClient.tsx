@@ -17,11 +17,8 @@ import {
     ArrowUpRight,
     RefreshCw,
     Plus,
-    Activity,
-    Zap,
-    Cpu,
-    Target,
-    BarChart3
+    SlidersHorizontal,
+    Check
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "@/components/ui/toast-provider";
@@ -45,89 +42,13 @@ interface DashboardClientProps {
     initialChartData: any[];
 }
 
-function RadialGauge({ value, label, max = 100, color = "#3b82f6", icon: Icon }: { value: number, label: string, max?: number, color?: string, icon: any }) {
-    const percentage = Math.min(Math.round((value / max) * 100), 100);
-    const radius = 36;
-    const circumference = 2 * Math.PI * radius;
-    const offset = circumference - (percentage / 100) * circumference;
-
-    return (
-        <div className="glass-card p-6 flex flex-col items-center justify-center relative group">
-            <div className="relative w-32 h-32 flex items-center justify-center">
-                <svg className="w-full h-full -rotate-90 transform">
-                    {/* Background Track */}
-                    <circle
-                        cx="64" cy="64" r={radius}
-                        className="stroke-white/5"
-                        strokeWidth="6"
-                        fill="transparent"
-                    />
-                    {/* Progress Bar */}
-                    <circle
-                        cx="64" cy="64" r={radius}
-                        stroke={color}
-                        strokeWidth="6"
-                        fill="transparent"
-                        strokeDasharray={circumference}
-                        strokeDashoffset={offset}
-                        strokeLinecap="round"
-                        className="transition-all duration-1000 ease-out"
-                        style={{ filter: `drop-shadow(0 0 8px ${color})` }}
-                    />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <Icon className="w-4 h-4 mb-1 opacity-40 group-hover:opacity-100 transition-opacity" style={{ color }} />
-                    <span className="text-2xl font-black tracking-tighter text-white">{value}</span>
-                </div>
-            </div>
-            <span className="mt-4 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 group-hover:text-zinc-300 transition-colors">
-                {label}
-            </span>
-        </div>
-    );
-}
-
-function AutomationStream({ campaigns }: { campaigns: CampaignWithStats[] }) {
-    return (
-        <div className="glass-card h-full flex flex-col">
-            <div className="p-4 border-b border-white/5 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <Activity className="w-4 h-4 text-emerald-500 animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-white">Live Engine Stream</span>
-                </div>
-                <div className="flex gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500/20" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-500/20" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/20" />
-                </div>
-            </div>
-            <div className="p-4 flex-1 space-y-3 font-mono text-[10px] tracking-tight overflow-hidden relative">
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#050505] z-10 pointer-events-none" />
-                {campaigns.slice(0, 10).map((c, i) => (
-                    <div key={c.id} className="flex items-center gap-3 opacity-60 animate-in slide-in-from-bottom duration-500" style={{ animationDelay: `${i * 100}ms` }}>
-                        <span className="text-zinc-700">[{new Date(c.created_at).toLocaleTimeString()}]</span>
-                        <span className="text-blue-500">INIT:</span>
-                        <span className="text-zinc-300 truncate">{c.name}</span>
-                        <span className={`ml-auto ${c.status === 'RUNNING' ? 'text-emerald-500' : 'text-zinc-500'}`}>
-                            {c.status}
-                        </span>
-                    </div>
-                ))}
-                {campaigns.length === 0 && (
-                    <div className="py-4 text-center text-zinc-700 italic">... NO DATA LOGGED ...</div>
-                )}
-            </div>
-        </div>
-    );
-}
-
 function StatusBadge({ status, completion = 0 }: { status: string, completion?: number }) {
     const displayStatus = completion === 100 && status === 'RUNNING' ? 'COMPLETED' : status;
 
     if (displayStatus === 'COMPLETED') {
         return (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black tracking-widest bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide" style={{ color: "#10B981", backgroundColor: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#10B981", boxShadow: "0 0 4px #10B981" }} />
                 COMPLETED
             </span>
         );
@@ -135,16 +56,16 @@ function StatusBadge({ status, completion = 0 }: { status: string, completion?: 
 
     if (displayStatus === 'RUNNING') {
         return (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black tracking-widest bg-[#9213ec]/10 text-[#9213ec] border border-[#9213ec]/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#9213ec] shadow-[0_0_8px_#9213ec] animate-pulse" />
-                ACTIVE ENGINE
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide" style={{ color: "#F59E0B", backgroundColor: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#F59E0B", boxShadow: "0 0 4px #F59E0B" }} />
+                RUNNING
             </span>
         );
     }
 
     return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black tracking-widest bg-zinc-900 text-zinc-500 border border-white/5">
-            <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide" style={{ color: "#888", backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)" }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#888" }} />
             {displayStatus}
         </span>
     );
@@ -156,7 +77,40 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
     const [chartData, setChartData] = useState<any[]>(initialChartData);
     const [loading, setLoading] = useState(false);
     const [syncing, setSyncing] = useState(false);
+    const [lastSynced, setLastSynced] = useState<Date | null>(null);
+    const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
+    const [visibleCards, setVisibleCards] = useState<string[]>([
+        "Total Campaigns",
+        "Emails Sent",
+        "Total Replies",
+        "Avg Reply Rate",
+        "Active Accounts",
+        "Bounced",
+        "Avg Reply Time"
+    ]);
+    const customizeRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
+
+    useEffect(() => {
+        const saved = localStorage.getItem("dashboard_visible_cards");
+        if (saved) {
+            try { setVisibleCards(JSON.parse(saved)); } catch (e) { }
+        }
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem("dashboard_visible_cards", JSON.stringify(visibleCards));
+    }, [visibleCards]);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (customizeRef.current && !customizeRef.current.contains(event.target as Node)) {
+                setIsCustomizeOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     const fetchData = async () => {
         setLoading(true);
@@ -211,167 +165,185 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
 
             setCampaigns(enriched);
         } catch (err) {
-            console.error("Dashboard sync error:", err);
+            console.error("Error in dashboard fetchData:", err);
         } finally {
             setLoading(false);
         }
     };
 
+    const autoSync = async () => {
+        try {
+            const response = await fetch("/api/campaign/sync-replies", { method: "POST" });
+            if (response.ok) {
+                setLastSynced(new Date());
+                await fetchData();
+            }
+        } catch { }
+    };
+
     useEffect(() => {
         fetchData();
-        const pollInterval = setInterval(fetchData, 60 * 1000);
-        return () => clearInterval(pollInterval);
+        const pollInterval = setInterval(fetchData, 60 * 1000); // 1 minute live poll
+        const syncInterval = setInterval(autoSync, 5 * 60 * 1000); // 5 minute background sync
+        return () => {
+            clearInterval(pollInterval);
+            clearInterval(syncInterval);
+        };
     }, []);
 
     const handleSyncReplies = async () => {
         setSyncing(true);
+        toast.info("Syncing replies...");
         try {
             const response = await fetch("/api/campaign/sync-replies", { method: "POST" });
             if (!response.ok) throw new Error("Sync failed");
-            toast.success("Engine stats recalibrated");
+            setLastSynced(new Date());
+            toast.success("Replies synced successfully");
             await fetchData();
         } catch (err) {
-            toast.error("Telemetry sync failed");
+            toast.error("Failed to sync replies");
         } finally {
             setSyncing(false);
         }
     };
 
+    const allStatCards = [
+        { label: "Total Campaigns", value: statsData.totalCampaigns },
+        { label: "Emails Sent", value: statsData.emailsSent },
+        { label: "Total Replies", value: statsData.totalReplies },
+        { label: "Avg Reply Rate", value: statsData.avgReplyRate },
+        { label: "Active Accounts", value: statsData.activeAccounts },
+        { label: "Bounced", value: statsData.bouncedCount, color: statsData.bouncedCount > 0 ? "#EF4444" : "#888" },
+        { label: "Avg Reply Time", value: statsData.avgReplyTime },
+    ];
+
+    const statCards = allStatCards.filter(card => visibleCards.includes(card.label));
+
     return (
-        <div className="space-y-8 pb-12">
-            {/* Engine Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-8 bg-black/40 border border-white/5 rounded-[2.5rem] relative overflow-hidden group">
-                <div className="absolute inset-0 bg-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-2">
-                        <Cpu className="w-5 h-5 text-blue-500" />
-                        <h1 className="text-4xl font-outfit font-black tracking-tighter text-white uppercase">Engine Overview</h1>
-                    </div>
-                    <p className="text-zinc-500 font-black text-[10px] tracking-[0.3em] uppercase opacity-60">System Operational // All Core Nodes Running</p>
+        <div className="space-y-10 animate-in fade-in duration-700">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Overview</h1>
+                    <p className="text-muted-foreground text-sm mt-2">Manage and monitor your cold outreach performance.</p>
                 </div>
-                <div className="flex items-center gap-4 relative z-10">
+                <div className="flex items-center gap-3">
                     <button
                         onClick={handleSyncReplies}
                         disabled={syncing}
-                        className="glass-card px-6 py-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-white transition-all disabled:opacity-50"
+                        className="sidebar-link flex items-center gap-2 border border-card-border"
                     >
-                        <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
-                        {syncing ? "Recalibrating..." : "Sync Telemetry"}
+                        <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+                        {syncing ? "Syncing..." : "Sync Replies"}
                     </button>
                     <Link
                         href="/campaigns/new"
-                        className="px-8 py-3 bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-white/5 active:scale-95"
+                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-all shadow-lg shadow-blue-600/20"
                     >
-                        <Plus className="w-3.5 h-3.5 inline-block mr-2" />
-                        Deploy New Campaign
+                        <Plus className="w-4 h-4" />
+                        New Campaign
                     </Link>
                 </div>
             </div>
 
-            {/* Hub Metrics */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                {/* Main Gauges */}
-                <RadialGauge icon={Megaphone} label="Network Capacity" value={statsData.totalCampaigns} color="#3b82f6" />
-                <RadialGauge icon={Target} label="Logic Deployments" value={statsData.emailsSent} color="#9213ec" max={1000} />
-                <RadialGauge icon={Zap} label="Response Hits" value={statsData.totalReplies} color="#10b981" max={100} />
-
-                {/* Live Stream Activity */}
-                <div className="col-span-1">
-                    <AutomationStream campaigns={campaigns} />
-                </div>
-            </div>
-
-            {/* Performance Chart */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                <div className="xl:col-span-2">
-                    {chartData.length > 0 && <EmailActivityChart data={chartData} />}
-                </div>
-                <div className="glass-card p-8 flex flex-col justify-center gap-8 group">
-                    <div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-600 block mb-4">Reply Affinity</span>
-                        <div className="flex items-end gap-2">
-                            <span className="text-6xl font-black font-outfit text-white tracking-tighter">
-                                {statsData.avgReplyRate}%
-                            </span>
-                            <span className="mb-2 text-blue-500"><ArrowUpRight className="w-6 h-6" /></span>
-                        </div>
-                        <p className="text-[10px] font-bold text-zinc-500 mt-2">Conversion efficiency across all nodes.</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Deployment Console (Table) */}
-            <div className="glass-card overflow-hidden rounded-[2.5rem]">
-                <div className="px-8 py-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                    <div className="flex items-center gap-4">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6]" />
-                        <h2 className="text-xs font-black uppercase tracking-[0.4em] text-white">Active Deployment Console</h2>
-                    </div>
-                    <div className="flex items-center gap-6">
-                        <div className="flex flex-col items-end">
-                            <span className="text-[10px] font-black text-white">{campaigns.length}</span>
-                            <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Active Units</span>
+            {/* Stat Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {statCards.map((stat: any) => (
+                    <div
+                        key={stat.label}
+                        className="glass-card premium-stats-card p-6 group"
+                    >
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground group-hover:text-blue-400 transition-colors">
+                            {stat.label}
+                        </p>
+                        <div className="flex items-end justify-between mt-3">
+                            <p className="text-3xl font-bold text-foreground" style={{ color: stat.color }}>
+                                {stat.value}
+                            </p>
+                            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-blue-400">
+                                <ArrowUpRight className="w-4 h-4" />
+                            </div>
                         </div>
                     </div>
+                ))}
+            </div>
+
+            {campaigns.length === 0 && (
+                <div className="glass-card p-12 text-center border-dashed border-2">
+                    <Megaphone className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+                    <p className="text-lg font-medium text-foreground">No outreach activity yet</p>
+                    <p className="text-muted-foreground text-sm mt-2">Connect an account and launch your first campaign to see data here.</p>
+                    <Link href="/campaigns/new" className="inline-flex items-center gap-2 text-blue-400 font-medium mt-6 hover:underline">
+                        Start your first campaign <ArrowUpRight className="w-4 h-4" />
+                    </Link>
+                </div>
+            )}
+
+            {chartData.length > 0 && <EmailActivityChart data={chartData} />}
+
+            <div className="glass-card overflow-hidden">
+                <div className="px-6 py-6 border-b border-card-border flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                        <h2 className="text-lg font-semibold text-foreground">Campaign Performance</h2>
+                    </div>
+                    <span className="text-xs font-medium px-3 py-1 rounded-full bg-white/5 text-muted-foreground border border-card-border">
+                        {campaigns.length} total
+                    </span>
                 </div>
 
                 <div className="overflow-x-auto">
                     {campaigns.length === 0 ? (
-                        <div className="py-24 text-center">
-                            <Megaphone className="w-12 h-12 text-zinc-800 mx-auto mb-6 opacity-20" />
-                            <p className="text-zinc-500 font-black uppercase tracking-[0.4em] text-[10px]">No Active Deployments Detected</p>
+                        <div className="py-12 text-center">
+                            <p className="text-muted-foreground">No campaigns to display</p>
                         </div>
                     ) : (
-                        <table className="w-full text-left">
-                            <thead className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-600 border-b border-white/5">
-                                <tr>
-                                    <th className="py-6 px-8">Deployment Name</th>
-                                    <th className="py-6 px-8">Engine Status</th>
-                                    <th className="py-6 px-8 text-center">Throughput</th>
-                                    <th className="py-6 px-8 text-center">Feedback</th>
-                                    <th className="py-6 px-8">Efficiency</th>
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-white/[0.02]">
+                                    <th className="py-4 px-6 font-semibold uppercase tracking-wider text-[10px] text-muted-foreground">Campaign</th>
+                                    <th className="py-4 px-6 font-semibold uppercase tracking-wider text-[10px] text-muted-foreground">Status</th>
+                                    <th className="py-4 px-6 font-semibold uppercase tracking-wider text-[10px] text-muted-foreground">Sent</th>
+                                    <th className="py-4 px-6 font-semibold uppercase tracking-wider text-[10px] text-muted-foreground">Replies</th>
+                                    <th className="py-4 px-6 font-semibold uppercase tracking-wider text-[10px] text-muted-foreground">Reply Rate</th>
+                                    <th className="py-4 px-6 font-semibold uppercase tracking-wider text-[10px] text-muted-foreground">Progress</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/5">
+                            <tbody className="divide-y divide-card-border">
                                 {campaigns.map((c) => (
                                     <tr
                                         key={c.id}
                                         className="hover:bg-white/[0.02] transition-colors cursor-pointer group"
                                         onClick={() => router.push(`/campaigns/${c.id}`)}
                                     >
-                                        <td className="py-8 px-8">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-black text-white tracking-tight group-hover:text-blue-400 transition-colors">
-                                                    {c.name}
-                                                </span>
-                                                <span className="text-[9px] font-bold text-zinc-600 uppercase mt-1">ID: {c.id.slice(0, 8)}</span>
-                                            </div>
+                                        <td className="py-5 px-6">
+                                            <span className="font-medium text-foreground group-hover:text-blue-400 transition-colors">
+                                                {c.name}
+                                            </span>
                                         </td>
-                                        <td className="py-8 px-8">
+                                        <td className="py-5 px-6">
                                             <StatusBadge status={c.status} completion={c.completion_rate} />
                                         </td>
-                                        <td className="py-8 px-8 text-center">
-                                            <span className="text-xs font-black text-zinc-300">{c.sent_count}</span>
-                                            <span className="text-[9px] font-bold text-zinc-600 ml-2 uppercase">Pkg</span>
+                                        <td className="py-5 px-6 font-medium text-muted-foreground">
+                                            {c.sent_count}
                                         </td>
-                                        <td className="py-8 px-8 text-center">
-                                            <span className={`text-xs font-black ${c.reply_count > 0 ? 'text-blue-500' : 'text-zinc-700'}`}>
-                                                {c.reply_count}
-                                            </span>
-                                            <span className="text-[9px] font-bold text-zinc-600 ml-2 uppercase">Hits</span>
+                                        <td className="py-5 px-6 font-medium" style={{ color: c.reply_count > 0 ? "#3b82f6" : undefined }}>
+                                            {c.reply_count}
                                         </td>
-                                        <td className="py-8 px-8">
-                                            <div className="flex flex-col gap-2">
-                                                <div className="flex items-center justify-between text-[10px] font-black text-zinc-500 uppercase">
-                                                    <span>{c.completion_rate}%</span>
-                                                    <span>Load</span>
-                                                </div>
-                                                <div className="w-full h-1 bg-zinc-900 rounded-full overflow-hidden">
+                                        <td className="py-5 px-6 font-bold text-foreground">
+                                            {c.reply_rate}%
+                                        </td>
+                                        <td className="py-5 px-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex-1 max-w-[100px] h-1.5 rounded-full bg-white/5 overflow-hidden">
                                                     <div
-                                                        className="h-full bg-blue-500 rounded-full transition-all duration-1000 shadow-[0_0_8px_#3b82f6]"
+                                                        className="h-full bg-blue-500 rounded-full transition-all duration-1000"
                                                         style={{ width: `${c.completion_rate}%` }}
                                                     />
                                                 </div>
+                                                <span className="text-[11px] font-medium text-muted-foreground">
+                                                    {c.completion_rate}%
+                                                </span>
                                             </div>
                                         </td>
                                     </tr>
@@ -388,51 +360,53 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
 function CustomTooltip({ active, payload, label }: any) {
     if (!active || !payload?.length) return null;
     return (
-        <div className="glass-card px-5 py-3 border border-[#9213ec]/20 shadow-[0_0_30px_rgba(146,19,236,0.1)]">
-            <p className="text-[9px] font-black text-zinc-500 mb-1 uppercase tracking-[0.2em]">{label}</p>
-            <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6]" />
-                <p className="text-xl font-black text-white tracking-tight">{payload[0].value}</p>
-                <span className="text-[8px] font-black text-zinc-600 uppercase">Unit Load</span>
-            </div>
+        <div className="glass-card px-4 py-3 shadow-2xl">
+            <p className="text-xs font-bold text-muted-foreground mb-1 uppercase tracking-wider">{label}</p>
+            <p className="text-lg font-bold text-blue-400">{payload[0].value} <span className="text-xs font-medium text-foreground/60">emails sent</span></p>
         </div>
     );
 }
 
 function EmailActivityChart({ data }: { data: any[] }) {
     return (
-        <div className="glass-card p-8 group">
-            <div className="flex items-center justify-between mb-10">
-                <div className="flex items-center gap-4">
-                    <BarChart3 className="w-4 h-4 text-blue-500" />
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-white">Engine Telemetry // 30 Days</h3>
+        <div className="glass-card p-6">
+            <div className="flex items-center justify-between mb-8">
+                <h3 className="text-lg font-semibold text-foreground">Outreach Activity</h3>
+                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground bg-white/5 px-2.5 py-1 rounded-md border border-card-border">
+                    Last 30 days
                 </div>
             </div>
-            <div className="w-full h-[320px]">
+            <div className="w-full h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                    <LineChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                        <defs>
+                            <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                         <XAxis
                             dataKey="date"
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: "rgba(255,255,255,0.2)", fontSize: 9, fontWeight: 900, textAnchor: 'middle' }}
-                            dy={20}
+                            tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 500 }}
+                            dy={10}
                         />
                         <YAxis
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: "rgba(255,255,255,0.2)", fontSize: 9, fontWeight: 900 }}
+                            tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 500 }}
                         />
-                        <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(146,19,236,0.1)", strokeWidth: 1 }} />
+                        <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(255,255,255,0.1)", strokeWidth: 1 }} />
                         <Line
                             type="monotone"
                             dataKey="sent"
                             stroke="#3b82f6"
-                            strokeWidth={4}
+                            strokeWidth={3}
                             dot={false}
-                            activeDot={{ r: 8, fill: "#3b82f6", stroke: "#050505", strokeWidth: 4 }}
-                            animationDuration={2500}
+                            activeDot={{ r: 6, fill: "#3b82f6", stroke: "#09090b", strokeWidth: 2 }}
+                            animationDuration={1500}
                         />
                     </LineChart>
                 </ResponsiveContainer>
