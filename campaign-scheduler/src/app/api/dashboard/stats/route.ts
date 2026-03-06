@@ -9,13 +9,22 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // 1. Fetch campaigns first to get IDs
+        // 1. Fetch campaigns and active accounts belonging to the user
         const insforge = await getInsforgeClient();
-        const { data: campaigns } = await insforge.database
-            .from("campaigns")
-            .select("id");
+        const [campaignsRes, activeAccountsRes] = await Promise.all([
+            insforge.database
+                .from("campaigns")
+                .select("id")
+                .eq("user_id", user.id),
+            insforge.database
+                .from("sender_accounts")
+                .select("*", { count: "exact", head: true })
+                .eq("user_id", user.id)
+                .eq("is_active", true)
+        ]);
 
-        const campaignIds = (campaigns || []).map((c: any) => c.id) || [];
+        const campaignIds = (campaignsRes.data || []).map((c: any) => c.id) || [];
+        const activeAccounts = activeAccountsRes.count || 0;
 
         if (campaignIds.length === 0) {
             return NextResponse.json({
@@ -24,7 +33,9 @@ export async function GET() {
                     emailsSent: 0,
                     totalReplies: 0,
                     avgReplyRate: "0%",
-                    activeAccounts: 0,
+                    activeAccounts: activeAccounts,
+                    bouncedCount: 0,
+                    avgReplyTime: "---"
                 },
                 chartData: []
             });
@@ -39,7 +50,6 @@ export async function GET() {
             sentRes,
             repliedRes,
             bouncedRes,
-            activeAccountsRes,
             avgReplyTimeRes,
             activityRes
         ] = await Promise.all([
@@ -64,12 +74,6 @@ export async function GET() {
                 .in("campaign_id", campaignIds)
                 .eq("status", "BOUNCED"),
 
-            // Active Accounts
-            insforge.database
-                .from("sender_accounts")
-                .select("*", { count: "exact", head: true })
-                .eq("is_active", true),
-
             // Average Reply Time (fetch processed leads with timestamps)
             insforge.database
                 .from("leads")
@@ -90,7 +94,6 @@ export async function GET() {
         const sentCount = sentRes.count || 0;
         const replyCount = repliedRes.count || 0;
         const bouncedCount = bouncedRes.count || 0;
-        const activeAccounts = activeAccountsRes.count || 0;
 
         const avgReplyRate = sentCount > 0 ? Math.round((replyCount / sentCount) * 100) : 0;
 
