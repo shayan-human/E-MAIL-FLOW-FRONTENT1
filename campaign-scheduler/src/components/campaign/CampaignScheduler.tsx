@@ -15,7 +15,15 @@ import {
     ArrowLeft,
     Zap,
     Shuffle,
-    ListOrdered
+    ListOrdered,
+    ShieldAlert,
+    Activity,
+    Cpu,
+    Target,
+    Terminal,
+    Globe,
+    Settings,
+    Radio
 } from "lucide-react";
 
 import {
@@ -59,7 +67,6 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
-// Common timezones to keep dropdown clean, could be expanded.
 const TIMEZONES = [
     { value: "America/New_York", label: "Eastern Time (ET)" },
     { value: "America/Chicago", label: "Central Time (CT)" },
@@ -86,11 +93,9 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
     const [isInstantSubmitting, setIsInstantSubmitting] = useState(false);
     const [isScheduleSubmitting, setIsScheduleSubmitting] = useState(false);
 
-    // Derived values from props
     const totalLeads = leads.length;
     const activeAccounts = selectedAccountIds.length;
 
-    // Real-time calculation state
     const [capacity, setCapacity] = useState(0);
     const [daysInt, setDaysInt] = useState(0);
     const [avgDelay, setAvgDelay] = useState(0);
@@ -112,14 +117,13 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
             minDelay: 5,
             maxDelay: 15,
             skipWeekends: true,
-            timezone: "America/New_York", // Avoid SSR hydration mismatch
+            timezone: "America/New_York",
             startDate: format(new Date(), 'yyyy-MM-dd'),
             sendingMode: "round-robin" as const,
         },
         mode: "onChange",
     });
 
-    // Hydrate timezone on client strictly
     useEffect(() => {
         const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
         if (localTz) {
@@ -128,16 +132,13 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
     }, [form]);
 
     useEffect(() => {
-        // Sync props to form if they change
         form.setValue("totalLeads", totalLeads);
         form.setValue("activeAccounts", activeAccounts);
     }, [totalLeads, activeAccounts, form]);
 
-    // Watch all values to auto-recalculate limits
     const values = form.watch();
 
     useEffect(() => {
-        // Only perform calculations if core values are somewhat valid numbers
         if (
             !isNaN(values.activeAccounts) &&
             !isNaN(values.dailyLimitPerAccount) &&
@@ -183,6 +184,7 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
         values.maxDelay,
         values.skipWeekends,
         values.timezone,
+        values.startDate
     ]);
 
     async function onSubmit(data: CampaignSettings) {
@@ -208,20 +210,19 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
             const result = await response.json().catch(() => null);
 
             if (!response.ok) {
-                throw new Error(result?.error || `Failed to start campaign: ${response.statusText}`);
+                throw new Error(result?.error || `PROTOCOL_ERROR: ${response.statusText}`);
             }
 
-            toast.success("Campaign Scheduled Successfully!", {
-                description: result?.data?.dispatched ? "Dispatched to workflow engine." : "Campaign saved and ready.",
+            toast.success("ORCHESTRATION_COMMITTED", {
+                description: result?.data?.dispatched ? "Workflow dispatched to execution engine." : "Sequence initialized and stored.",
             });
 
-            // Redirect to campaigns list after success
             setTimeout(() => {
                 window.location.href = "/campaigns";
             }, 1500);
         } catch (error: unknown) {
-            toast.error("Failed to schedule campaign", {
-                description: error instanceof Error ? error.message : "Unknown error occurred",
+            toast.error("DEPLOYMENT_FAILURE", {
+                description: error instanceof Error ? error.message : "Internal system fault",
             });
         } finally {
             setIsScheduleSubmitting(false);
@@ -253,20 +254,19 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
             const result = await response.json().catch(() => null);
 
             if (!response.ok) {
-                throw new Error(result?.error || `Failed to instantly send campaign: ${response.statusText}`);
+                throw new Error(result?.error || `INSTANT_DEPLOY_FAULT: ${response.statusText}`);
             }
 
-            toast.success("Campaign Started Instantly!", {
-                description: "Leads are being dispatched right now.",
+            toast.success("INSTANT_TRANSMISSION_ACTIVE", {
+                description: "Primary vector launch sequence initiated.",
             });
 
-            // Redirect to campaigns list after success
             setTimeout(() => {
                 window.location.href = "/campaigns";
             }, 1500);
         } catch (error: unknown) {
-            toast.error("Failed to instantly send campaign", {
-                description: error instanceof Error ? error.message : "Unknown error occurred",
+            toast.error("INSTANT_LAUNCH_ABORTED", {
+                description: error instanceof Error ? error.message : "Unknown vector collision",
             });
         } finally {
             setIsInstantSubmitting(false);
@@ -274,354 +274,292 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
     }
 
     return (
-        <div className="grid gap-8 lg:grid-cols-2">
-            {/* LEFT COL: Configuration Form */}
-            <div>
-                <Card className="shadow-lg border-0 ring-1 ring-black/5 dark:ring-white/10">
-                    <CardHeader className="bg-primary/5 border-b pb-6" style={{ borderColor: "#222222" }}>
-                        <CardTitle className="text-xl font-semibold flex items-center gap-2">
-                            <Calculator className="h-5 w-5 text-amber-500" />
-                            Configure Campaign
-                        </CardTitle>
-                        <CardDescription>
-                            Define your distribution rules. Calculations update automatically in real-time.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                        <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid gap-12 lg:grid-cols-2 animate-in fade-in slide-in-from-right-4 duration-700">
+            {/* Control Matrix */}
+            <div className="flex flex-col gap-6">
+                <div className="flex items-center gap-3 px-2">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20">
+                        <Settings className="w-4 h-4 shadow-[0_0_8px_#3b82f6]" />
+                    </div>
+                    <h2 className="text-3xl font-black font-outfit text-white tracking-tighter uppercase">Campaign Orchestration</h2>
+                </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Total Leads</Label>
-                                        <div className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background text-muted-foreground items-center">
-                                            {totalLeads.toLocaleString()}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Active Sending Accounts</Label>
-                                        <div className="flex h-10 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background text-muted-foreground items-center">
-                                            {activeAccounts} selected
-                                        </div>
-                                    </div>
+                <div className="bg-black/20 border border-white/5 rounded-[2.5rem] p-10 flex flex-col gap-8">
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+
+                            {/* Technical Meta */}
+                            <div className="grid grid-cols-2 gap-6 bg-white/5 p-6 rounded-[2rem] border border-white/5 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-3 opacity-20">
+                                    <Activity className="w-4 h-4 text-blue-500" />
                                 </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="startDate"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Start Date</FormLabel>
-                                                <FormControl>
-                                                    <Input type="date" className="block w-full appearance-none bg-muted/20 font-medium tracking-wide" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="dailyLimitPerAccount"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Daily Limit (Per Account)</FormLabel>
-                                                <FormControl>
-                                                    <Input type="number" min={1} {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                <div className="space-y-1">
+                                    <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest pl-1">Target_Vector_Size</label>
+                                    <p className="text-lg font-black text-white tracking-widest">{totalLeads.toLocaleString()} <span className="text-[10px] text-zinc-600 font-bold ml-1 tracking-normal">UNITS</span></p>
                                 </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="timezone"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Timezone</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select a timezone" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        {TIMEZONES.map((tz) => (
-                                                            <SelectItem key={tz.value} value={tz.value}>
-                                                                {tz.label}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                <div className="space-y-1">
+                                    <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest pl-1">Available_Nodes</label>
+                                    <p className="text-lg font-black text-blue-500 tracking-widest">{activeAccounts} <span className="text-[10px] text-zinc-600 font-bold ml-1 tracking-normal">ACTIVE</span></p>
                                 </div>
+                            </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="startTime"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Start Time (HH:MM)</FormLabel>
-                                                <FormControl>
-                                                    <Input type="time" className="block w-full appearance-none bg-muted/20 text-center font-medium tracking-widest text-lg" {...field} onChange={e => { field.onChange(e); form.trigger("endTime"); }} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="endTime"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>End Time (HH:MM)</FormLabel>
-                                                <FormControl>
-                                                    <Input type="time" className="block w-full appearance-none bg-muted/20 text-center font-medium tracking-widest text-lg" {...field} onChange={e => { field.onChange(e); form.trigger("startTime"); }} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="minDelay"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Min Delay (mins)</FormLabel>
-                                                <FormControl>
-                                                    <Input type="number" min={1} {...field} onChange={e => { field.onChange(parseInt(e.target.value, 10) || 0); form.trigger("maxDelay"); }} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="maxDelay"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Max Delay (mins)</FormLabel>
-                                                <FormControl>
-                                                    <Input type="number" min={1} {...field} onChange={e => { field.onChange(parseInt(e.target.value, 10) || 0); form.trigger("minDelay"); }} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-
-                                {/* Sending Mode Toggle */}
+                            <div className="grid grid-cols-2 gap-6">
                                 <FormField
                                     control={form.control}
-                                    name="sendingMode"
+                                    name="startDate"
                                     render={({ field }) => (
                                         <FormItem className="space-y-3">
-                                            <FormLabel className="text-base font-semibold">Sending Mode</FormLabel>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => field.onChange("round-robin")}
-                                                    className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 text-center ${field.value === "round-robin"
-                                                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 shadow-sm ring-1 ring-indigo-500/20"
-                                                        : "border-border bg-background hover:border-muted-foreground/30 hover:bg-muted/30"
-                                                        }`}
-                                                >
-                                                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${field.value === "round-robin"
-                                                        ? "bg-indigo-500 text-white"
-                                                        : "bg-muted text-muted-foreground"
-                                                        }`}>
-                                                        <Shuffle className="w-4.5 h-4.5" />
-                                                    </div>
-                                                    <div>
-                                                        <p className={`text-sm font-semibold ${field.value === "round-robin" ? "text-indigo-700 dark:text-indigo-300" : "text-foreground"
-                                                            }`}>Round-Robin</p>
-                                                        <p className="text-xs text-muted-foreground mt-0.5">Distribute evenly across accounts</p>
-                                                    </div>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => field.onChange("sequential")}
-                                                    className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 text-center ${field.value === "sequential"
-                                                        ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30 shadow-sm ring-1 ring-amber-500/20"
-                                                        : "border-border bg-background hover:border-muted-foreground/30 hover:bg-muted/30"
-                                                        }`}
-                                                >
-                                                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${field.value === "sequential"
-                                                        ? "bg-amber-500 text-white"
-                                                        : "bg-muted text-muted-foreground"
-                                                        }`}>
-                                                        <ListOrdered className="w-4.5 h-4.5" />
-                                                    </div>
-                                                    <div>
-                                                        <p className={`text-sm font-semibold ${field.value === "sequential" ? "text-amber-700 dark:text-amber-300" : "text-foreground"
-                                                            }`}>Sequential Batch</p>
-                                                        <p className="text-xs text-muted-foreground mt-0.5">One account finishes before next</p>
-                                                    </div>
-                                                </button>
-                                            </div>
+                                            <FormLabel className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Launch_Date</FormLabel>
+                                            <FormControl>
+                                                <Input type="date" className="glass-card h-14 border-white/5 text-xs font-black tracking-widest uppercase" {...field} />
+                                            </FormControl>
+                                            <FormMessage className="text-[9px] font-black uppercase tracking-widest" />
                                         </FormItem>
                                     )}
                                 />
-
                                 <FormField
                                     control={form.control}
-                                    name="skipWeekends"
+                                    name="dailyLimitPerAccount"
                                     render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center justify-between rounded-xl border-2 border-border p-4 shadow-sm bg-card hover:bg-muted/30 transition-colors">
-                                            <div className="space-y-0.5">
-                                                <FormLabel className="text-base font-semibold">
-                                                    Skip Weekends
-                                                </FormLabel>
-                                                <FormDescription>
-                                                    Avoid sending emails on Saturday and Sunday.
-                                                </FormDescription>
-                                            </div>
+                                        <FormItem className="space-y-3">
+                                            <FormLabel className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Node_Limit (DAILY)</FormLabel>
                                             <FormControl>
-                                                <Switch
-                                                    checked={field.value}
-                                                    onCheckedChange={field.onChange}
-                                                />
+                                                <Input type="number" min={1} className="glass-card h-14 border-white/5 text-xs font-black tracking-widest uppercase" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
+                                            </FormControl>
+                                            <FormMessage className="text-[9px] font-black uppercase tracking-widest" />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            <div className="space-y-3">
+                                <FormLabel className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Temporal_Zone</FormLabel>
+                                <FormField
+                                    control={form.control}
+                                    name="timezone"
+                                    render={({ field }) => (
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger className="glass-card h-14 border-white/5 text-xs font-black tracking-widest uppercase">
+                                                    <SelectValue placeholder="MAP_SOURCE" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent className="bg-zinc-950 border-white/10 text-[10px] font-black uppercase">
+                                                {TIMEZONES.map((tz) => (
+                                                    <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6">
+                                <FormField
+                                    control={form.control}
+                                    name="startTime"
+                                    render={({ field }) => (
+                                        <FormItem className="space-y-3">
+                                            <FormLabel className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Window_Open</FormLabel>
+                                            <FormControl>
+                                                <Input type="time" className="glass-card h-14 border-white/5 text-center font-black tracking-tighter text-xl text-blue-500" {...field} onChange={e => { field.onChange(e); form.trigger("endTime"); }} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="endTime"
+                                    render={({ field }) => (
+                                        <FormItem className="space-y-3">
+                                            <FormLabel className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Window_Close</FormLabel>
+                                            <FormControl>
+                                                <Input type="time" className="glass-card h-14 border-white/5 text-center font-black tracking-tighter text-xl text-emerald-500" {...field} onChange={e => { field.onChange(e); form.trigger("startTime"); }} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6">
+                                <FormField
+                                    control={form.control}
+                                    name="minDelay"
+                                    render={({ field }) => (
+                                        <FormItem className="space-y-3">
+                                            <FormLabel className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Min_Delay (M)</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" min={1} className="glass-card h-14 border-white/5 text-xs font-black tracking-widest uppercase" {...field} onChange={e => { field.onChange(parseInt(e.target.value, 10) || 0); form.trigger("maxDelay"); }} />
                                             </FormControl>
                                         </FormItem>
                                     )}
                                 />
+                                <FormField
+                                    control={form.control}
+                                    name="maxDelay"
+                                    render={({ field }) => (
+                                        <FormItem className="space-y-3">
+                                            <FormLabel className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Max_Delay (M)</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" min={1} className="glass-card h-14 border-white/5 text-xs font-black tracking-widest uppercase" {...field} onChange={e => { field.onChange(parseInt(e.target.value, 10) || 0); form.trigger("minDelay"); }} />
+                                            </FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
 
-                                {windowWarning && (
-                                    <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                        <AlertTriangle className="h-5 w-5" />
-                                        <AlertTitle className="font-semibold text-lg">Warning: Time Constraint Risk</AlertTitle>
-                                        <AlertDescription className="mt-2 text-sm max-w-[90%] font-medium">
-                                            With an average delay of <strong>{avgDelay.toFixed(1)} mins</strong>,
-                                            sending <strong>{values.dailyLimitPerAccount}</strong> emails per account may exceed your defined sending window.
-                                            Some emails may be deferred to the next scheduled block.
-                                        </AlertDescription>
-                                    </Alert>
+                            {/* Tactics Switcher */}
+                            <FormField
+                                control={form.control}
+                                name="sendingMode"
+                                render={({ field }) => (
+                                    <div className="space-y-4">
+                                        <FormLabel className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Transmission_Tactic</FormLabel>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <button
+                                                type="button"
+                                                onClick={() => field.onChange("round-robin")}
+                                                className={`p-6 rounded-[1.5rem] border transition-all flex flex-col items-center text-center gap-3 ${field.value === "round-robin" ? 'bg-blue-600/10 border-blue-500/50' : 'bg-white/5 border-white/5 hover:border-white/10'}`}
+                                            >
+                                                <Shuffle className={`w-5 h-5 ${field.value === "round-robin" ? 'text-blue-500' : 'text-zinc-600'}`} />
+                                                <span className={`text-[10px] font-black uppercase tracking-widest ${field.value === "round-robin" ? 'text-white' : 'text-zinc-500'}`}>Round_Robin</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => field.onChange("sequential")}
+                                                className={`p-6 rounded-[1.5rem] border transition-all flex flex-col items-center text-center gap-3 ${field.value === "sequential" ? 'bg-amber-600/10 border-amber-500/50' : 'bg-white/5 border-white/5 hover:border-white/10'}`}
+                                            >
+                                                <ListOrdered className={`w-5 h-5 ${field.value === "sequential" ? 'text-amber-500' : 'text-zinc-600'}`} />
+                                                <span className={`text-[10px] font-black uppercase tracking-widest ${field.value === "sequential" ? 'text-white' : 'text-zinc-500'}`}>Sequential</span>
+                                            </button>
+                                        </div>
+                                    </div>
                                 )}
+                            />
 
-                                <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                                    <Button
-                                        type="button"
-                                        onClick={handleInstantExecution}
-                                        disabled={isInstantSubmitting || isScheduleSubmitting || !!Object.keys(form.formState.errors).length}
-                                        className="flex-1 btn-secondary h-12"
-                                    >
-                                        {isInstantSubmitting ? (
-                                            <span className="flex items-center gap-2">
-                                                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                                Sending...
-                                            </span>
-                                        ) : (
-                                            <span className="flex items-center gap-2">
-                                                <Zap className="h-4 w-4 text-amber-500" />
-                                                Start Instantly
-                                            </span>
-                                        )}
-                                    </Button>
+                            <FormField
+                                control={form.control}
+                                name="skipWeekends"
+                                render={({ field }) => (
+                                    <div className="flex items-center justify-between p-6 rounded-[1.5rem] bg-white/5 border border-white/5">
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] font-black text-white uppercase tracking-widest">Temporal_Guard</p>
+                                            <p className="text-[8px] font-black text-zinc-500 uppercase tracking-tight">Omit Saturday & Sunday</p>
+                                        </div>
+                                        <Switch
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                            className="data-[state=checked]:bg-blue-600"
+                                        />
+                                    </div>
+                                )}
+                            />
 
-                                    <Button
-                                        type="submit"
-                                        disabled={isScheduleSubmitting || isInstantSubmitting || !!Object.keys(form.formState.errors).length}
-                                        className="flex-1 btn-primary h-12"
-                                    >
-                                        {isScheduleSubmitting ? (
-                                            <span className="flex items-center gap-2">
-                                                <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                                                Scheduling...
-                                            </span>
-                                        ) : (
-                                            <span className="flex items-center gap-2">
-                                                <Play className="w-4 h-4 fill-current" />
-                                                Schedule Campaign
-                                            </span>
-                                        )}
-                                    </Button>
+                            {windowWarning && (
+                                <div className="p-6 rounded-[1.5rem] bg-red-500/10 border border-red-500/20 flex gap-4">
+                                    <ShieldAlert className="w-5 h-5 text-red-500 shrink-0" />
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">Temporal_Collision_Risk</p>
+                                        <p className="text-[9px] font-medium text-red-200/70 leading-relaxed uppercase">High Limit + Long Delay detected. Window may close before payload completes. Sequence will defer.</p>
+                                    </div>
                                 </div>
-                            </form>
-                        </Form>
-                    </CardContent>
-                </Card>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-6 pt-4">
+                                <Button
+                                    type="button"
+                                    onClick={handleInstantExecution}
+                                    disabled={isInstantSubmitting || isScheduleSubmitting}
+                                    className="h-16 rounded-[1.5rem] bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-white/10"
+                                >
+                                    {isInstantSubmitting ? "INITIATING..." : "INSTANT_LAUNCH"}
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={isScheduleSubmitting || isInstantSubmitting}
+                                    className="h-16 rounded-[1.5rem] bg-blue-600 hover:bg-blue-500 border border-blue-400 text-[10px] font-black uppercase tracking-widest shadow-[0_20px_40px_rgba(37,99,235,0.2)]"
+                                >
+                                    {isScheduleSubmitting ? "BUFFERING..." : "COMMIT_SEQUENCE"}
+                                </Button>
+                            </div>
+                        </form>
+                    </Form>
+                </div>
             </div>
 
-            {/* RIGHT COL: Output / Estimation Display */}
+            {/* Live Telemetry */}
             <div className="flex flex-col gap-6">
-                <div className="flex flex-col gap-4">
-                    <h3 className="text-xl font-bold font-heading px-1 text-foreground">Live Estimates</h3>
+                <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] px-2">Telemetrics // Real_Time</span>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Card className="bg-card dark:bg-zinc-900 border shadow-sm shrink-0">
-                            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                                <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                    Daily Capacity
-                                </CardTitle>
-                                <Mails className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-3xl font-bold font-heading text-foreground">{capacity.toLocaleString()}</div>
-                                <p className="text-xs text-muted-foreground mt-1 leading-snug">Total emails across all accounts per day</p>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="bg-card dark:bg-zinc-900 border shadow-sm shrink-0">
-                            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                                <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                    Active Sending Days
-                                </CardTitle>
-                                <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-3xl font-bold font-heading text-foreground">{daysInt}</div>
-                                <p className="text-xs text-muted-foreground mt-1 leading-snug">Number of working days required</p>
-                            </CardContent>
-                        </Card>
+                <div className="grid grid-cols-2 gap-6">
+                    <div className="bg-black/20 border border-white/5 rounded-[2rem] p-8 space-y-4">
+                        <Radio className="w-4 h-4 text-blue-500" />
+                        <div>
+                            <p className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Peak_Throughput</p>
+                            <p className="text-3xl font-black text-white tracking-widest uppercase">{capacity.toLocaleString()}</p>
+                            <p className="text-[8px] font-black text-zinc-600 uppercase mt-1 tracking-widest">TRANSMISSIONS / DAY</p>
+                        </div>
+                    </div>
+                    <div className="bg-black/20 border border-white/5 rounded-[2rem] p-8 space-y-4">
+                        <CalendarDays className="w-4 h-4 text-emerald-500" />
+                        <div>
+                            <p className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Payload_Duration</p>
+                            <p className="text-3xl font-black text-white tracking-widest uppercase">{daysInt}</p>
+                            <p className="text-[8px] font-black text-zinc-600 uppercase mt-1 tracking-widest">ACTIVE_CYCLES</p>
+                        </div>
                     </div>
                 </div>
 
-                <Card className="text-white border shadow-lg overflow-hidden shrink-0 relative mt-2" style={{ backgroundColor: "#141414", borderColor: "#222222" }}>
-                    {/* Decorative background circle */}
-                    <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white/5 blur-2xl pointer-events-none" />
+                <div className="bg-black/20 border border-white/5 rounded-[2.5rem] p-10 flex-1 flex flex-col relative overflow-hidden">
+                    <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-blue-600/5 blur-3xl" />
 
-                    <CardHeader className="pb-4 border-b border-white/5 flex flex-row items-center gap-3 relative z-10">
-                        <Clock className="w-5 h-5 text-zinc-400" />
-                        <CardTitle className="text-sm font-semibold tracking-wide text-zinc-100 mt-0.5">Projected Completion</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-6 relative z-10 pb-6">
-                        <div className="space-y-6">
-                            <div>
-                                <p className="text-zinc-500 text-xs font-bold mb-1.5 uppercase tracking-wider">Estimated End Date</p>
-                                <div className="text-4xl font-black font-heading tracking-tight text-white drop-shadow-sm">
-                                    {estimate.estimatedEndDate || "---"}
-                                </div>
-                            </div>
-                            <div>
-                                <p className="text-zinc-500 text-xs font-bold mb-1.5 uppercase tracking-wider">Estimated End Time</p>
-                                <div className="text-xl font-semibold font-body text-zinc-300">
-                                    {estimate.estimatedEndTime || "---"}
-                                </div>
+                    <div className="flex items-center gap-4 border-b border-white/5 pb-8 relative z-10">
+                        <Clock className="w-6 h-6 text-zinc-600" />
+                        <div>
+                            <h3 className="text-sm font-black text-white uppercase tracking-widest">Final_Projected_State</h3>
+                            <p className="text-[9px] font-black text-zinc-500 uppercase tracking-tight">Post-Orchestration Completion</p>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 flex flex-col justify-center gap-12 relative z-10 py-12">
+                        <div className="space-y-3">
+                            <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em]">Estimated_Terminal_Date</span>
+                            <div className="text-6xl font-black text-white tracking-tighter uppercase leading-none drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                                {estimate.estimatedEndDate || "---"}
                             </div>
                         </div>
-                    </CardContent>
-                    <CardFooter className="bg-black/40 py-4 relative z-10 border-t border-white/5">
-                        <p className="text-xs text-zinc-400 font-medium">
-                            Assuming standard successful deliveries. Calendar length: <strong className="text-zinc-200">{estimate.totalCalendarDaysScheduled} days total</strong>.
-                        </p>
-                    </CardFooter>
-                </Card>
+
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Terminal_Time_UTC</span>
+                                <span className="text-xl font-black text-blue-500 uppercase tracking-widest">{estimate.estimatedEndTime || "---"}</span>
+                            </div>
+                            <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Total_Calendar_span</span>
+                                <span className="text-xl font-black text-white uppercase tracking-widest">{estimate.totalCalendarDaysScheduled} <span className="text-[10px] text-zinc-600 ml-1">DAYS</span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-auto p-6 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-4 relative z-10">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">System_Model: PREDICTIVE_RECURSION_V4</p>
+                    </div>
+                </div>
             </div>
 
-            <div className="col-span-1 lg:col-span-2 flex items-center justify-start pt-4 border-t mt-4">
-                <Button variant="ghost" size="lg" onClick={onBack} disabled={isInstantSubmitting || isScheduleSubmitting} className="font-medium">
-                    <ArrowLeft className="w-4 h-4 mr-2" /> Back
-                </Button>
+            <div className="col-span-full flex items-center justify-between pt-8 border-t mt-4">
+                <button
+                    onClick={onBack}
+                    className="flex items-center gap-3 text-[10px] font-black text-zinc-500 uppercase tracking-widest hover:text-white transition-colors"
+                >
+                    <ArrowLeft className="w-4 h-4" /> PREV_SEQUENCE
+                </button>
+                <div className="text-[10px] font-black text-zinc-800 uppercase tracking-widest">
+                    ORCHESTRATOR // READY
+                </div>
             </div>
         </div>
     );
