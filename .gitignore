@@ -1,0 +1,11 @@
+.agent/
+.agents/
+PROJECT_BRAIN.md
+AGENTS.md
+node_modules/
+.env
+.env.local
+.next/
+dist/
+build/
+*.log
