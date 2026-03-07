@@ -131,6 +131,14 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
         // Sync props to form if they change
         form.setValue("totalLeads", totalLeads);
         form.setValue("activeAccounts", activeAccounts);
+
+        // Auto-calculate daily limit to finish in 1 day by default
+        const suggestedLimit = Math.ceil(totalLeads / Math.max(activeAccounts, 1));
+        const finalLimit = Math.min(suggestedLimit, totalLeads || 1);
+
+        form.setValue("dailyLimitPerAccount", finalLimit);
+
+        console.log(`[Distribution] Auto-calculated limit: ${finalLimit} (Leads: ${totalLeads}, Accounts: ${activeAccounts})`);
     }, [totalLeads, activeAccounts, form]);
 
     // Watch all values to auto-recalculate limits
@@ -327,8 +335,20 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
                                             <FormItem>
                                                 <FormLabel>Daily Limit (Per Account)</FormLabel>
                                                 <FormControl>
-                                                    <Input type="number" min={1} {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
+                                                    <Input
+                                                        type="number"
+                                                        min={1}
+                                                        max={totalLeads}
+                                                        {...field}
+                                                        onChange={e => {
+                                                            const val = parseInt(e.target.value, 10) || 0;
+                                                            field.onChange(Math.min(val, totalLeads));
+                                                        }}
+                                                    />
                                                 </FormControl>
+                                                <FormDescription>
+                                                    Max: {totalLeads} (total leads)
+                                                </FormDescription>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
