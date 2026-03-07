@@ -11,6 +11,7 @@ interface Account {
     id: string;
     email: string;
     is_active: boolean;
+    status: string;
     created_at: string;
     google_access_token: string | null;
     google_refresh_token: string | null;
@@ -19,19 +20,20 @@ interface Account {
 }
 
 // ── Status badge component ────────────────────────────────────────────
-function StatusBadge({ status }: { status: "active" | "rate_limited" | "error" }) {
+function StatusBadge({ status }: { status: "active" | "rate_limited" | "error" | "reauth_required" }) {
     const config = {
         active: { bg: "rgba(22,163,106,0.12)", text: "#16a34a", label: "Active" },
         rate_limited: { bg: "rgba(234,179,8,0.12)", text: "#eab308", label: "Rate Limited" },
         error: { bg: "rgba(239,68,68,0.12)", text: "#ef4444", label: "Error" },
+        reauth_required: { bg: "rgba(239,68,68,0.12)", text: "#ef4444", label: "Re-auth Required" },
     };
-    const c = config[status];
+    const c = config[status] || config.error;
     return (
         <span
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium"
-            style={{ backgroundColor: c.bg, color: c.text }}
+            style={{ backgroundColor: c.bg, color: c.text, border: status === 'reauth_required' ? `1px solid ${c.text}40` : 'none' }}
         >
-            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: c.text }} />
+            <span className={`w-1.5 h-1.5 rounded-full ${status === 'reauth_required' ? 'animate-pulse' : ''}`} style={{ backgroundColor: c.text }} />
             {c.label}
         </span>
     );
@@ -109,7 +111,8 @@ export default function AccountsPage() {
     };
 
     // Determine account status
-    const getStatus = (acc: Account): "active" | "rate_limited" | "error" => {
+    const getStatus = (acc: Account): "active" | "rate_limited" | "error" | "reauth_required" => {
+        if (acc.status === "REAUTH_REQUIRED") return "reauth_required";
         if (!acc.google_access_token && !acc.google_refresh_token) return "error";
         if (!acc.is_active) return "rate_limited";
         return "active";
@@ -239,13 +242,24 @@ export default function AccountsPage() {
                                         Sent today: <span className="text-white font-medium">{acc.sent_today || 0}</span>
                                     </span>
                                 </div>
-                                <button
-                                    onClick={() => handleDisconnect(acc.id)}
-                                    className="btn-destructive flex items-center gap-1.5 text-[12px] opacity-0 group-hover:opacity-100"
-                                >
-                                    <Unplug className="w-3.5 h-3.5" />
-                                    Disconnect
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    {status === "reauth_required" && (
+                                        <button
+                                            onClick={handleConnectGmail}
+                                            className="px-3 py-1.5 rounded bg-red-500/10 border border-red-500/20 text-red-500 text-[11px] font-bold uppercase hover:bg-red-500 hover:text-white transition-all flex items-center gap-1.5"
+                                        >
+                                            <RefreshCw className="w-3 h-3" />
+                                            Re-auth
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => handleDisconnect(acc.id)}
+                                        className="btn-destructive flex items-center gap-1.5 text-[12px] opacity-0 group-hover:opacity-100"
+                                    >
+                                        <Unplug className="w-3.5 h-3.5" />
+                                        Disconnect
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     );

@@ -382,10 +382,18 @@ export default function CampaignDetailPage() {
                                 <div className="space-y-1.5">
                                     {(campaign.sender_accounts || []).map((acc: any) => (
                                         <div key={acc.sender_account.id} className="flex items-center gap-2 p-2 rounded bg-white/[0.03] border border-white/[0.05]">
-                                            <div className="w-6 h-6 rounded bg-amber-500/20 flex items-center justify-center text-amber-500 font-bold text-[10px]">
-                                                {acc.sender_account.email.charAt(0).toUpperCase()}
+                                            <div className="relative">
+                                                <div className="w-6 h-6 rounded bg-amber-500/20 flex items-center justify-center text-amber-500 font-bold text-[10px]">
+                                                    {acc.sender_account.email.charAt(0).toUpperCase()}
+                                                </div>
+                                                {acc.sender_account.status === 'REAUTH_REQUIRED' && (
+                                                    <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border border-[#141414] animate-pulse" />
+                                                )}
                                             </div>
-                                            <span className="text-[11px] text-white/90 truncate">{acc.sender_account.email}</span>
+                                            <span className={`text-[11px] truncate ${acc.sender_account.status === 'REAUTH_REQUIRED' ? 'text-red-400 font-medium' : 'text-white/90'}`}>
+                                                {acc.sender_account.email}
+                                                {acc.sender_account.status === 'REAUTH_REQUIRED' && " (Needs Re-auth)"}
+                                            </span>
                                         </div>
                                     ))}
                                 </div>

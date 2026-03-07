@@ -19,6 +19,7 @@ export interface Account {
     id: string;
     email: string;
     is_active: boolean;
+    status: string;
     created_at: string;
     google_access_token: string | null;
     google_refresh_token: string | null;
@@ -211,9 +212,15 @@ export function Step1Accounts({ onNext }: Step1Props) {
                                         <div className="overflow-hidden">
                                             <p className="font-medium text-sm truncate">{acc.email}</p>
                                             <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                                <span className="flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-500">
-                                                    <CheckCircle className="h-3 w-3" /> Connected via Google
-                                                </span>
+                                                {acc.status === "REAUTH_REQUIRED" ? (
+                                                    <span className="flex items-center gap-1 font-bold text-red-600 animate-pulse">
+                                                        <CheckCircle className="h-3 w-3" /> Re-auth Required
+                                                    </span>
+                                                ) : (
+                                                    <span className="flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-500">
+                                                        <CheckCircle className="h-3 w-3" /> Connected via Google
+                                                    </span>
+                                                )}
                                                 <span>•</span>
                                                 <span>{new Date(acc.created_at).toLocaleDateString()}</span>
                                             </div>
@@ -284,10 +291,14 @@ export function Step1Accounts({ onNext }: Step1Props) {
                 <Button
                     size="lg"
                     onClick={onNext}
-                    disabled={accounts.length === 0}
+                    disabled={accounts.length === 0 || !accounts.some(a => a.status !== 'REAUTH_REQUIRED')}
                     className="px-8 font-bold"
                 >
-                    {accounts.length === 0 ? "Connect an account to continue" : "Setup Leads \u2192"}
+                    {accounts.length === 0
+                        ? "Connect an account to continue"
+                        : !accounts.some(a => a.status !== 'REAUTH_REQUIRED')
+                            ? "Reconnect an account to continue"
+                            : "Setup Leads \u2192"}
                 </Button>
             </div>
         </div>

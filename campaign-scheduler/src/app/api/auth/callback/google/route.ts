@@ -65,16 +65,27 @@ export async function GET(req: Request) {
 
         // Upsert sender account (update if exists, insert if new)
         const insforge = await getInsforgeClient();
+
+        // Build payload dynamically to avoid overwriting existing refresh tokens
+        const payload: any = {
+            user_id: user.id,
+            email,
+            name: name || null,
+            google_access_token: encrypt(accessToken),
+            is_active: true,
+            status: 'CONNECTED', // Reset status on successful connection
+        };
+
+        if (refreshToken) {
+            console.log(`[OAuth Callback] Saving new refresh token for ${email}`);
+            payload.google_refresh_token = encrypt(refreshToken);
+        } else {
+            console.log(`[OAuth Callback] No new refresh token received for ${email}. Preserving existing one.`);
+        }
+
         const { error: upsertError } = await insforge.database
             .from("sender_accounts")
-            .upsert([{
-                user_id: user.id,
-                email,
-                name: name || null,
-                google_access_token: encrypt(accessToken),
-                google_refresh_token: refreshToken ? encrypt(refreshToken) : null,
-                is_active: true,
-            }], { onConflict: "email" });
+            .upsert([payload], { onConflict: "email" });
 
         if (upsertError) {
             console.error("[Upsert Sender Account Error]:", upsertError);
