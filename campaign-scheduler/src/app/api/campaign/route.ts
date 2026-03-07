@@ -131,17 +131,25 @@ export async function POST(req: Request) {
         const sendingMode = campaignConfig.sendingMode || "round-robin";
         const verifiedAccountsCount = selectedAccountIds.length;
 
+        const basePerAccount = Math.floor(mappedLeads.length / verifiedAccountsCount);
+        const remainder = mappedLeads.length % verifiedAccountsCount;
+
         const leadsToInsert = mappedLeads.map((lead, i) => {
             let accId;
             if (sendingMode === "sequential") {
-                const batchSize = Math.ceil(mappedLeads.length / verifiedAccountsCount);
-                const accountIndex = Math.min(
-                    Math.floor(i / batchSize),
-                    verifiedAccountsCount - 1
-                );
-                accId = selectedAccountIds[accountIndex];
+                // Calculate batch sizes with remainder distributed to first accounts
+                const getAccountIndex = (leadIndex: number) => {
+                    let currentLimit = 0;
+                    for (let j = 0; j < verifiedAccountsCount; j++) {
+                        const accountLoad = basePerAccount + (j < remainder ? 1 : 0);
+                        currentLimit += accountLoad;
+                        if (leadIndex < currentLimit) return j;
+                    }
+                    return verifiedAccountsCount - 1;
+                };
+                accId = selectedAccountIds[getAccountIndex(i)];
             } else {
-                // Default: Round-Robin
+                // Default: Round-Robin (matches the same even distribution logic by nature of modulo)
                 accId = selectedAccountIds[i % verifiedAccountsCount];
             }
 

@@ -7,7 +7,8 @@ export function calculateTotalCapacity(accounts: number, limitPerAccount: number
 
 export function calculateRequiredDays(totalLeads: number, totalCapacity: number): number {
     if (totalCapacity === 0) return 0;
-    return Math.ceil(totalLeads / totalCapacity);
+    // Base Load Rule: Use floor to avoid triggering extra days for small remainders
+    return Math.max(1, Math.floor(totalLeads / totalCapacity));
 }
 
 export function calculateAverageDelay(minDelay: number, maxDelay: number): number {
@@ -96,7 +97,9 @@ export function estimateCompletionTime(
         }
 
         // Calculate exact time on the final day
-        const leadsOnFinalDay = totalLeads % totalCapacity || totalCapacity;
+        // On the final day, we send the "base" capacity PLUS any accumulated remainder
+        const daysToProcessBeforeFinal = requiredDays - 1;
+        const leadsOnFinalDay = totalLeads - (daysToProcessBeforeFinal * totalCapacity);
         const minutesOnFinalDay = leadsOnFinalDay * avgDelay;
 
         // Add those minutes to the start time of the final day

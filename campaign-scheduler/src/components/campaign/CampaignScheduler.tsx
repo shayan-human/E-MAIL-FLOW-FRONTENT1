@@ -132,7 +132,7 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
         form.setValue("totalLeads", totalLeads);
         form.setValue("activeAccounts", activeAccounts);
 
-        // Auto-calculate daily limit to finish in 1 day by default
+        // Initial suggested limit (max share to finish in 1 day)
         const suggestedLimit = Math.ceil(totalLeads / Math.max(activeAccounts, 1));
         const finalLimit = Math.min(suggestedLimit, totalLeads || 1);
 
@@ -143,6 +143,30 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
 
     // Watch all values to auto-recalculate limits
     const values = form.watch();
+
+    // Distribution Breakdown Logic
+    const getDistribution = () => {
+        if (activeAccounts === 0) return { breakdown: [], totalDays: 0, day1Total: 0, finalDayTotal: 0 };
+
+        const basePerAccount = Math.floor(totalLeads / activeAccounts);
+        const remainder = totalLeads % activeAccounts;
+
+        const breakdown = Array.from({ length: activeAccounts }).map((_, i) => ({
+            id: selectedAccountIds[i],
+            count: basePerAccount + (i < remainder ? 1 : 0)
+        }));
+
+        const dailyBaseCapacity = activeAccounts * values.dailyLimitPerAccount;
+        const totalDays = dailyBaseCapacity > 0 ? Math.max(1, Math.floor(totalLeads / dailyBaseCapacity)) : 1;
+
+        // On the final day, we send everything remaining
+        const beforeFinalTotal = (totalDays - 1) * dailyBaseCapacity;
+        const finalDayTotal = totalLeads - beforeFinalTotal;
+
+        return { breakdown, totalDays, day1Total: totalDays === 1 ? totalLeads : dailyBaseCapacity, finalDayTotal };
+    };
+
+    const dist = getDistribution();
 
     useEffect(() => {
         // Only perform calculations if core values are somewhat valid numbers
@@ -586,8 +610,12 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
                                 <Mails className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-3xl font-bold font-heading text-foreground">{capacity.toLocaleString()}</div>
-                                <p className="text-xs text-muted-foreground mt-1 leading-snug">Total emails across all accounts per day</p>
+                                <div className="text-3xl font-bold font-heading text-foreground">{dist.day1Total.toLocaleString()}</div>
+                                <p className="text-xs text-muted-foreground mt-1 leading-snug">
+                                    {dist.totalDays > 1 && totalLeads > dist.day1Total * dist.totalDays
+                                        ? `Day 1 load (Final day: ${dist.finalDayTotal})`
+                                        : "Total emails across all accounts per day"}
+                                </p>
                             </CardContent>
                         </Card>
 
@@ -599,11 +627,52 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
                                 <CalendarDays className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-3xl font-bold font-heading text-foreground">{daysInt}</div>
+                                <div className="text-3xl font-bold font-heading text-foreground">{dist.totalDays}</div>
                                 <p className="text-xs text-muted-foreground mt-1 leading-snug">Number of working days required</p>
                             </CardContent>
                         </Card>
                     </div>
+
+                    {/* Distribution Breakdown Card */}
+                    <Card className="bg-muted/30 border shadow-sm border-dashed">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                <ListOrdered className="w-3 h-3" />
+                                Distribution Breakdown
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            {dist.breakdown.length > 0 ? (
+                                <div className="grid grid-cols-1 gap-1">
+                                    {/* Group accounts with same load for cleaner UI */}
+                                    {(() => {
+                                        const base = Math.floor(totalLeads / activeAccounts);
+                                        const countWithExtra = totalLeads % activeAccounts;
+                                        const countWithBase = activeAccounts - countWithExtra;
+
+                                        return (
+                                            <>
+                                                {countWithExtra > 0 && (
+                                                    <div className="flex justify-between items-center text-sm p-2 bg-background/50 rounded-lg border">
+                                                        <span className="font-medium">{countWithExtra} account{countWithExtra > 1 ? 's' : ''}</span>
+                                                        <span className="text-indigo-500 font-bold">{base + 1} emails each</span>
+                                                    </div>
+                                                )}
+                                                {countWithBase > 0 && (
+                                                    <div className="flex justify-between items-center text-sm p-2 bg-background/50 rounded-lg border">
+                                                        <span className="font-medium">{countWithBase} account{countWithBase > 1 ? 's' : ''}</span>
+                                                        <span className="text-muted-foreground font-bold">{base} emails each</span>
+                                                    </div>
+                                                )}
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+                            ) : (
+                                <p className="text-xs text-muted-foreground italic text-center py-2">Select accounts to see distribution</p>
+                            )}
+                        </CardContent>
+                    </Card>
                 </div>
 
                 <Card className="text-white border shadow-lg overflow-hidden shrink-0 relative mt-2" style={{ backgroundColor: "#141414", borderColor: "#222222" }}>
