@@ -13,7 +13,7 @@ import {
     CardDescription
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Mail, CheckCircle, Trash2 } from "lucide-react";
+import { Plus, Mail, CheckCircle, Trash2, RefreshCw } from "lucide-react";
 
 export interface Account {
     id: string;
