@@ -154,7 +154,12 @@ export default function CampaignsPage() {
     const [filter, setFilter] = useState<string>("All");
 
     const fetchCampaigns = async () => {
-        if (!user) return;
+        if (!isLoaded) return;
+        if (!user) {
+            setLoading(false);
+            return;
+        }
+        setLoading(true);
         try {
             const [campaignsRes, leadsRes] = await Promise.all([
                 insforge.database
@@ -200,10 +205,8 @@ export default function CampaignsPage() {
     };
 
     useEffect(() => {
-        if (isLoaded) {
-            fetchCampaigns();
-        }
-    }, [isLoaded]);
+        fetchCampaigns();
+    }, [isLoaded, user?.id]);
 
     const handleStatusChange = async (id: string, newStatus: string) => {
         try {

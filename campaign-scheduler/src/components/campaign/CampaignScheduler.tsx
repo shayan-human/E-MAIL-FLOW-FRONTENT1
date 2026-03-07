@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { v4 as uuidv4 } from "uuid";
@@ -85,6 +86,7 @@ interface Step4Props {
 export function CampaignScheduler({ leads, subject, body, selectedAccountIds, onBack }: Step4Props) {
     const [isInstantSubmitting, setIsInstantSubmitting] = useState(false);
     const [isScheduleSubmitting, setIsScheduleSubmitting] = useState(false);
+    const router = useRouter();
 
     // Derived values from props
     const totalLeads = leads.length;
@@ -249,7 +251,7 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
 
             // Redirect to campaigns list after success
             setTimeout(() => {
-                window.location.href = "/campaigns";
+                router.push("/campaigns");
             }, 1500);
         } catch (error: unknown) {
             toast.error("Failed to schedule campaign", {
@@ -294,7 +296,7 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
 
             // Redirect to campaigns list after success
             setTimeout(() => {
-                window.location.href = "/campaigns";
+                router.push("/campaigns");
             }, 1500);
         } catch (error: unknown) {
             toast.error("Failed to instantly send campaign", {
