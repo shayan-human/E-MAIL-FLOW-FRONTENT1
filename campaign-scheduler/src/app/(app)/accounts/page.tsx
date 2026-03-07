@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { insforge } from "@/lib/insforge";
 import { useUser } from "@insforge/nextjs";
 
@@ -54,6 +55,8 @@ function timeAgo(dateStr: string): string {
 
 export default function AccountsPage() {
     const { user, isLoaded } = useUser();
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isConnecting, setIsConnecting] = useState(false);
@@ -97,6 +100,13 @@ export default function AccountsPage() {
                 }
 
                 setAccounts(existing);
+
+                // Handle OAuth Success Redirect
+                const successParam = searchParams.get("success");
+                if (successParam === "account_connected") {
+                    toast.success("Gmail account connected successfully!");
+                    router.replace("/accounts", { scroll: false });
+                }
             } catch (err) {
                 console.error("Error in accounts init:", err);
                 toast.error("An unexpected error occurred loading accounts.");
@@ -106,7 +116,7 @@ export default function AccountsPage() {
         };
         init();
         return () => { cancelled = true; };
-    }, [isLoaded]);
+    }, [isLoaded, searchParams, router]);
 
     const handleConnectGmail = async () => {
         setIsConnecting(true);
