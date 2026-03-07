@@ -9,6 +9,17 @@ import { globalRateLimiter } from "@/lib/rate-limit";
 // Simple memory store for idempotency keys
 const processedIdempotencyKeys = new Set<string>();
 
+function replacePlaceholders(template: string, lead: any) {
+    if (!template) return "";
+    return template
+        .replace(/\{\{firstName\}\}/g, lead.firstName || "")
+        .replace(/\{\{lastName\}\}/g, lead.lastName || "")
+        .replace(/\{\{fullName\}\}/g, lead.fullName || "")
+        .replace(/\{\{businessName\}\}/g, lead.businessName || "")
+        .replace(/\{\{website\}\}/g, lead.website || "")
+        .replace(/\{\{email\}\}/g, lead.email || "");
+}
+
 export async function POST(req: Request) {
     try {
         const { user } = await auth();
@@ -121,10 +132,19 @@ export async function POST(req: Request) {
                 accId = selectedAccountIds[i % verifiedAccountsCount];
             }
 
+            const personalizedSubject = replacePlaceholders(subject, lead);
+            const personalizedBody = replacePlaceholders(emailBody, lead);
+
             return {
                 campaign_id: campaignId,
                 email: lead.email,
                 first_name: lead.firstName || null,
+                last_name: lead.lastName || null,
+                full_name: lead.fullName || null,
+                business_name: lead.businessName || null,
+                website: lead.website || null,
+                personalized_subject: personalizedSubject,
+                personalized_body: personalizedBody,
                 status: "PENDING",
                 sender_account_id: accId,
                 sender_account_email: senderMapById[accId] || null,
@@ -139,102 +159,25 @@ export async function POST(req: Request) {
             console.error("[Leads Insert Error]:", leadsError);
         }
 
-        // 8. Try to dispatch to n8n (non-blocking)
-        const n8nBaseUrl = process.env.N8N_BASE_URL;
-        let dispatched = false;
+        // 8. Trigger Backend for immediate processing
+        const backendUrl = process.env.CAMPAIGN_BACKEND_URL || 'http://localhost:3000';
+        let triggered = false;
 
-        if (n8nBaseUrl) {
-            try {
-                const webhookUrl = `${n8nBaseUrl}/webhook/campaign-dispatch`;
-
-                const { data: senderAccountsData } = await insforge.database
-                    .from("sender_accounts")
-                    .select("id, email, google_access_token, google_refresh_token")
-                    .in("id", selectedAccountIds)
-                    .eq("is_active", true);
-
-                const senderAccountsToken = Array.isArray(senderAccountsData) ? senderAccountsData : [];
-                const verifiedAccounts = senderAccountsToken.filter((a: any) => a.google_access_token);
-
-                const sendingMode = campaignConfig.sendingMode || "round-robin";
-
-                // Assign leads to accounts based on sending mode
-                const mappedLeadsWithAccounts = mappedLeads.map((lead, i) => {
-                    let acc;
-                    if (sendingMode === "sequential") {
-                        const batchSize = Math.ceil(mappedLeads.length / verifiedAccounts.length);
-                        const accountIndex = Math.min(
-                            Math.floor(i / batchSize),
-                            verifiedAccounts.length - 1
-                        );
-                        acc = verifiedAccounts[accountIndex];
-                    } else {
-                        acc = verifiedAccounts[i % verifiedAccounts.length];
-                    }
-                    return {
-                        ...lead,
-                        assignedSenderEmail: acc?.email || "",
-                        assignedGoogleToken: acc?.google_access_token ? decrypt(acc.google_access_token) : "",
-                    };
-                });
-
-                const dispatchResponse = await fetch(webhookUrl, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        campaignId,
-                        idempotencyKey,
-                        campaignName,
-                        subject,
-                        body: emailBody,
-                        leads: mappedLeadsWithAccounts,
-                        sendingMode,
-                        scheduling: campaignConfig,
-                    }),
-                    signal: AbortSignal.timeout(10000),
-                });
-
-                dispatched = dispatchResponse.ok;
-
-                if (dispatched) {
-                    const { error: updateError } = await insforge.database
-                        .from("leads")
-                        .update({ status: "SENT", sent_at: new Date().toISOString() })
-                        .eq("campaign_id", campaignId)
-                        .eq("status", "PENDING");
-
-                    if (!updateError) {
-                        await insforge.database
-                            .from("campaigns")
-                            .update({ status: "COMPLETED" })
-                            .eq("id", campaignId);
-                    }
-                }
-            } catch (n8nErr) {
-                console.warn("[n8n dispatch skipped]:", n8nErr);
-            }
-        }
-
-        // 9. Trigger Backend for immediate processing if n8n didn't take care of it
-        if (!dispatched) {
-            const backendUrl = process.env.CAMPAIGN_BACKEND_URL;
-            if (backendUrl) {
-                try {
-                    fetch(`${backendUrl}/trigger`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                    }).catch(err => console.error("[Backend trigger failed]:", err));
-                } catch (triggerErr) {
-                    console.warn("[Backend trigger skipped]:", triggerErr);
-                }
-            }
+        try {
+            const triggerResponse = await fetch(`${backendUrl}/trigger`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+            });
+            triggered = triggerResponse.ok;
+        } catch (triggerErr) {
+            console.warn("[Backend trigger failed]:", triggerErr);
         }
 
         return NextResponse.json({
-            message: dispatched
-                ? "Campaign dispatched to n8n successfully"
-                : "Campaign created and saved. Triggered backend for processing.",
-            data: { campaignId, idempotencyKey, dispatched },
+            message: triggered
+                ? "Campaign created and backend triggered successfully."
+                : "Campaign created and saved. Manual trigger may be required.",
+            data: { campaignId, idempotencyKey, triggered },
         });
 
     } catch (error: unknown) {

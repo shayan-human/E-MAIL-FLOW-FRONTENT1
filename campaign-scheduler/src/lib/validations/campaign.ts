@@ -35,7 +35,11 @@ export const CampaignPayloadSchema = CampaignSettingsSchema.extend({
     selectedAccountIds: z.array(z.string().uuid()).min(1, "At least one account must be selected"),
     mappedLeads: z.array(z.object({
         email: z.string().email(),
-        firstName: z.string().optional()
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        fullName: z.string().optional(),
+        businessName: z.string().optional(),
+        website: z.string().optional(),
     })).min(1, "At least one valid lead is required")
 });
 

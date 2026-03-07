@@ -11,7 +11,11 @@ import { Label } from "@/components/ui/label";
 
 export interface MappedLead {
     email: string;
-    firstName: string;
+    firstName?: string;
+    lastName?: string;
+    fullName?: string;
+    businessName?: string;
+    website?: string;
 }
 
 interface Step2Props {
@@ -29,6 +33,10 @@ export function Step2Leads({ onNext, onBack }: Step2Props) {
     // Column Mapping State
     const [emailCol, setEmailCol] = useState<string>("");
     const [firstNameCol, setFirstNameCol] = useState<string>("");
+    const [lastNameCol, setLastNameCol] = useState<string>("");
+    const [fullNameCol, setFullNameCol] = useState<string>("");
+    const [businessNameCol, setBusinessNameCol] = useState<string>("");
+    const [websiteCol, setWebsiteCol] = useState<string>("");
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -68,6 +76,16 @@ export function Step2Leads({ onNext, onBack }: Step2Props) {
 
                 if (eMatch) setEmailCol(eMatch);
                 if (fMatch) setFirstNameCol(fMatch);
+
+                const lMatch = cols.find(c => c.toLowerCase().includes("last") && c.toLowerCase().includes("name"));
+                const fullNameMatch = cols.find(c => c.toLowerCase().includes("full") && c.toLowerCase().includes("name"));
+                const bMatch = cols.find(c => c.toLowerCase().includes("business") || c.toLowerCase().includes("company"));
+                const wMatch = cols.find(c => c.toLowerCase().includes("website") || c.toLowerCase().includes("url"));
+
+                if (lMatch) setLastNameCol(lMatch);
+                if (fullNameMatch) setFullNameCol(fullNameMatch);
+                if (bMatch) setBusinessNameCol(bMatch);
+                if (wMatch) setWebsiteCol(wMatch);
             },
             error: (error) => {
                 setIsParsing(false);
@@ -100,6 +118,10 @@ export function Step2Leads({ onNext, onBack }: Step2Props) {
                     finalLeads.push({
                         email: e,
                         firstName: firstNameCol ? (data[firstNameCol]?.trim() || "") : "",
+                        lastName: lastNameCol ? (data[lastNameCol]?.trim() || "") : "",
+                        fullName: fullNameCol ? (data[fullNameCol]?.trim() || "") : "",
+                        businessName: businessNameCol ? (data[businessNameCol]?.trim() || "") : "",
+                        website: websiteCol ? (data[websiteCol]?.trim() || "") : "",
                     });
                     validCount++;
                 }
@@ -200,6 +222,58 @@ export function Step2Leads({ onNext, onBack }: Step2Props) {
                             </Select>
                         </div>
 
+                        <div className="space-y-2">
+                            <Label className="text-base font-semibold">Last Name (Optional)</Label>
+                            <Select value={lastNameCol || "none"} onValueChange={(v) => setLastNameCol(v === "none" ? "" : v)}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select CSV Column (Optional)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">-- None --</SelectItem>
+                                    {headers.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-base font-semibold">Full Name (Optional)</Label>
+                            <Select value={fullNameCol || "none"} onValueChange={(v) => setFullNameCol(v === "none" ? "" : v)}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select CSV Column (Optional)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">-- None --</SelectItem>
+                                    {headers.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-base font-semibold">Business Name (Optional)</Label>
+                            <Select value={businessNameCol || "none"} onValueChange={(v) => setBusinessNameCol(v === "none" ? "" : v)}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select CSV Column (Optional)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">-- None --</SelectItem>
+                                    {headers.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-base font-semibold">Website (Optional)</Label>
+                            <Select value={websiteCol || "none"} onValueChange={(v) => setWebsiteCol(v === "none" ? "" : v)}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select CSV Column (Optional)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">-- None --</SelectItem>
+                                    {headers.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
                         {previewData.length > 0 && emailCol && (
                             <div className="mt-6 pt-4 border-t">
                                 <Label className="text-sm text-muted-foreground mb-3 block">Data Preview (First Row)</Label>
@@ -208,8 +282,26 @@ export function Step2Leads({ onNext, onBack }: Step2Props) {
                                     <span className="font-semibold">{previewData[0][emailCol] || "---"}</span>
                                     {firstNameCol && (
                                         <div className="mt-2">
-                                            <span className="text-muted-foreground block text-xs">Name:</span>
+                                            <span className="text-muted-foreground block text-xs">First Name:</span>
                                             <span className="font-semibold">{previewData[0][firstNameCol] || "---"}</span>
+                                        </div>
+                                    )}
+                                    {lastNameCol && (
+                                        <div className="mt-2">
+                                            <span className="text-muted-foreground block text-xs">Last Name:</span>
+                                            <span className="font-semibold">{previewData[0][lastNameCol] || "---"}</span>
+                                        </div>
+                                    )}
+                                    {businessNameCol && (
+                                        <div className="mt-2">
+                                            <span className="text-muted-foreground block text-xs">Business Name:</span>
+                                            <span className="font-semibold">{previewData[0][businessNameCol] || "---"}</span>
+                                        </div>
+                                    )}
+                                    {websiteCol && (
+                                        <div className="mt-2">
+                                            <span className="text-muted-foreground block text-xs">Website:</span>
+                                            <span className="font-semibold">{previewData[0][websiteCol] || "---"}</span>
                                         </div>
                                     )}
                                 </div>
