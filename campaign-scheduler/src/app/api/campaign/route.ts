@@ -11,13 +11,26 @@ const processedIdempotencyKeys = new Set<string>();
 
 function replacePlaceholders(template: string, lead: any) {
     if (!template) return "";
+    const data = {
+        firstName: lead.firstName || lead.first_name || "",
+        lastName: lead.lastName || lead.last_name || "",
+        fullName: lead.fullName || lead.full_name || "",
+        businessName: lead.businessName || lead.business_name || "",
+        website: lead.website || "",
+        email: lead.email || ""
+    };
+
     return template
-        .replace(/\{\{firstName\}\}/g, lead.firstName || "")
-        .replace(/\{\{lastName\}\}/g, lead.lastName || "")
-        .replace(/\{\{fullName\}\}/g, lead.fullName || "")
-        .replace(/\{\{businessName\}\}/g, lead.businessName || "")
-        .replace(/\{\{website\}\}/g, lead.website || "")
-        .replace(/\{\{email\}\}/g, lead.email || "");
+        .replace(/\{\{\s*firstName\s*\}\}/gi, data.firstName)
+        .replace(/\{\{\s*first\s*name\s*\}\}/gi, data.firstName)
+        .replace(/\{\{\s*lastName\s*\}\}/gi, data.lastName)
+        .replace(/\{\{\s*last\s*name\s*\}\}/gi, data.lastName)
+        .replace(/\{\{\s*fullName\s*\}\}/gi, data.fullName)
+        .replace(/\{\{\s*full\s*name\s*\}\}/gi, data.fullName)
+        .replace(/\{\{\s*businessName\s*\}\}/gi, data.businessName)
+        .replace(/\{\{\s*business\s*name\s*\}\}/gi, data.businessName)
+        .replace(/\{\{\s*website\s*\}\}/gi, data.website)
+        .replace(/\{\{\s*email\s*\}\}/gi, data.email);
 }
 
 export async function POST(req: Request) {
