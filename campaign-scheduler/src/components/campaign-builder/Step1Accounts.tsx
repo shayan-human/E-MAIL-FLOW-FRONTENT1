@@ -59,6 +59,7 @@ export function Step1Accounts({ onNext }: Step1Props) {
         let cancelled = false;
 
         const init = async () => {
+            if (!isLoaded) return; // Wait for auth to be loaded
             setIsLoading(true);
 
             // 1. Fetch existing accounts first
@@ -98,7 +99,7 @@ export function Step1Accounts({ onNext }: Step1Props) {
 
         init();
         return () => { cancelled = true; };
-    }, [searchParams, router, onNext]);
+    }, [searchParams, router, onNext, isLoaded]); // Added isLoaded
 
     const handleConnectGmail = async () => {
         setIsConnecting(true);
@@ -200,7 +201,21 @@ export function Step1Accounts({ onNext }: Step1Props) {
                             <div className="flex flex-col items-center justify-center h-full text-center p-6 border-2 border-dashed rounded-lg bg-muted/30">
                                 <Mail className="h-10 w-10 text-muted-foreground/50 mb-3" />
                                 <p className="text-foreground font-medium">No accounts connected</p>
-                                <p className="text-sm text-muted-foreground mt-1">Connect your first Gmail account to start sending.</p>
+                                <p className="text-sm text-muted-foreground mt-1 mb-4">Connect your first Gmail account to start sending.</p>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={async () => {
+                                        setIsLoading(true);
+                                        const results = await fetchAccounts();
+                                        setAccounts(results);
+                                        setIsLoading(false);
+                                    }}
+                                    className="flex items-center gap-2"
+                                >
+                                    <RefreshCw className="h-3.5 w-3.5" />
+                                    Check again
+                                </Button>
                             </div>
                         ) : (
                             accounts.map((acc) => (

@@ -60,9 +60,18 @@ export default function AccountsPage() {
 
     const fetchAccounts = async () => {
         try {
-            const response = await fetch("/api/accounts");
+            const response = await fetch("/api/accounts", {
+                cache: 'no-store', // Avoid caching empty results
+                headers: { 'Cache-Control': 'no-cache' }
+            });
             const data = await response.json();
-            if (!response.ok) throw new Error(data.error);
+            if (!response.ok) {
+                if (response.status === 401) {
+                    console.warn("Unauthorized: Session might still be loading.");
+                    return null; // Distinct return for unauthorized
+                }
+                throw new Error(data.error);
+            }
             return data.data || [];
         } catch (err: unknown) {
             console.error(err);
@@ -80,6 +89,13 @@ export default function AccountsPage() {
             try {
                 const existing = await fetchAccounts();
                 if (cancelled) return;
+
+                // If it's null (unauthorized), we might want to keep loading or wait
+                if (existing === null) {
+                    // Silent wait, don't set accounts yet
+                    return;
+                }
+
                 setAccounts(existing);
             } catch (err) {
                 console.error("Error in accounts init:", err);
@@ -154,7 +170,7 @@ export default function AccountsPage() {
                     <h1 className="text-2xl font-semibold tracking-tight text-white">Gmail Accounts</h1>
                 </div>
                 <div
-                    className="rounded-[10px] flex flex-col items-center justify-center py-20"
+                    className="rounded-[10px] flex flex-col items-center justify-center py-20 px-6 text-center"
                     style={{ backgroundColor: "#141414", border: "1px solid #222222" }}
                 >
                     <div
@@ -165,16 +181,31 @@ export default function AccountsPage() {
                     </div>
                     <p className="text-white font-medium text-[15px]">No Gmail accounts connected</p>
                     <p className="text-[13px] mt-1.5 mb-6" style={{ color: "#6b7280" }}>
-                        Connect an account to start sending campaigns
+                        Connect an account to start sending campaigns. If you already have accounts, click refresh.
                     </p>
-                    <button
-                        onClick={handleConnectGmail}
-                        disabled={isConnecting}
-                        className="btn-primary flex items-center gap-2"
-                    >
-                        <Plus className="w-4 h-4" />
-                        {isConnecting ? "Connecting..." : "Connect Account"}
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleConnectGmail}
+                            disabled={isConnecting}
+                            className="btn-primary flex items-center gap-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            {isConnecting ? "Connecting..." : "Connect Account"}
+                        </button>
+                        <button
+                            onClick={() => {
+                                setIsLoading(true);
+                                fetchAccounts().then(data => {
+                                    if (data !== null) setAccounts(data);
+                                    setIsLoading(false);
+                                });
+                            }}
+                            className="px-4 py-2 rounded bg-white/5 border border-white/10 text-white text-[14px] font-medium hover:bg-white/10 transition-all flex items-center gap-2"
+                        >
+                            <RefreshCw className="w-4 h-4" />
+                            Refresh
+                        </button>
+                    </div>
                 </div>
             </div>
         );
