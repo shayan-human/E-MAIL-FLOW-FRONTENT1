@@ -320,19 +320,19 @@ export default function CampaignsPage() {
             ) : (
                 /* Table */
                 <div
-                    className="rounded-[10px] overflow-hidden"
+                    className="rounded-[10px]"
                     style={{ backgroundColor: "#141414", border: "1px solid #222222" }}
                 >
                     <table className="w-full text-sm">
                         <thead>
                             <tr style={{ borderBottom: "1px solid #1f1f1f" }}>
-                                <th className="text-left py-3 px-4 text-[11px] font-medium uppercase tracking-wider" style={{ color: "#6b7280" }}>Campaign Name</th>
+                                <th className="text-left py-3 px-4 text-[11px] font-medium uppercase tracking-wider rounded-tl-[10px]" style={{ color: "#6b7280" }}>Campaign Name</th>
                                 <th className="text-left py-3 px-4 text-[11px] font-medium uppercase tracking-wider" style={{ color: "#6b7280" }}>Status</th>
                                 <th className="text-right py-3 px-4 text-[11px] font-medium uppercase tracking-wider" style={{ color: "#6b7280" }}>Sent</th>
                                 <th className="text-right py-3 px-4 text-[11px] font-medium uppercase tracking-wider" style={{ color: "#6b7280" }}>Replies</th>
                                 <th className="text-right py-3 px-4 text-[11px] font-medium uppercase tracking-wider" style={{ color: "#6b7280" }}>Reply Rate</th>
                                 <th className="py-3 px-4 text-[11px] font-medium uppercase tracking-wider" style={{ color: "#6b7280", width: 140 }}>Completion</th>
-                                <th className="text-center py-3 px-4 text-[11px] font-medium uppercase tracking-wider" style={{ color: "#6b7280", width: 60 }}>Actions</th>
+                                <th className="text-center py-3 px-4 text-[11px] font-medium uppercase tracking-wider rounded-tr-[10px]" style={{ color: "#6b7280", width: 60 }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>

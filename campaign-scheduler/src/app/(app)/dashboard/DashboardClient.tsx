@@ -339,7 +339,7 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
             <EmailActivityChart data={chartData} />
 
             <div
-                className="rounded-[16px] overflow-hidden"
+                className="rounded-[16px]"
                 style={{ backgroundColor: "#141414", border: "1px solid #222", boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }}
             >
                 <div className="px-6 py-5 flex items-center justify-between border-b" style={{ borderColor: "#222" }}>
@@ -366,13 +366,13 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr style={{ backgroundColor: "#111" }}>
-                                        <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px] text-zinc-600">Rank</th>
+                                        <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px] text-zinc-600 rounded-tl-[16px]">Rank</th>
                                         <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px] text-zinc-600">Campaign</th>
                                         <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px] text-zinc-600">Status</th>
                                         <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px] text-zinc-600">Sent</th>
                                         <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px] text-zinc-600">Replies</th>
                                         <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px] text-zinc-600">Reply Rate</th>
-                                        <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px] text-zinc-600">Completion</th>
+                                        <th className="py-3 px-6 font-semibold uppercase tracking-[0.1em] text-[10px] text-zinc-600 rounded-tr-[16px]">Completion</th>
                                     </tr>
                                 </thead>
                                 <tbody>
