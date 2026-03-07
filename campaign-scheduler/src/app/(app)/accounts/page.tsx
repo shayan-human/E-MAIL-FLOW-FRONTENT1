@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { insforge } from "@/lib/insforge";
 import { useUser } from "@insforge/nextjs";
 
-import { Plus, Mail, Unplug } from "lucide-react";
+import { Plus, Mail, Unplug, RefreshCw } from "lucide-react";
 import { toast } from "@/components/ui/toast-provider";
 
 interface Account {
