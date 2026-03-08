@@ -49,7 +49,7 @@ export async function GET() {
                     contactName: `${r.lead?.first_name || ""} ${r.lead?.last_name || ""}`.trim() || r.lead?.email,
                     campaignName: r.lead?.campaign?.name || "Unknown Campaign",
                     campaignId: r.lead?.campaign?.id,
-                    gmailThreadId: r.lead?.gmail_thread_id,
+                    gmailThreadId: r.lead?.gmail_thread_id || r.gmail_thread_id,
                     subject: r.subject, // Initial subject
                     messages: [],
                     lastMessageAt: r.timestamp,

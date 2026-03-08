@@ -40,7 +40,27 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Lead not found" }, { status: 404 });
         }
 
-        const gmailThreadId = reqThreadId || lead.gmail_thread_id;
+        let gmailThreadId = reqThreadId || lead.gmail_thread_id;
+
+        if (!gmailThreadId) {
+            console.log(`[Reply API]: Thread ID missing on lead ${leadId}, checking replies table...`);
+            const { data: lastReply } = await insforge.database
+                .from("replies")
+                .select("gmail_thread_id")
+                .eq("lead_id", leadId)
+                .not("gmail_thread_id", "is", null)
+                .limit(1)
+                .maybeSingle();
+
+            if (lastReply?.gmail_thread_id) {
+                gmailThreadId = lastReply.gmail_thread_id;
+                // Backfill lead for future
+                await insforge.database
+                    .from("leads")
+                    .update({ gmail_thread_id: gmailThreadId })
+                    .eq("id", leadId);
+            }
+        }
 
         if (!gmailThreadId) {
             return NextResponse.json({ error: "Missing thread ID: Please sync your inbox first" }, { status: 400 });

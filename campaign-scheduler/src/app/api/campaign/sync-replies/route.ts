@@ -264,6 +264,7 @@ async function checkReplyByThread(
                 sender_email: fromHeader,
                 timestamp,
                 gmail_message_id: msg.id,
+                gmail_thread_id: threadId,
                 is_read: false,
             }]);
 
@@ -337,6 +338,7 @@ async function checkReplyByEmail(
                 sender_email: fromHeader,
                 timestamp,
                 gmail_message_id: msg.id,
+                gmail_thread_id: msg.threadId,
                 is_read: false,
             }]);
 
