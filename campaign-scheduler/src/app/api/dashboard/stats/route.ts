@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@insforge/nextjs/server";
-import { processChartData } from "@/lib/chart-utils";
+import { processChartData, processBestSendDay } from "@/lib/chart-utils";
 
 export async function GET() {
     try {
@@ -87,7 +87,7 @@ export async function GET() {
             // Activity Chart (Last 30 days)
             insforge.database
                 .from("leads")
-                .select("sent_at")
+                .select("sent_at, status")
                 .in("campaign_id", campaignIds)
                 .gte("sent_at", thirtyDaysAgo.toISOString())
         ]);
@@ -113,6 +113,7 @@ export async function GET() {
         // 3. Process activity data
         const activityData = activityRes.data || [];
         const chartData = processChartData(activityData);
+        const bestSendDay = processBestSendDay(activityData);
 
         return NextResponse.json({
             stats: {
@@ -124,7 +125,8 @@ export async function GET() {
                 bouncedCount: bouncedCount,
                 avgReplyTime: avgReplyTimeHours !== null ? `${avgReplyTimeHours}h` : "---"
             },
-            chartData
+            chartData,
+            bestSendDay
         });
 
     } catch (error) {

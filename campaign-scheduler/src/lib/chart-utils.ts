@@ -59,3 +59,28 @@ export function processChartData(activityData: any[]) {
 
     return { "24H": chartData24H, "7D": chartData7D, "30D": chartData30D };
 }
+
+export function processBestSendDay(leads: any[]) {
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const counts: Record<string, number> = {
+        'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0
+    };
+
+    leads.forEach(lead => {
+        if (!lead.sent_at || lead.status !== 'REPLIED') return;
+        const day = dayNames[new Date(lead.sent_at).getDay()];
+        if (counts[day] !== undefined) counts[day]++;
+    });
+
+    const data = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => ({
+        day,
+        replies: counts[day]
+    }));
+
+    const maxReplies = Math.max(...data.map(d => d.replies));
+
+    return data.map(d => ({
+        ...d,
+        isHighest: maxReplies > 0 && d.replies === maxReplies
+    }));
+}

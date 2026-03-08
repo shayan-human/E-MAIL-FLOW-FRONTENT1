@@ -2,7 +2,7 @@ import { auth } from "@insforge/nextjs/server";
 import { getInsforgeClient } from "@/lib/insforge-server";
 import DashboardClient from "./DashboardClient";
 import { redirect } from "next/navigation";
-import { processChartData } from "@/lib/chart-utils";
+import { processChartData, processBestSendDay } from "@/lib/chart-utils";
 
 export default async function DashboardPage() {
     const { user } = await auth();
@@ -41,6 +41,7 @@ export default async function DashboardPage() {
         avgReplyTime: "---",
     };
     let chartData: Record<string, any[]> = { "24H": [], "7D": [], "30D": [] };
+    let bestSendDay: any[] = [];
     let initialCampaigns: any[] = [];
 
     if (campaignIds.length > 0) {
@@ -68,7 +69,7 @@ export default async function DashboardPage() {
             // Get activity data for chart
             insforge.database
                 .from("leads")
-                .select("sent_at")
+                .select("sent_at, status")
                 .in("campaign_id", campaignIds)
                 .gte("sent_at", thirtyDaysAgo.toISOString())
         ]);
@@ -119,6 +120,7 @@ export default async function DashboardPage() {
 
         // Generate Chart Data
         chartData = processChartData(activityRes.data || []);
+        bestSendDay = processBestSendDay(activityRes.data || []);
     }
 
     return (
@@ -127,6 +129,7 @@ export default async function DashboardPage() {
             initialCampaigns={initialCampaigns}
             initialStats={stats}
             initialChartData={chartData}
+            initialBestSendDay={bestSendDay}
         />
     );
 }

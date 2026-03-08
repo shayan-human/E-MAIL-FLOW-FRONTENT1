@@ -11,6 +11,10 @@ import {
     YAxis,
     CartesianGrid,
     Tooltip,
+    BarChart,
+    Bar,
+    Cell,
+    LabelList
 } from "recharts";
 import {
     Megaphone,
@@ -40,6 +44,7 @@ interface DashboardClientProps {
     initialCampaigns: CampaignWithStats[];
     initialStats: any;
     initialChartData: Record<string, any[]>;
+    initialBestSendDay: any[];
 }
 
 function StatusBadge({ status, completion = 0 }: { status: string, completion?: number }) {
@@ -71,10 +76,11 @@ function StatusBadge({ status, completion = 0 }: { status: string, completion?: 
     );
 }
 
-export default function DashboardClient({ user, initialCampaigns, initialStats, initialChartData }: DashboardClientProps) {
+export default function DashboardClient({ user, initialCampaigns, initialStats, initialChartData, initialBestSendDay }: DashboardClientProps) {
     const [campaigns, setCampaigns] = useState<CampaignWithStats[]>(initialCampaigns);
     const [statsData, setStatsData] = useState(initialStats);
     const [chartDataMaster, setChartDataMaster] = useState<Record<string, any[]>>(initialChartData);
+    const [bestSendDayData, setBestSendDayData] = useState<any[]>(initialBestSendDay);
     const [activeTimeframe, setActiveTimeframe] = useState<"24H" | "7D" | "30D">("30D");
     const [loading, setLoading] = useState(false);
     const [syncing, setSyncing] = useState(false);
@@ -130,6 +136,7 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
             if (statsRes.stats) {
                 setStatsData(statsRes.stats);
                 setChartDataMaster(statsRes.chartData || { "24H": [], "7D": [], "30D": [] });
+                setBestSendDayData(statsRes.bestSendDay || []);
             }
 
             const campaignsData = campaignsRes.data || [];
@@ -457,6 +464,98 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
                         </div>
                     </div>
                 )}
+            </div>
+
+            {/* Send Intelligence Section */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    <h2 className="text-sm font-semibold text-white tracking-wide uppercase opacity-50">Send Intelligence</h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <BestSendDayChart data={bestSendDayData} />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function BestSendDayChart({ data }: { data: any[] }) {
+    return (
+        <div
+            className="rounded-[12px] p-6 space-y-6"
+            style={{
+                backgroundColor: "#141414",
+                border: "1px solid #222222"
+            }}
+        >
+            <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#F59E0B" }} />
+                    <h3 className="text-[13px] font-semibold text-[#f0f0f0]">Best Send Day</h3>
+                </div>
+                <p className="text-[12px] text-[#555]">Replies by day emails were sent</p>
+            </div>
+
+            <div className="h-[180px] w-full mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data} margin={{ top: 20, right: 0, left: -35, bottom: 0 }}>
+                        <XAxis
+                            dataKey="day"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: "#444", fontSize: 10, fontWeight: 600 }}
+                            dy={10}
+                        />
+                        <YAxis
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: "#444", fontSize: 10, fontWeight: 600 }}
+                        />
+                        <Tooltip
+                            cursor={{ fill: 'transparent' }}
+                            content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                    return (
+                                        <div className="bg-[#1f1f1f] border border-[#333] px-2 py-1 rounded text-[10px] text-white">
+                                            {payload[0].value} replies
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            }}
+                        />
+                        <Bar dataKey="replies" radius={[4, 4, 0, 0]} barSize={32}>
+                            {data.map((entry, index) => (
+                                <Cell
+                                    key={`cell-${index}`}
+                                    fill={entry.isHighest ? "#F59E0B" : "#2a2a2a"}
+                                />
+                            ))}
+                            <LabelList
+                                dataKey="replies"
+                                position="top"
+                                content={(props: any) => {
+                                    const { x, y, width, value, index } = props;
+                                    if (!data[index]?.isHighest) return null;
+                                    return (
+                                        <text
+                                            x={x + width / 2}
+                                            y={y - 8}
+                                            fill="#F59E0B"
+                                            fontSize={10}
+                                            fontWeight="bold"
+                                            textAnchor="middle"
+                                        >
+                                            {value}
+                                        </text>
+                                    );
+                                }}
+                            />
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
             </div>
         </div>
     );
