@@ -321,10 +321,10 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
                         onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#F59E0B")}
                         onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#222222")}
                     >
-                        <p className="text-[13px] font-medium text-zinc-500">
+                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                             {stat.label}
                         </p>
-                        <p className="text-2xl font-semibold mt-1" style={{ color: stat.color || "white" }}>
+                        <p className="text-3xl font-bold mt-2" style={{ color: stat.color || "white" }}>
                             {stat.value}
                         </p>
                     </div>
