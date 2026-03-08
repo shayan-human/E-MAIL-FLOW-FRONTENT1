@@ -11,9 +11,9 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { leadId, gmailThreadId, subject, body, senderAccountId } = await req.json();
+        const { leadId, gmailThreadId: reqThreadId, subject, body, senderAccountId } = await req.json();
 
-        if (!leadId || !gmailThreadId || !body) {
+        if (!leadId || !body) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
@@ -25,7 +25,8 @@ export async function POST(req: Request) {
             .select(`
                 email,
                 sender_account_id,
-                sender_account_email
+                sender_account_email,
+                gmail_thread_id
             `)
             .eq("id", leadId)
             .single();
@@ -33,6 +34,12 @@ export async function POST(req: Request) {
         if (leadError || !lead) {
             console.error("[Reply API Error]: Failed to fetch lead", leadError);
             return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+        }
+
+        const gmailThreadId = reqThreadId || lead.gmail_thread_id;
+
+        if (!gmailThreadId) {
+            return NextResponse.json({ error: "Missing thread ID: Please sync your inbox first" }, { status: 400 });
         }
 
         if (senderAccountId) {

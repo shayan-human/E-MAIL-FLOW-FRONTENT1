@@ -340,7 +340,14 @@ async function checkReplyByEmail(
                 is_read: false,
             }]);
 
-        if (!replyError) newRepliesFound = true;
+        if (!replyError) {
+            newRepliesFound = true;
+            // Update lead with threadId if missing
+            await insforge.database
+                .from("leads")
+                .update({ gmail_thread_id: msg.threadId })
+                .eq("id", leadId);
+        }
     }
 
     return newRepliesFound;
