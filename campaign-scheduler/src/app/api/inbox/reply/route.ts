@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@insforge/nextjs/server";
 import { sendGmailEmail } from "@/lib/gmail";
+import { encrypt, decrypt } from "@/lib/encryption";
 
 export async function POST(req: Request) {
     try {
@@ -79,8 +80,8 @@ export async function POST(req: Request) {
             to: lead.email,
             subject: subject.startsWith("Re: ") ? subject : `Re: ${subject}`,
             body: body,
-            accessToken: sender.google_access_token || "",
-            refreshToken: sender.google_refresh_token,
+            accessToken: decrypt(sender.google_access_token || ""),
+            refreshToken: sender.google_refresh_token ? decrypt(sender.google_refresh_token) : null,
             fromEmail: sender.email,
             threadId: gmailThreadId,
         });
@@ -94,7 +95,7 @@ export async function POST(req: Request) {
         if (response.newAccessToken) {
             await insforge.database
                 .from("sender_accounts")
-                .update({ google_access_token: response.newAccessToken })
+                .update({ google_access_token: encrypt(response.newAccessToken) })
                 .eq("id", lead.sender_account_id);
         }
 
