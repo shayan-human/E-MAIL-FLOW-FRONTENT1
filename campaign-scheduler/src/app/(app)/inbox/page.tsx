@@ -239,86 +239,85 @@ export default function InboxPage() {
                                         {selected.subject}
                                     </p>
                                 </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                {selected.campaignId && (
-                                    <button
-                                        onClick={() => router.push(`/campaigns/${selected.campaignId}`)}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors hover:bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
-                                    >
-                                        <ExternalLink className="w-3 h-3" />
-                                        View Campaign
-                                    </button>
-                                )}
-                                <span className="text-[11px] shrink-0" style={{ color: "#555" }}>
-                                    {formatDistanceToNow(new Date(selected.timestamp), { addSuffix: true })}
-                                </span>
+                                <div className="flex items-center gap-3">
+                                    {selected.campaignId && (
+                                        <button
+                                            onClick={() => router.push(`/campaigns/${selected.campaignId}`)}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors hover:bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                                        >
+                                            <ExternalLink className="w-3 h-3" />
+                                            View Campaign
+                                        </button>
+                                    )}
+                                    <span className="text-[11px] shrink-0" style={{ color: "#555" }}>
+                                        {formatDistanceToNow(new Date(selected.timestamp), { addSuffix: true })}
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                {/* Email body */}
-                <div className="flex-1 overflow-y-auto px-6 py-5">
-                    {(() => {
-                        // Split body at the quoted original email line
-                        const quotedPattern = /\r?\nOn [\s\S]+?wrote:\r?\n/;
-                        const match = selected.fullBody.match(quotedPattern);
-                        const replyText = match
-                            ? selected.fullBody.slice(0, selected.fullBody.indexOf(match[0])).trim()
-                            : selected.fullBody.trim();
-                        const quotedText = match
-                            ? selected.fullBody.slice(selected.fullBody.indexOf(match[0])).trim()
-                            : null;
+                        {/* Email body */}
+                        <div className="flex-1 overflow-y-auto px-6 py-5">
+                            {(() => {
+                                // Split body at the quoted original email line
+                                const quotedPattern = /\r?\nOn [\s\S]+?wrote:\r?\n/;
+                                const match = selected.fullBody.match(quotedPattern);
+                                const replyText = match
+                                    ? selected.fullBody.slice(0, selected.fullBody.indexOf(match[0])).trim()
+                                    : selected.fullBody.trim();
+                                const quotedText = match
+                                    ? selected.fullBody.slice(selected.fullBody.indexOf(match[0])).trim()
+                                    : null;
 
-                        return (
-                            <>
-                                <div
-                                    className="text-[13px] leading-relaxed whitespace-pre-wrap"
-                                    style={{ color: "#d4d4d4" }}
-                                >
-                                    {replyText}
-                                </div>
-                                {quotedText && (
-                                    <div className="mt-4">
-                                        <button
-                                            onClick={() => setShowOriginal(v => !v)}
-                                            className="text-[11px] px-2 py-1 rounded transition-colors"
-                                            style={{
-                                                color: "#666",
-                                                border: "1px solid #333",
-                                                backgroundColor: showOriginal ? "#1f1f1f" : "transparent",
-                                            }}
+                                return (
+                                    <>
+                                        <div
+                                            className="text-[13px] leading-relaxed whitespace-pre-wrap"
+                                            style={{ color: "#d4d4d4" }}
                                         >
-                                            {showOriginal ? "Hide original" : "Show original"}
-                                        </button>
-                                        {showOriginal && (
-                                            <div
-                                                className="mt-3 text-[12px] leading-relaxed whitespace-pre-wrap border-l-2 pl-3"
-                                                style={{ color: "#555", borderColor: "#333" }}
-                                            >
-                                                {quotedText}
+                                            {replyText}
+                                        </div>
+                                        {quotedText && (
+                                            <div className="mt-4">
+                                                <button
+                                                    onClick={() => setShowOriginal(v => !v)}
+                                                    className="text-[11px] px-2 py-1 rounded transition-colors"
+                                                    style={{
+                                                        color: "#666",
+                                                        border: "1px solid #333",
+                                                        backgroundColor: showOriginal ? "#1f1f1f" : "transparent",
+                                                    }}
+                                                >
+                                                    {showOriginal ? "Hide original" : "Show original"}
+                                                </button>
+                                                {showOriginal && (
+                                                    <div
+                                                        className="mt-3 text-[12px] leading-relaxed whitespace-pre-wrap border-l-2 pl-3"
+                                                        style={{ color: "#555", borderColor: "#333" }}
+                                                    >
+                                                        {quotedText}
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
-                                    </div>
-                                )}
-                            </>
-                        );
-                    })()}
-                </div>
+                                    </>
+                                );
+                            })()}
+                        </div>
 
-                {/* Bottom bar */}
-                <div
-                    className="px-6 py-3 shrink-0 flex items-center gap-2"
-                    style={{ borderTop: "1px solid #1f1f1f" }}
-                >
-                    <Mail className="w-3.5 h-3.5" style={{ color: "#444" }} />
-                    <p className="text-[11px]" style={{ color: "#555" }}>
-                        Read-only mode. Reply from your Gmail client.
-                    </p>
-                </div>
-            </>
+                        {/* Bottom bar */}
+                        <div
+                            className="px-6 py-3 shrink-0 flex items-center gap-2"
+                            style={{ borderTop: "1px solid #1f1f1f" }}
+                        >
+                            <Mail className="w-3.5 h-3.5" style={{ color: "#444" }} />
+                            <p className="text-[11px]" style={{ color: "#555" }}>
+                                Read-only mode. Reply from your Gmail client.
+                            </p>
+                        </div>
+                    </>
                 )}
-        </div>
+            </div>
         </div >
     );
 }
