@@ -11,9 +11,13 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { leadId, gmailThreadId: reqThreadId, subject, body, senderAccountId } = await req.json();
+        const payload = await req.json();
+        console.log("[Reply API] Received payload:", JSON.stringify(payload, null, 2));
+
+        const { leadId, gmailThreadId: reqThreadId, subject, body, senderAccountId } = payload;
 
         if (!leadId || !body) {
+            console.error("[Reply API] Missing required fields:", { leadId: !!leadId, body: !!body });
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
