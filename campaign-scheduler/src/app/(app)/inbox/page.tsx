@@ -24,6 +24,8 @@ interface Thread {
     contactName: string;
     campaignName: string;
     campaignId: string;
+    senderAccountId?: string;
+    senderAccountEmail?: string;
     gmailThreadId: string;
     subject: string;
     messages: Message[];
@@ -124,8 +126,10 @@ function InboxContent() {
         setReplyText("");
         setReplySubject(`Re: ${thread.subject}`);
 
-        // Find if this lead already has a preferred sender linked?
-        // For now just keep current selection or default
+        // Auto-select the correct sender account
+        if (thread.senderAccountId) {
+            setSelectedSenderId(thread.senderAccountId);
+        }
     };
 
     const handleSendReply = async () => {
@@ -296,8 +300,8 @@ function InboxContent() {
                                     </div>
                                     <div
                                         className={`px-4 py-3 rounded-2xl text-[13px] leading-relaxed whitespace-pre-wrap ${msg.type === 'outgoing'
-                                                ? 'bg-indigo-600 text-white rounded-tr-none'
-                                                : 'bg-[#1a1a1a] text-[#d4d4d4] border border-[#222] rounded-tl-none'
+                                            ? 'bg-indigo-600 text-white rounded-tr-none'
+                                            : 'bg-[#1a1a1a] text-[#d4d4d4] border border-[#222] rounded-tl-none'
                                             }`}
                                     >
                                         {msg.body}

@@ -21,6 +21,8 @@ export async function GET() {
                     first_name,
                     last_name,
                     gmail_thread_id,
+                    sender_account_id,
+                    sender_account_email,
                     campaign:campaigns(
                         id,
                         name,
@@ -49,6 +51,8 @@ export async function GET() {
                     contactName: `${r.lead?.first_name || ""} ${r.lead?.last_name || ""}`.trim() || r.lead?.email,
                     campaignName: r.lead?.campaign?.name || "Unknown Campaign",
                     campaignId: r.lead?.campaign?.id,
+                    senderAccountId: r.lead?.sender_account_id,
+                    senderAccountEmail: r.lead?.sender_account_email,
                     gmailThreadId: r.lead?.gmail_thread_id || r.gmail_thread_id,
                     subject: r.subject, // Initial subject
                     messages: [],
