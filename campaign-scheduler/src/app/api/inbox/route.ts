@@ -37,6 +37,7 @@ export async function GET() {
             id: r.id,
             senderEmail: r.sender_email,
             campaignName: r.lead?.campaign?.name || "Unknown Campaign",
+            campaignId: r.lead?.campaign?.id,
             subject: r.subject,
             preview: r.body.slice(0, 150) + (r.body.length > 150 ? "..." : ""),
             fullBody: r.body,
