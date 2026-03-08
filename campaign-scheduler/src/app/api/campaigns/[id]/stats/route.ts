@@ -36,7 +36,7 @@ export async function GET(
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
         const [leadsRes, statsRes, repliesRes] = await Promise.all([
-            // All leads
+            insforge.database
                 .from("leads")
                 .select("id, email, status, sent_at, replied_at")
                 .eq("campaign_id", campaignId)
