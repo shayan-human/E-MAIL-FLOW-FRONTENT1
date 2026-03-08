@@ -11,6 +11,7 @@ import {
     LogOut,
     Sparkles,
     ChevronLeft,
+    ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@insforge/nextjs";
 
@@ -41,37 +42,47 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
 
     return (
         <aside
-            className={`h-full flex flex-col transition-all duration-300 ease-in-out shrink-0 overflow-hidden ${isExpanded ? "border-r" : "w-0 border-r-0"}`}
+            className="h-full flex flex-col border-r transition-all duration-300 ease-in-out shrink-0 overflow-hidden"
             style={{
-                width: isExpanded ? 240 : 0,
+                width: isExpanded ? 240 : 64,
                 backgroundColor: "var(--color-background-dark)",
                 borderColor: "rgba(236, 91, 19, 0.05)",
             }}
         >
             {/* Brand + Toggle */}
-            {isExpanded && (
-                <div className="h-14 flex items-center justify-between px-4 border-b shrink-0" style={{ borderColor: "rgba(236, 91, 19, 0.05)" }}>
-                    <div className="flex items-center gap-2.5 overflow-hidden">
-                        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-[0_0_15px_rgba(236,91,19,0.3)] shrink-0">
-                            <Sparkles className="w-4 h-4 text-white" />
+            <div className={`h-14 flex items-center border-b shrink-0 transition-all ${isExpanded ? "justify-between px-4" : "justify-center"}`} style={{ borderColor: "rgba(236, 91, 19, 0.05)" }}>
+                {isExpanded ? (
+                    <>
+                        <div className="flex items-center gap-2.5 overflow-hidden">
+                            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-[0_0_15px_rgba(236,91,19,0.3)] shrink-0">
+                                <Sparkles className="w-4 h-4 text-white" />
+                            </div>
+                            <span className="text-[15px] font-bold tracking-tight text-white whitespace-nowrap">
+                                Aur
+                            </span>
                         </div>
-                        <span className="text-[15px] font-bold tracking-tight text-white whitespace-nowrap">
-                            Aur
-                        </span>
-                    </div>
+                        <button
+                            onClick={onToggle}
+                            className="w-6 h-6 flex items-center justify-center rounded-md text-neutral-500 hover:text-white hover:bg-white/[0.06] transition-colors shrink-0"
+                            title="Collapse sidebar"
+                        >
+                            <ChevronLeft className="w-4 h-4" />
+                        </button>
+                    </>
+                ) : (
                     <button
                         onClick={onToggle}
-                        className="w-6 h-6 flex items-center justify-center rounded-md text-neutral-500 hover:text-white hover:bg-white/[0.06] transition-colors shrink-0"
-                        title="Collapse sidebar"
+                        className="w-8 h-8 flex items-center justify-center rounded-md text-neutral-500 hover:text-white hover:bg-white/[0.06] transition-colors shrink-0"
+                        title="Expand sidebar"
                     >
-                        <ChevronLeft className="w-4 h-4" />
+                        <ChevronRight className="w-5 h-5" />
                     </button>
-                </div>
-            )}
+                )}
+            </div>
 
             {/* Navigation */}
             <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
-                {isExpanded && navItems.map((item) => {
+                {navItems.map((item) => {
                     const isActive =
                         pathname === item.href ||
                         pathname.startsWith(item.href + "/");
@@ -79,7 +90,9 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
                         <Link
                             key={item.href}
                             href={item.href}
-                            className={`relative flex items-center gap-3 rounded-md px-3 py-2.5 text-[13px] font-medium transition-colors duration-150 group
+                            title={!isExpanded ? item.label : undefined}
+                            className={`relative flex items-center gap-3 rounded-md transition-colors duration-150 group
+                                ${isExpanded ? "px-3 py-2.5 text-[13px]" : "justify-center px-0 py-3"}
                                 ${isActive
                                     ? "text-primary bg-primary/5"
                                     : "text-[#6b7280] hover:text-primary hover:bg-primary/5"
@@ -98,28 +111,39 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
                                 className={`shrink-0 transition-colors ${isActive ? "text-primary" : "text-[#6b7280] group-hover:text-primary"}`}
                                 style={{ width: 18, height: 18 }}
                             />
-                            <span className="whitespace-nowrap">
-                                {item.label}
-                            </span>
+                            {isExpanded && (
+                                <span className="whitespace-nowrap font-medium">
+                                    {item.label}
+                                </span>
+                            )}
+
+                            {/* Tooltip for collapsed state */}
+                            {!isExpanded && (
+                                <span className="absolute left-full ml-3 px-2.5 py-1.5 rounded-md text-xs font-medium text-white whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-xl"
+                                    style={{ backgroundColor: "#1a1a1a", border: "1px solid #333" }}
+                                >
+                                    {item.label}
+                                </span>
+                            )}
                         </Link>
                     );
                 })}
             </nav>
 
             {/* User section at bottom */}
-            {isExpanded && (
-                <div
-                    className="border-t p-2 shrink-0"
-                    style={{ borderColor: "rgba(236, 91, 19, 0.05)" }}
-                    onMouseEnter={() => setShowLogout(true)}
-                    onMouseLeave={() => setShowLogout(false)}
-                >
-                    <div className="flex items-center gap-2.5 rounded-md px-2 py-2 transition-colors hover:bg-white/[0.04]">
-                        {/* Avatar */}
-                        <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-primary text-[11px] font-bold uppercase shrink-0 border border-primary/40">
-                            {user.email?.[0] || "U"}
-                        </div>
+            <div
+                className={`border-t p-2 shrink-0 transition-all ${isExpanded ? "" : "flex justify-center"}`}
+                style={{ borderColor: "rgba(236, 91, 19, 0.05)" }}
+                onMouseEnter={() => setShowLogout(true)}
+                onMouseLeave={() => setShowLogout(false)}
+            >
+                <div className={`flex items-center gap-2.5 rounded-md px-2 py-2 transition-colors hover:bg-white/[0.04] ${isExpanded ? "w-full" : "justify-center"}`}>
+                    {/* Avatar */}
+                    <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-primary text-[11px] font-bold uppercase shrink-0 border border-primary/40">
+                        {user.email?.[0] || "U"}
+                    </div>
 
+                    {isExpanded && (
                         <div className="flex-1 min-w-0 flex items-center gap-1">
                             <p className="text-[11px] text-[#6b7280] truncate flex-1">
                                 {user.email}
@@ -132,9 +156,17 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
                                 <LogOut style={{ width: 14, height: 14 }} />
                             </button>
                         </div>
-                    </div>
+                    )}
+
+                    {!isExpanded && showLogout && (
+                        <span className="absolute left-full ml-3 px-2.5 py-1.5 rounded-md text-xs font-medium text-white whitespace-nowrap z-50 shadow-xl"
+                            style={{ backgroundColor: "#1a1a1a", border: "1px solid #333" }}
+                        >
+                            {user.email}
+                        </span>
+                    )}
                 </div>
-            )}
+            </div>
         </aside>
     );
 }
