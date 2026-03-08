@@ -42,13 +42,23 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
 
     return (
         <aside
-            className="h-full flex flex-col border-r transition-all duration-300 ease-in-out shrink-0 overflow-hidden"
+            className={`h-full flex flex-col transition-all duration-300 ease-in-out shrink-0 overflow-x-hidden ${isExpanded ? "border-r" : "border-r-0"}`}
             style={{
                 width: isExpanded ? 240 : 64,
                 backgroundColor: "var(--color-background-dark)",
                 borderColor: "rgba(236, 91, 19, 0.05)",
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
             }}
         >
+            <style jsx>{`
+                aside::-webkit-scrollbar {
+                    display: none;
+                }
+                nav::-webkit-scrollbar {
+                    display: none;
+                }
+            `}</style>
             {/* Brand + Toggle */}
             <div className={`h-14 flex items-center border-b shrink-0 transition-all ${isExpanded ? "justify-between px-4" : "justify-center"}`} style={{ borderColor: "rgba(236, 91, 19, 0.05)" }}>
                 {isExpanded ? (
@@ -81,7 +91,7 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
+            <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto overflow-x-hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 {navItems.map((item) => {
                     const isActive =
                         pathname === item.href ||
