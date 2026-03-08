@@ -37,11 +37,10 @@ export async function GET(
 
         const [leadsRes, statsRes, repliesRes] = await Promise.all([
             // All leads
-            insforge.database
                 .from("leads")
                 .select("id, email, status, sent_at, replied_at")
                 .eq("campaign_id", campaignId)
-                .order("created_at", { ascending: false }),
+                .order("sent_at", { ascending: false, nullsFirst: false }),
 
             // Stats
             insforge.database
