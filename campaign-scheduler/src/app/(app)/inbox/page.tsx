@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { insforge } from "@/lib/insforge";
 import { toast } from "@/components/ui/toast-provider";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Search, Mail, MessageSquareText, RefreshCw, ExternalLink } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -18,6 +18,7 @@ interface ReplyThread {
     timestamp: string;
     isRead: boolean;
     leadId: string;
+    gmailThreadId?: string;
 }
 
 export default function InboxPage() {
@@ -28,6 +29,8 @@ export default function InboxPage() {
     const [loading, setLoading] = useState(true);
     const [syncing, setSyncing] = useState(false);
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const threadIdParam = searchParams.get("threadId");
 
     const fetchReplies = async () => {
         try {
@@ -67,6 +70,15 @@ export default function InboxPage() {
             clearInterval(syncInterval);
         };
     }, []);
+
+    useEffect(() => {
+        if (threadIdParam && threads.length > 0 && !selectedId) {
+            const thread = threads.find(t => t.gmailThreadId === threadIdParam);
+            if (thread) {
+                setSelectedId(thread.id);
+            }
+        }
+    }, [threadIdParam, threads, selectedId]);
 
     const handleSync = async () => {
         setSyncing(true);

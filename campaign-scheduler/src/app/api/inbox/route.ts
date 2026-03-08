@@ -44,6 +44,7 @@ export async function GET() {
             timestamp: r.timestamp,
             isRead: r.is_read,
             leadId: r.lead_id,
+            gmailThreadId: r.gmail_thread_id,
         }));
 
         return NextResponse.json({ replies });
