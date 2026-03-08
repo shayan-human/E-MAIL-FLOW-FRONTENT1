@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { insforge } from "@/lib/insforge";
 import { toast } from "@/components/ui/toast-provider";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -21,7 +21,7 @@ interface ReplyThread {
     gmailThreadId?: string;
 }
 
-export default function InboxPage() {
+function InboxContent() {
     const [threads, setThreads] = useState<ReplyThread[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
@@ -330,7 +330,18 @@ export default function InboxPage() {
                     </>
                 )}
             </div>
-        </div >
+        </div>
     );
 }
 
+export default function InboxPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center h-[calc(100vh-120px)] bg-[#141414] border border-[#222] rounded-[10px]">
+                <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+            </div>
+        }>
+            <InboxContent />
+        </Suspense>
+    );
+}

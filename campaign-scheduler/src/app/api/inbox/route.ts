@@ -18,6 +18,7 @@ export async function GET() {
                 lead:leads(
                     id,
                     email,
+                    gmail_thread_id,
                     campaign:campaigns(
                         id,
                         name,
@@ -44,7 +45,7 @@ export async function GET() {
             timestamp: r.timestamp,
             isRead: r.is_read,
             leadId: r.lead_id,
-            gmailThreadId: r.gmail_thread_id,
+            gmailThreadId: r.lead?.gmail_thread_id,
         }));
 
         return NextResponse.json({ replies });
