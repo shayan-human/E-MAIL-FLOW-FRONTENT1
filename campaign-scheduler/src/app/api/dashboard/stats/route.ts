@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@insforge/nextjs/server";
+import { processChartData } from "@/lib/chart-utils";
 
 export async function GET() {
     try {
@@ -37,7 +38,7 @@ export async function GET() {
                     bouncedCount: 0,
                     avgReplyTime: "---"
                 },
-                chartData: []
+                chartData: { "24H": [], "7D": [], "30D": [] }
             });
         }
 
@@ -111,31 +112,7 @@ export async function GET() {
 
         // 3. Process activity data
         const activityData = activityRes.data || [];
-        const dailyStats: Record<string, number> = {};
-
-        for (let i = 0; i < 30; i++) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0];
-            dailyStats[dateStr] = 0;
-        }
-
-        activityData.forEach((lead: any) => {
-            if (lead.sent_at) {
-                const dateStr = lead.sent_at.split('T')[0];
-                if (dailyStats[dateStr] !== undefined) {
-                    dailyStats[dateStr]++;
-                }
-            }
-        });
-
-        const chartData = Object.entries(dailyStats)
-            .map(([date, count]) => {
-                const d = new Date(date);
-                const displayDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                return { date: displayDate, sent: count, fullDate: date };
-            })
-            .sort((a, b) => a.fullDate.localeCompare(b.fullDate));
+        const chartData = processChartData(activityData);
 
         return NextResponse.json({
             stats: {

@@ -39,7 +39,7 @@ interface DashboardClientProps {
     user: { id: string; email?: string };
     initialCampaigns: CampaignWithStats[];
     initialStats: any;
-    initialChartData: any[];
+    initialChartData: Record<string, any[]>;
 }
 
 function StatusBadge({ status, completion = 0 }: { status: string, completion?: number }) {
@@ -74,7 +74,8 @@ function StatusBadge({ status, completion = 0 }: { status: string, completion?: 
 export default function DashboardClient({ user, initialCampaigns, initialStats, initialChartData }: DashboardClientProps) {
     const [campaigns, setCampaigns] = useState<CampaignWithStats[]>(initialCampaigns);
     const [statsData, setStatsData] = useState(initialStats);
-    const [chartData, setChartData] = useState<any[]>(initialChartData);
+    const [chartDataMaster, setChartDataMaster] = useState<Record<string, any[]>>(initialChartData);
+    const [activeTimeframe, setActiveTimeframe] = useState<"24H" | "7D" | "30D">("24H");
     const [loading, setLoading] = useState(false);
     const [syncing, setSyncing] = useState(false);
     const [lastSynced, setLastSynced] = useState<Date | null>(null);
@@ -128,7 +129,7 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
 
             if (statsRes.stats) {
                 setStatsData(statsRes.stats);
-                setChartData(statsRes.chartData || []);
+                setChartDataMaster(statsRes.chartData || { "24H": [], "7D": [], "30D": [] });
             }
 
             const campaignsData = campaignsRes.data || [];
@@ -336,7 +337,11 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
                 </p>
             )}
 
-            <EmailActivityChart data={chartData} />
+            <EmailActivityChart
+                data={chartDataMaster[activeTimeframe] || []}
+                activeTimeframe={activeTimeframe}
+                onTimeframeChange={(tf) => setActiveTimeframe(tf as "24H" | "7D" | "30D")}
+            />
 
             <div
                 className="rounded-[16px]"
@@ -467,20 +472,35 @@ function CustomTooltip({ active, payload, label }: any) {
     );
 }
 
-function EmailActivityChart({ data }: { data: any[] }) {
+function EmailActivityChart({ data, activeTimeframe, onTimeframeChange }: { data: any[], activeTimeframe: string, onTimeframeChange: (tf: string) => void }) {
     return (
-        <div className="rounded-[10px]" style={{ backgroundColor: "#141414", border: "1px solid #222222" }}>
-            <div className="px-6 pt-5 pb-2">
-                <h3 className="text-[16px] font-medium text-white">Email Activity</h3>
+        <div className="glass-panel rounded-xl flex flex-col gap-6 p-8">
+            <div className="flex justify-between items-center">
+                <div>
+                    <h3 className="text-lg font-bold text-white">Sending Volume & Neural Optimization</h3>
+                    <p className="text-slate-500 text-sm">Real-time throughput across all active nodes</p>
+                </div>
+                <div className="flex gap-2">
+                    {["24H", "7D", "30D"].map((tf) => (
+                        <button
+                            key={tf}
+                            onClick={() => onTimeframeChange(tf)}
+                            className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${activeTimeframe === tf ? 'bg-primary/10 text-primary' : 'hover:bg-white/5 text-slate-500 cursor-pointer'}`}
+                        >
+                            {tf}
+                        </button>
+                    ))}
+                </div>
             </div>
-            <div className="px-4 pb-4">
-                <ResponsiveContainer width="100%" height={220}>
-                    <LineChart data={data} margin={{ top: 8, right: 12, left: -10, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="0" stroke="#1f1f1f" vertical={false} />
-                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "#6b7280", fontSize: 11 }} dy={8} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fill: "#6b7280", fontSize: 11 }} dx={-4} />
-                        <Tooltip content={<CustomTooltip />} cursor={{ stroke: "#333", strokeWidth: 1 }} />
-                        <Line type="monotone" dataKey="sent" stroke="#F59E0B" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#F59E0B", stroke: "#141414", strokeWidth: 2 }} />
+
+            <div className="flex-1 relative min-h-[300px]">
+                <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="0" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "#6b7280", fontSize: 10, fontWeight: "bold" }} dy={10} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: "#6b7280", fontSize: 10, fontWeight: "bold" }} dx={-10} />
+                        <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(255,255,255,0.1)", strokeWidth: 1 }} />
+                        <Line type="monotone" dataKey="sent" stroke="var(--color-primary)" strokeWidth={3} dot={false} activeDot={{ r: 4, fill: "#0a0705", stroke: "var(--color-primary)", strokeWidth: 2 }} />
                     </LineChart>
                 </ResponsiveContainer>
             </div>

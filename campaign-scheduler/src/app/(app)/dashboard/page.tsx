@@ -2,6 +2,7 @@ import { auth } from "@insforge/nextjs/server";
 import { getInsforgeClient } from "@/lib/insforge-server";
 import DashboardClient from "./DashboardClient";
 import { redirect } from "next/navigation";
+import { processChartData } from "@/lib/chart-utils";
 
 export default async function DashboardPage() {
     const { user } = await auth();
@@ -39,7 +40,7 @@ export default async function DashboardPage() {
         bouncedCount: 0,
         avgReplyTime: "---",
     };
-    let chartData: any[] = [];
+    let chartData: Record<string, any[]> = { "24H": [], "7D": [], "30D": [] };
     let initialCampaigns: any[] = [];
 
     if (campaignIds.length > 0) {
@@ -117,27 +118,7 @@ export default async function DashboardPage() {
         });
 
         // Generate Chart Data
-        const dailyStats: Record<string, number> = {};
-        for (let i = 0; i < 30; i++) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            dailyStats[d.toISOString().split('T')[0]] = 0;
-        }
-
-        (activityRes.data || []).forEach((l: any) => {
-            if (l.sent_at) {
-                const dateStr = l.sent_at.split('T')[0];
-                if (dailyStats[dateStr] !== undefined) dailyStats[dateStr]++;
-            }
-        });
-
-        chartData = Object.entries(dailyStats)
-            .map(([date, count]) => ({
-                date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                sent: count,
-                fullDate: date
-            }))
-            .sort((a, b) => a.fullDate.localeCompare(b.fullDate));
+        chartData = processChartData(activityRes.data || []);
     }
 
     return (
