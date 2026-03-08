@@ -5,8 +5,8 @@ import { insforge } from "@/lib/insforge";
 import { useRouter } from "next/navigation";
 import {
     ResponsiveContainer,
-    LineChart,
-    Line,
+    AreaChart,
+    Area,
     XAxis,
     YAxis,
     CartesianGrid,
@@ -494,13 +494,27 @@ function EmailActivityChart({ data, activeTimeframe, onTimeframeChange }: { data
 
             <div className="flex-1 relative min-h-[300px]">
                 <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <defs>
+                            <linearGradient id="colorSent" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3} />
+                                <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
+                            </linearGradient>
+                        </defs>
                         <CartesianGrid strokeDasharray="0" stroke="rgba(255,255,255,0.05)" vertical={false} />
                         <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "#6b7280", fontSize: 10, fontWeight: "bold" }} dy={10} />
                         <YAxis axisLine={false} tickLine={false} tick={{ fill: "#6b7280", fontSize: 10, fontWeight: "bold" }} dx={-10} />
                         <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(255,255,255,0.1)", strokeWidth: 1 }} />
-                        <Line type="monotone" dataKey="sent" stroke="var(--color-primary)" strokeWidth={3} dot={false} activeDot={{ r: 4, fill: "#0a0705", stroke: "var(--color-primary)", strokeWidth: 2 }} />
-                    </LineChart>
+                        <Area
+                            type="monotone"
+                            dataKey="sent"
+                            stroke="var(--color-primary)"
+                            strokeWidth={3}
+                            fillOpacity={1}
+                            fill="url(#colorSent)"
+                            activeDot={{ r: 4, fill: "#0a0705", stroke: "var(--color-primary)", strokeWidth: 2 }}
+                        />
+                    </AreaChart>
                 </ResponsiveContainer>
             </div>
         </div>
