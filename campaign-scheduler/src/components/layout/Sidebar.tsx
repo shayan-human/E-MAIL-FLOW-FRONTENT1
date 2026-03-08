@@ -31,7 +31,6 @@ interface SidebarProps {
 export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
     const pathname = usePathname();
     const [showLogout, setShowLogout] = useState(false);
-    const [isHovered, setIsHovered] = useState(false);
     const { signOut } = useAuth();
 
     const handleSignOut = async () => {
@@ -39,7 +38,7 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
         window.location.href = "/";
     };
 
-    const isExpanded = !collapsed || isHovered;
+    const isExpanded = !collapsed;
 
     return (
         <aside
@@ -49,8 +48,6 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
                 backgroundColor: "var(--color-background-dark)",
                 borderColor: "rgba(236, 91, 19, 0.05)",
             }}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
         >
             {/* Brand + Toggle */}
             <div className="h-14 flex items-center justify-between px-4 border-b shrink-0" style={{ borderColor: "rgba(236, 91, 19, 0.05)" }}>
