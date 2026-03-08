@@ -42,7 +42,7 @@ export async function POST() {
         const [leadsRes, caRes] = await Promise.all([
             insforge.database
                 .from("leads")
-                .select("id, campaign_id, email, gmail_thread_id, sent_at")
+                .select("id, campaign_id, email, gmail_thread_id, sent_at, sender_account_id")
                 .in("campaign_id", campaignIds)
                 .in("status", ["SENT", "REPLIED"]),
             insforge.database
