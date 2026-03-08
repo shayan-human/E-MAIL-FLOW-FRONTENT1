@@ -56,23 +56,14 @@ export async function POST() {
             return NextResponse.json({ message: "No leads to sync", synced: 0, repliesFound: 0 });
         }
 
-        // Build campaign -> token map
+        // Build sender account map for quick token lookup
         const senderAccounts = allAccountsRes.data || [];
-        const senderMap: Record<string, any> = {};
+        const senderTokenMap: Record<string, { accessToken: string; refreshToken: string | null }> = {};
         for (const sa of senderAccounts) {
-            senderMap[sa.id] = sa;
-        }
-
-        const campaignTokenMap: Record<string, { accessToken: string; refreshToken: string | null; senderAccountId: string }> = {};
-        for (const ca of (caRes.data || [])) {
-            const acc = senderMap[ca.sender_account_id];
-            if (acc?.google_access_token && !campaignTokenMap[ca.campaign_id]) {
-                campaignTokenMap[ca.campaign_id] = {
-                    accessToken: decrypt(acc.google_access_token),
-                    refreshToken: acc.google_refresh_token ? decrypt(acc.google_refresh_token) : null,
-                    senderAccountId: acc.id,
-                };
-            }
+            senderTokenMap[sa.id] = {
+                accessToken: decrypt(sa.google_access_token),
+                refreshToken: sa.google_refresh_token ? decrypt(sa.google_refresh_token) : null,
+            };
         }
 
         // 2. Check leads for replies in parallel batches of 5
@@ -87,8 +78,11 @@ export async function POST() {
 
             const results = await Promise.allSettled(
                 batch.map(async (lead) => {
-                    const tokens = campaignTokenMap[lead.campaign_id];
-                    if (!tokens) return { leadId: lead.id, replied: false, error: "no tokens" };
+                    const senderId = lead.sender_account_id;
+                    if (!senderId) return { leadId: lead.id, replied: false, error: "no sender account linked" };
+
+                    const tokens = senderTokenMap[senderId];
+                    if (!tokens) return { leadId: lead.id, replied: false, error: `tokens not found for account ${senderId}` };
 
                     try {
                         let hasReply: boolean;
@@ -99,7 +93,7 @@ export async function POST() {
                                 tokens.accessToken,
                                 tokens.refreshToken,
                                 lead.gmail_thread_id,
-                                tokens.senderAccountId,
+                                senderId,
                                 lead.id,
                             );
                         } else {
@@ -109,7 +103,7 @@ export async function POST() {
                                 tokens.refreshToken,
                                 lead.email,
                                 lead.sent_at,
-                                tokens.senderAccountId,
+                                senderId,
                                 lead.id,
                             );
                         }
