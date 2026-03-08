@@ -45,6 +45,7 @@ interface DashboardClientProps {
     initialStats: any;
     initialChartData: Record<string, any[]>;
     initialBestSendDay: any[];
+    initialReplyQuality: any;
 }
 
 function StatusBadge({ status, completion = 0 }: { status: string, completion?: number }) {
@@ -76,11 +77,12 @@ function StatusBadge({ status, completion = 0 }: { status: string, completion?: 
     );
 }
 
-export default function DashboardClient({ user, initialCampaigns, initialStats, initialChartData, initialBestSendDay }: DashboardClientProps) {
+export default function DashboardClient({ user, initialCampaigns, initialStats, initialChartData, initialBestSendDay, initialReplyQuality }: DashboardClientProps) {
     const [campaigns, setCampaigns] = useState<CampaignWithStats[]>(initialCampaigns);
     const [statsData, setStatsData] = useState(initialStats);
     const [chartDataMaster, setChartDataMaster] = useState<Record<string, any[]>>(initialChartData);
     const [bestSendDayData, setBestSendDayData] = useState<any[]>(initialBestSendDay);
+    const [replyQualityData, setReplyQualityData] = useState<any>(initialReplyQuality);
     const [activeTimeframe, setActiveTimeframe] = useState<"24H" | "7D" | "30D">("30D");
     const [loading, setLoading] = useState(false);
     const [syncing, setSyncing] = useState(false);
@@ -137,6 +139,7 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
                 setStatsData(statsRes.stats);
                 setChartDataMaster(statsRes.chartData || { "24H": [], "7D": [], "30D": [] });
                 setBestSendDayData(statsRes.bestSendDay || []);
+                setReplyQualityData(statsRes.replyQuality || { positive: 0, negative: 0, neutral: 0, total: 0, percentages: { positive: 0, negative: 0, neutral: 0 } });
             }
 
             const campaignsData = campaignsRes.data || [];
@@ -473,8 +476,9 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
                     <h2 className="text-sm font-semibold text-white tracking-wide uppercase opacity-50">Send Intelligence</h2>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <BestSendDayChart data={bestSendDayData} />
+                    <ReplyQualityCard data={replyQualityData} />
                 </div>
             </div>
         </div>
@@ -615,6 +619,79 @@ function EmailActivityChart({ data, activeTimeframe, onTimeframeChange }: { data
                         />
                     </AreaChart>
                 </ResponsiveContainer>
+            </div>
+        </div>
+    );
+}
+
+function ReplyQualityCard({ data }: { data: any }) {
+    const { positive = 0, negative = 0, neutral = 0, total = 0, percentages = { positive: 0, negative: 0, neutral: 0 } } = data || {};
+
+    return (
+        <div
+            className="rounded-[12px] p-6 space-y-6 flex flex-col justify-between h-full"
+            style={{
+                backgroundColor: "#141414",
+                border: "1px solid #222222"
+            }}
+        >
+            <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#F59E0B" }} />
+                    <h3 className="text-[13px] font-semibold text-[#f0f0f0]">Reply Quality</h3>
+                </div>
+                <p className="text-[12px] text-[#555]">Breakdown of reply intent</p>
+            </div>
+
+            <div className="space-y-6">
+                {/* Stacked Bar */}
+                <div className="w-full h-[32px] rounded-lg overflow-hidden flex bg-[#1a1a1a]">
+                    {percentages.positive > 0 && (
+                        <div
+                            className="h-full transition-all duration-500 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden"
+                            style={{ width: `${percentages.positive}%`, backgroundColor: "#10B981" }}
+                            title={`Positive: ${positive}`}
+                        >
+                            {percentages.positive > 10 && `${percentages.positive}%`}
+                        </div>
+                    )}
+                    {percentages.neutral > 0 && (
+                        <div
+                            className="h-full transition-all duration-500 flex items-center justify-center text-[10px] font-bold text-black overflow-hidden"
+                            style={{ width: `${percentages.neutral}%`, backgroundColor: "#F59E0B" }}
+                            title={`Neutral: ${neutral}`}
+                        >
+                            {percentages.neutral > 10 && `${percentages.neutral}%`}
+                        </div>
+                    )}
+                    {percentages.negative > 0 && (
+                        <div
+                            className="h-full transition-all duration-500 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden"
+                            style={{ width: `${percentages.negative}%`, backgroundColor: "#EF4444" }}
+                            title={`Negative: ${negative}`}
+                        >
+                            {percentages.negative > 10 && `${percentages.negative}%`}
+                        </div>
+                    )}
+                </div>
+
+                {/* Counts Legend */}
+                <div className="flex items-center gap-4 text-[11px] font-medium">
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-[#10B981]">Positive</span>
+                        <span className="text-white opacity-90">{positive}</span>
+                    </div>
+                    <span className="text-zinc-800 text-xs">·</span>
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-[#F59E0B]">Neutral</span>
+                        <span className="text-white opacity-90">{neutral}</span>
+                    </div>
+                    <span className="text-zinc-800 text-xs">·</span>
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-[#EF4444]">Negative</span>
+                        <span className="text-white opacity-90">{negative}</span>
+                    </div>
+                </div>
             </div>
         </div>
     );

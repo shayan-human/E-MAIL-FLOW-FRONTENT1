@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@insforge/nextjs/server";
-import { processChartData, processBestSendDay } from "@/lib/chart-utils";
+import { processChartData, processBestSendDay, processReplyQuality } from "@/lib/chart-utils";
 
 export async function GET() {
     try {
@@ -115,6 +115,14 @@ export async function GET() {
         const chartData = processChartData(activityData);
         const bestSendDay = processBestSendDay(activityData);
 
+        // 4. Fetch replies for quality analysis
+        const { data: replies } = await insforge.database
+            .from("replies")
+            .select("body, lead_id")
+            .in("lead_id", (activityData.map((l: any) => l.id).filter(Boolean)));
+
+        const replyQuality = processReplyQuality(replies || []);
+
         return NextResponse.json({
             stats: {
                 totalCampaigns: campaignIds.length,
@@ -126,7 +134,8 @@ export async function GET() {
                 avgReplyTime: avgReplyTimeHours !== null ? `${avgReplyTimeHours}h` : "---"
             },
             chartData,
-            bestSendDay
+            bestSendDay,
+            replyQuality
         });
 
     } catch (error) {

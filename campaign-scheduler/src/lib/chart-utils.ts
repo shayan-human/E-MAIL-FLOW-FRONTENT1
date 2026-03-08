@@ -84,3 +84,37 @@ export function processBestSendDay(leads: any[]) {
         isHighest: maxReplies > 0 && d.replies === maxReplies
     }));
 }
+
+export function processReplyQuality(replies: any[]) {
+    const positiveKeywords = ['interested', 'yes', 'tell me more', 'sounds good', "let's chat", 'when', 'how', 'love to', 'open to'];
+    const negativeKeywords = ['unsubscribe', 'remove', 'not interested', 'stop', "don't contact", 'no thanks'];
+
+    let positive = 0;
+    let negative = 0;
+    let neutral = 0;
+
+    replies.forEach(reply => {
+        const body = (reply.body || "").toLowerCase();
+
+        const isPositive = positiveKeywords.some(kw => body.includes(kw));
+        const isNegative = negativeKeywords.some(kw => body.includes(kw));
+
+        if (isPositive) positive++;
+        else if (isNegative) negative++;
+        else neutral++;
+    });
+
+    const total = positive + negative + neutral;
+
+    return {
+        positive,
+        negative,
+        neutral,
+        total,
+        percentages: total > 0 ? {
+            positive: Math.round((positive / total) * 100),
+            negative: Math.round((negative / total) * 100),
+            neutral: Math.round((neutral / total) * 100)
+        } : { positive: 0, negative: 0, neutral: 0 }
+    };
+}
