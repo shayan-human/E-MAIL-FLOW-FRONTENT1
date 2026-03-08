@@ -9,15 +9,18 @@ export const CampaignSettingsSchema = z.object({
     minDelay: z.number().int().min(1, "Min delay must be at least 1 minute"),
     maxDelay: z.number().int().min(1, "Max delay must be at least 1 minute"),
     skipWeekends: z.boolean(),
+    enableSchedule: z.boolean().default(false),
     timezone: z.string().min(1, "Timezone is required"),
     startDate: z.string().min(1, "Start Date is required"),
     sendingMode: z.enum(["round-robin", "sequential"]).default("round-robin"),
 }).refine(data => {
+    if (!data.enableSchedule) return true;
     return data.maxDelay >= data.minDelay;
 }, {
     message: "Maximum delay cannot be less than minimum delay",
     path: ["maxDelay"]
 }).refine(data => {
+    if (!data.enableSchedule) return true;
     const [startH, startM] = data.startTime.split(':').map(Number);
     const [endH, endM] = data.endTime.split(':').map(Number);
     return (endH * 60 + endM) > (startH * 60 + startM);

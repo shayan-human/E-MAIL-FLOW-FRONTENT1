@@ -48,15 +48,20 @@ export function estimateCompletionTime(
     endTime: string,
     timezone: string,
     skipWeekends: boolean,
-    startDateArg: string
+    startDateArg: string,
+    enableSchedule: boolean
 ): EstimationResult {
     const requiredDays = calculateRequiredDays(totalLeads, totalCapacity);
-    if (requiredDays <= 0 || !startTime || !timezone || !startDateArg) {
+    if (requiredDays <= 0 || !timezone || !startDateArg) {
         return { estimatedEndDate: "", estimatedEndTime: "", totalCalendarDaysScheduled: 0 };
     }
 
+    // If schedule is disabled, we don't have startTime/endTime but we still need to estimate.
+    // We treat it as 24/7 sending for estimation purposes.
+    const effectiveStartTime = enableSchedule ? startTime : "00:00";
+
     try {
-        const [startH, startM] = startTime.split(':').map(Number);
+        const [startH, startM] = effectiveStartTime.split(':').map(Number);
 
         // Start strictly timezone-aware calculation 
         const baseDate = new Date(startDateArg + "T00:00:00");

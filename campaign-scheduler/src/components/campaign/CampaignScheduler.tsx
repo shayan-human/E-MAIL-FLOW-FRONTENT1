@@ -114,20 +114,15 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
             minDelay: 5,
             maxDelay: 15,
             skipWeekends: true,
-            timezone: "America/New_York", // Avoid SSR hydration mismatch
+            timezone: "Asia/Kolkata", // Default to India Standard Time (IST)
             startDate: format(new Date(), 'yyyy-MM-dd'),
             sendingMode: "round-robin" as const,
+            enableSchedule: false,
         },
         mode: "onChange",
     });
 
-    // Hydrate timezone on client strictly
-    useEffect(() => {
-        const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        if (localTz) {
-            form.setValue("timezone", localTz);
-        }
-    }, [form]);
+    // Removed automatic timezone detection in favor of fixed default (India) per user request
 
     useEffect(() => {
         // Sync props to form if they change
@@ -198,7 +193,8 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
                 values.endTime,
                 values.timezone,
                 values.skipWeekends,
-                values.startDate
+                values.startDate,
+                values.enableSchedule
             );
 
             setCapacity(currentCapacity);
@@ -217,6 +213,7 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
         values.maxDelay,
         values.skipWeekends,
         values.timezone,
+        values.enableSchedule,
     ]);
 
     async function onSubmit(data: CampaignSettings) {
@@ -381,61 +378,88 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="timezone"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Timezone</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select a timezone" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        {TIMEZONES.map((tz) => (
-                                                            <SelectItem key={tz.value} value={tz.value}>
-                                                                {tz.label}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
+                                <FormField
+                                    control={form.control}
+                                    name="enableSchedule"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center justify-between rounded-xl border-2 border-border p-4 shadow-sm bg-card hover:bg-muted/30 transition-colors">
+                                            <div className="space-y-0.5">
+                                                <FormLabel className="text-base font-semibold">
+                                                    Enable Schedule
+                                                </FormLabel>
+                                                <FormDescription>
+                                                    Only send emails during specific hours.
+                                                </FormDescription>
+                                            </div>
+                                            <FormControl>
+                                                <Switch
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                        </FormItem>
+                                    )}
+                                />
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="startTime"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Start Time (HH:MM)</FormLabel>
-                                                <FormControl>
-                                                    <Input type="time" className="block w-full appearance-none bg-muted/20 text-center font-medium tracking-widest text-lg" {...field} onChange={e => { field.onChange(e); form.trigger("endTime"); }} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="endTime"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>End Time (HH:MM)</FormLabel>
-                                                <FormControl>
-                                                    <Input type="time" className="block w-full appearance-none bg-muted/20 text-center font-medium tracking-widest text-lg" {...field} onChange={e => { field.onChange(e); form.trigger("startTime"); }} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
+                                {values.enableSchedule && (
+                                    <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="timezone"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Timezone</FormLabel>
+                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                            <FormControl>
+                                                                <SelectTrigger>
+                                                                    <SelectValue placeholder="Select a timezone" />
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                {TIMEZONES.map((tz) => (
+                                                                    <SelectItem key={tz.value} value={tz.value}>
+                                                                        {tz.label}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="startTime"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Start Time (HH:MM)</FormLabel>
+                                                        <FormControl>
+                                                            <Input type="time" className="block w-full appearance-none bg-muted/20 text-center font-medium tracking-widest text-lg" {...field} onChange={e => { field.onChange(e); form.trigger("endTime"); }} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="endTime"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>End Time (HH:MM)</FormLabel>
+                                                        <FormControl>
+                                                            <Input type="time" className="block w-full appearance-none bg-muted/20 text-center font-medium tracking-widest text-lg" {...field} onChange={e => { field.onChange(e); form.trigger("startTime"); }} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormField
