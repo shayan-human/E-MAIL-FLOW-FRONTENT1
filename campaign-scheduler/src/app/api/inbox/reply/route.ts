@@ -23,7 +23,8 @@ export async function POST(req: Request) {
             .from("leads")
             .select(`
                 email,
-                sender_account_id
+                sender_account_id,
+                sender_account_email
             `)
             .eq("id", leadId)
             .single();
@@ -31,6 +32,26 @@ export async function POST(req: Request) {
         if (leadError || !lead) {
             console.error("[Reply API Error]: Failed to fetch lead", leadError);
             return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+        }
+
+        if (!lead.sender_account_id) {
+            if (lead.sender_account_email) {
+                console.log(`[Reply API]: Falling back to email lookup for lead ${leadId}`);
+                const { data: fallbackAcc } = await insforge.database
+                    .from("sender_accounts")
+                    .select("id")
+                    .eq("email", lead.sender_account_email)
+                    .single();
+
+                if (fallbackAcc) {
+                    lead.sender_account_id = fallbackAcc.id;
+                    // Link it in DB for future efficiency
+                    await insforge.database
+                        .from("leads")
+                        .update({ sender_account_id: fallbackAcc.id })
+                        .eq("id", leadId);
+                }
+            }
         }
 
         if (!lead.sender_account_id) {
