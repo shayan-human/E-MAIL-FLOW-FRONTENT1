@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
-import { DM_Sans } from 'next/font/google';
+import { Public_Sans } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { ToastProvider } from '@/components/ui/toast-provider';
 import { InsforgeProvider } from './providers';
 
-const dmSans = DM_Sans({
+const publicSans = Public_Sans({
   subsets: ['latin'],
-  variable: '--font-dm-sans',
+  variable: '--font-public-sans',
 });
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={dmSans.variable} suppressHydrationWarning>
+    <html lang="en" className={publicSans.variable} suppressHydrationWarning>
       <body className="antialiased min-h-screen bg-background text-foreground font-sans">
         <ThemeProvider>
           <InsforgeProvider>
