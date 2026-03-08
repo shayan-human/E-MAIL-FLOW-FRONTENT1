@@ -13,6 +13,7 @@ export const CampaignSettingsSchema = z.object({
     timezone: z.string().min(1, "Timezone is required"),
     startDate: z.string().min(1, "Start Date is required"),
     sendingMode: z.enum(["round-robin", "sequential"]).default("round-robin"),
+    senderDisplayName: z.string().optional(),
 }).refine(data => {
     if (!data.enableSchedule) return true;
     return data.maxDelay >= data.minDelay;

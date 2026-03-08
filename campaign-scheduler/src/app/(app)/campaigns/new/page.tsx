@@ -27,6 +27,7 @@ export default function NewCampaignPage() {
     const [subject, setSubject] = useState("");
     const [body, setBody] = useState("");
     const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
+    const [senderDisplayName, setSenderDisplayName] = useState<string | undefined>(undefined);
 
     const handleNextStep1 = () => setCurrentStep(2);
 
@@ -35,10 +36,11 @@ export default function NewCampaignPage() {
         setCurrentStep(3);
     };
 
-    const handleNextStep3 = (subj: string, msg: string, acctIds: string[]) => {
+    const handleNextStep3 = (subj: string, msg: string, acctIds: string[], displayName?: string) => {
         setSubject(subj);
         setBody(msg);
         setSelectedAccountIds(acctIds);
+        setSenderDisplayName(displayName);
         setCurrentStep(4);
     };
 
@@ -122,6 +124,7 @@ export default function NewCampaignPage() {
                         subject={subject}
                         body={body}
                         selectedAccountIds={selectedAccountIds}
+                        senderDisplayName={senderDisplayName}
                         onBack={() => setCurrentStep(3)}
                     />
                 )}

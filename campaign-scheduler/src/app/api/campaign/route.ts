@@ -67,7 +67,7 @@ export async function POST(req: Request) {
         const validatedData = validationResult.data;
 
         // 4. Idempotency Check
-        const { idempotencyKey, subject, body: emailBody, mappedLeads, selectedAccountIds, ...campaignConfig } = validatedData;
+        const { idempotencyKey, subject, body: emailBody, mappedLeads, selectedAccountIds, senderDisplayName, ...campaignConfig } = validatedData;
         if (processedIdempotencyKeys.has(idempotencyKey)) {
             return NextResponse.json(
                 { message: "Campaign already processing.", data: { idempotencyKey } },
@@ -92,6 +92,7 @@ export async function POST(req: Request) {
                 status: "RUNNING",
                 min_delay: campaignConfig.minDelay || 5,
                 max_delay: campaignConfig.maxDelay || 15,
+                sender_display_name: senderDisplayName || null,
             }])
             .select("id")
             .single();

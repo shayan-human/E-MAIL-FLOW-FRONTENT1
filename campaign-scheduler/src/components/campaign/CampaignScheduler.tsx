@@ -80,10 +80,11 @@ interface Step4Props {
     subject: string;
     body: string;
     selectedAccountIds: string[];
+    senderDisplayName?: string;
     onBack: () => void;
 }
 
-export function CampaignScheduler({ leads, subject, body, selectedAccountIds, onBack }: Step4Props) {
+export function CampaignScheduler({ leads, subject, body, selectedAccountIds, senderDisplayName, onBack }: Step4Props) {
     const [isInstantSubmitting, setIsInstantSubmitting] = useState(false);
     const [isScheduleSubmitting, setIsScheduleSubmitting] = useState(false);
     const router = useRouter();
@@ -227,6 +228,7 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
             body,
             selectedAccountIds,
             mappedLeads: leads,
+            senderDisplayName,
         } as unknown as CampaignPayload;
 
         try {
@@ -272,6 +274,7 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, on
             body,
             selectedAccountIds,
             mappedLeads: leads,
+            senderDisplayName,
         } as CampaignPayload;
 
         try {

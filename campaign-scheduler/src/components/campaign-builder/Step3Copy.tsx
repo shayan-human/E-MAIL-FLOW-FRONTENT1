@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { PenTool, KeySquare, HelpCircle, ArrowLeft, ArrowRight, UserCircle2 } from "lucide-react";
+import { PenTool, KeySquare, HelpCircle, ArrowLeft, ArrowRight, UserCircle2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,7 @@ import { insforge } from "@/lib/insforge";
 import { useUser } from "@insforge/nextjs";
 
 interface Step3Props {
-    onNext: (subject: string, body: string, selectedAccountIds: string[]) => void;
+    onNext: (subject: string, body: string, selectedAccountIds: string[], senderDisplayName?: string) => void;
     onBack: () => void;
 }
 
@@ -41,6 +41,8 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
     const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
+    const [sendNameMode, setSendNameMode] = useState<'account' | 'custom'>('account');
+    const [customSenderName, setCustomSenderName] = useState('');
     const { user, isLoaded } = useUser();
 
     useEffect(() => {
@@ -109,7 +111,7 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
             toast.error("Please select at least one sender account");
             return;
         }
-        onNext(subject, body, selectedAccountIds);
+        onNext(subject, body, selectedAccountIds, sendNameMode === 'custom' ? customSenderName.trim() : undefined);
     };
 
     const handleInputChange = (
@@ -313,6 +315,72 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
                                         <UserCircle2 className="h-4 w-4 text-muted-foreground" />
                                     </div>
                                 ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Send Name As Section */}
+                <Card className="border-0 shadow-md ring-1 ring-black/5 bg-muted/20 flex flex-col">
+                    <CardHeader className="pb-4">
+                        <CardTitle className="text-xl font-heading flex items-center gap-2">
+                            <User className="h-5 w-5 text-primary" />
+                            Send Name As
+                        </CardTitle>
+                        <CardDescription>
+                            Choose the display name recipients see.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setSendNameMode('account')}
+                                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 text-center ${sendNameMode === 'account'
+                                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 shadow-sm ring-1 ring-indigo-500/20'
+                                        : 'border-border bg-background hover:border-muted-foreground/30 hover:bg-muted/30'
+                                    }`}
+                            >
+                                <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${sendNameMode === 'account' ? 'bg-indigo-500 text-white' : 'bg-muted text-muted-foreground'
+                                    }`}>
+                                    <UserCircle2 className="w-4.5 h-4.5" />
+                                </div>
+                                <div>
+                                    <p className={`text-sm font-semibold ${sendNameMode === 'account' ? 'text-indigo-700 dark:text-indigo-300' : 'text-foreground'}`}>Account Name</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">Use original email account name</p>
+                                </div>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setSendNameMode('custom')}
+                                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 text-center ${sendNameMode === 'custom'
+                                        ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30 shadow-sm ring-1 ring-amber-500/20'
+                                        : 'border-border bg-background hover:border-muted-foreground/30 hover:bg-muted/30'
+                                    }`}
+                            >
+                                <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${sendNameMode === 'custom' ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'
+                                    }`}>
+                                    <PenTool className="w-4.5 h-4.5" />
+                                </div>
+                                <div>
+                                    <p className={`text-sm font-semibold ${sendNameMode === 'custom' ? 'text-amber-700 dark:text-amber-300' : 'text-foreground'}`}>Custom Name</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">All accounts send as this name</p>
+                                </div>
+                            </button>
+                        </div>
+                        {sendNameMode === 'custom' && (
+                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <Label htmlFor="customSenderName" className="text-sm font-medium">Display Name</Label>
+                                <Input
+                                    id="customSenderName"
+                                    placeholder="e.g. DemGrow"
+                                    value={customSenderName}
+                                    onChange={(e) => setCustomSenderName(e.target.value)}
+                                    className="text-base"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Recipients will see: <strong className="text-foreground">{customSenderName || 'YourName'}</strong> &lt;actual-email@gmail.com&gt;
+                                </p>
                             </div>
                         )}
                     </CardContent>
