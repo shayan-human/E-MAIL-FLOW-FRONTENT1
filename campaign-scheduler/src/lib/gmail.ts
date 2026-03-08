@@ -10,6 +10,7 @@ interface SendEmailOptions {
     accessToken: string;
     refreshToken?: string | null;
     fromEmail: string;
+    threadId?: string;
 }
 
 interface GmailError {
@@ -69,7 +70,7 @@ function createMimeMessage(to: string, from: string, subject: string, body: stri
  * Send an email via Gmail API
  */
 export async function sendGmailEmail(options: SendEmailOptions): Promise<{ success: boolean; messageId?: string; threadId?: string; error?: string }> {
-    const { to, subject, body, accessToken, refreshToken, fromEmail } = options;
+    const { to, subject, body, accessToken, refreshToken, fromEmail, threadId } = options;
 
     let token = accessToken;
 
@@ -82,7 +83,10 @@ export async function sendGmailEmail(options: SendEmailOptions): Promise<{ succe
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ raw }),
+        body: JSON.stringify({
+            raw,
+            ...(threadId ? { threadId } : {})
+        }),
     });
 
     // If 401 and we have a refresh token, try refreshing
@@ -97,7 +101,10 @@ export async function sendGmailEmail(options: SendEmailOptions): Promise<{ succe
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ raw }),
+                body: JSON.stringify({
+                    raw,
+                    ...(threadId ? { threadId } : {})
+                }),
             });
         } catch (refreshError) {
             return {

@@ -24,9 +24,11 @@ interface ReplyThread {
 function InboxContent() {
     const [threads, setThreads] = useState<ReplyThread[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [showOriginal, setShowOriginal] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [replyText, setReplyText] = useState("");
+    const [isSending, setIsSending] = useState(false);
     const [syncing, setSyncing] = useState(false);
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -99,6 +101,7 @@ function InboxContent() {
     const handleSelectThread = async (thread: ReplyThread) => {
         setSelectedId(thread.id);
         setShowOriginal(false); // always collapse quoted text on selection
+        setReplyText("");
 
         if (!thread.isRead) {
             try {
@@ -111,6 +114,40 @@ function InboxContent() {
             } catch (error) {
                 console.error("Error marking as read:", error);
             }
+        }
+    };
+
+    const handleSendReply = async () => {
+        if (!selected || !replyText.trim()) return;
+
+        setIsSending(true);
+        try {
+            const res = await fetch("/api/inbox/reply", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    leadId: selected.leadId,
+                    gmailThreadId: selected.gmailThreadId,
+                    subject: selected.subject,
+                    body: replyText,
+                }),
+            });
+
+            if (!res.ok) {
+                const error = await res.json();
+                throw new Error(error.error || "Failed to send reply");
+            }
+
+            toast.success("Reply sent successfully!");
+            setReplyText("");
+
+            // Re-sync inbox to show the new reply if possible
+            fetchReplies();
+        } catch (error) {
+            console.error("[Send Reply Error]:", error);
+            toast.error(error instanceof Error ? error.message : "Failed to send reply");
+        } finally {
+            setIsSending(false);
         }
     };
 
@@ -317,15 +354,42 @@ function InboxContent() {
                             })()}
                         </div>
 
-                        {/* Bottom bar */}
+                        {/* Reply box */}
                         <div
-                            className="px-6 py-3 shrink-0 flex items-center gap-2"
+                            className="px-6 py-4 shrink-0"
                             style={{ borderTop: "1px solid #1f1f1f" }}
                         >
-                            <Mail className="w-3.5 h-3.5" style={{ color: "#444" }} />
-                            <p className="text-[11px]" style={{ color: "#555" }}>
-                                Read-only mode. Reply from your Gmail client.
-                            </p>
+                            <div className="relative group">
+                                <textarea
+                                    value={replyText}
+                                    onChange={(e) => setReplyText(e.target.value)}
+                                    placeholder="Type your reply here..."
+                                    className="w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-3 text-[13px] text-[#d4d4d4] placeholder:text-[#555] focus:outline-none focus:border-indigo-500/50 min-h-[100px] transition-all resize-none overflow-y-auto"
+                                    disabled={isSending}
+                                />
+                                <div className="absolute bottom-3 right-3 flex items-center gap-3">
+                                    <p className="text-[10px]" style={{ color: "#444" }}>
+                                        Replying via Gmail
+                                    </p>
+                                    <button
+                                        onClick={handleSendReply}
+                                        disabled={!replyText.trim() || isSending}
+                                        className="flex items-center gap-2 px-4 py-1.5 rounded-md text-[12px] font-medium bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-white shadow-lg shadow-indigo-500/10"
+                                    >
+                                        {isSending ? (
+                                            <>
+                                                <Loader2 className="w-3 h-3 animate-spin" />
+                                                Sending...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Mail className="w-3 h-3" />
+                                                Send Reply
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </>
                 )}
