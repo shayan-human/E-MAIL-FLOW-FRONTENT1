@@ -260,7 +260,7 @@ function InboxContent() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-[calc(100vh-120px)] bg-[#141414] border border-[#222] rounded-[10px]">
+            <div className="flex items-center justify-center h-[calc(100vh-48px)] bg-[#141414] border border-[#222] rounded-[10px] -mx-8 -my-4">
                 <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
             </div>
         );
@@ -268,11 +268,11 @@ function InboxContent() {
 
     return (
         <div
-            className="flex rounded-[10px] overflow-hidden"
+            className="flex rounded-[10px] overflow-hidden -mx-8 -my-4"
             style={{
                 backgroundColor: "#141414",
                 border: "1px solid #222222",
-                height: "calc(100vh - 120px)",
+                height: "calc(100vh - 48px)",
             }}
         >
             {/* ── Left Column: Thread list ─────────────────────────── */}
@@ -389,52 +389,44 @@ function InboxContent() {
                                 ))}
                             </div>
 
-                            <div className="px-6 py-5 shrink-0 border-t border-[#1f1f1f] bg-[#141414]">
-                                <div className="flex flex-col gap-3">
-                                    <div className="flex items-center justify-between gap-4">
-                                        <div className="flex items-center gap-2 text-[11px] text-[#888]">
-                                            <span>Reply from:</span>
-                                            <select
-                                                value={selectedSenderId}
-                                                onChange={(e) => setSelectedSenderId(e.target.value)}
-                                                className="bg-[#1a1a1a] border border-[#333] rounded px-2 py-1 text-white outline-none focus:border-indigo-500/50"
-                                            >
-                                                {accounts.map(acc => (
-                                                    <option key={acc.id} value={acc.id}>{acc.email}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="flex-1">
-                                            <input
-                                                type="text"
-                                                value={replySubject}
-                                                onChange={(e) => setReplySubject(e.target.value)}
-                                                placeholder="Subject"
-                                                className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-1 text-[12px] text-white outline-none focus:border-indigo-500/50"
-                                            />
-                                        </div>
+                            <div className="px-4 py-3 shrink-0 border-t border-[#1f1f1f] bg-[#141414]">
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex items-center gap-3">
+                                        <select
+                                            value={selectedSenderId}
+                                            onChange={(e) => setSelectedSenderId(e.target.value)}
+                                            className="bg-[#1a1a1a] border border-[#333] rounded px-2 py-1 text-[11px] text-white outline-none focus:border-indigo-500/50 shrink-0"
+                                        >
+                                            {accounts.map(acc => (
+                                                <option key={acc.id} value={acc.id}>{acc.email}</option>
+                                            ))}
+                                        </select>
+                                        <input
+                                            type="text"
+                                            value={replySubject}
+                                            onChange={(e) => setReplySubject(e.target.value)}
+                                            placeholder="Subject"
+                                            className="flex-1 bg-[#1a1a1a] border border-[#333] rounded px-3 py-1 text-[12px] text-white outline-none focus:border-indigo-500/50"
+                                        />
                                     </div>
                                     <div className="relative">
                                         <textarea
                                             value={replyText}
                                             onChange={(e) => setReplyText(e.target.value)}
                                             placeholder="Type your reply..."
-                                            className="w-full bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-4 text-[13px] text-[#d4d4d4] placeholder:text-[#555] outline-none focus:border-indigo-500/50 min-h-[120px] resize-none"
+                                            className="w-full bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 pr-36 text-[13px] text-[#d4d4d4] placeholder:text-[#555] outline-none focus:border-indigo-500/50 min-h-[80px] resize-none"
                                             disabled={isSending}
                                         />
-                                        <div className="absolute bottom-4 right-4 flex items-center gap-3">
-                                            <span className="text-[10px] text-[#444]">
-                                                Replying via {accounts.find(a => a.id === selectedSenderId)?.email || 'Gmail'}
-                                            </span>
+                                        <div className="absolute bottom-3 right-3">
                                             <button
                                                 onClick={handleSendReply}
                                                 disabled={!replyText.trim() || isSending}
-                                                className="flex items-center gap-2 px-5 py-2 rounded-lg text-[12px] font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl shadow-indigo-500/20"
+                                                className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-[12px] font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-500/20"
                                             >
                                                 {isSending ? (
                                                     <><Loader2 className="w-3.5 h-3.5 animate-spin" />Sending...</>
                                                 ) : (
-                                                    <><Mail className="w-3.5 h-3.5" />Send Reply</>
+                                                    <><Mail className="w-3.5 h-3.5" />Send</>
                                                 )}
                                             </button>
                                         </div>
