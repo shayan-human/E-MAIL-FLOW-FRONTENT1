@@ -276,12 +276,56 @@ export default function AccountsPage() {
                                 </div>
                             </div>
 
-                            {/* Bottom row */}
-                            <div className="flex items-center justify-between mt-4 pt-3" style={{ borderTop: "1px solid #1f1f1f" }}>
-                                <div className="flex items-center gap-4">
-                                    <span className="text-[11px]" style={{ color: "#6b7280" }}>
-                                        Sent today: <span className="text-white font-medium">{acc.sent_today || 0}</span>
+                            {/* Account Health Block */}
+                            <div className="mt-4 pt-4 space-y-3" style={{ borderTop: "1px solid #1f1f1f" }}>
+                                <div className="flex items-center justify-between font-bold">
+                                    <span className="text-[10px] text-zinc-500 uppercase tracking-widest">
+                                        {acc.sent_today || 0} / 100 sent today
                                     </span>
+                                    {(() => {
+                                        const usage = ((acc.sent_today || 0) / 100) * 100;
+                                        let statusColor = "#10B981"; // Healthy (Green)
+                                        let label = "HEALTHY";
+
+                                        if (usage >= 90) {
+                                            statusColor = "#EF4444"; // At Limit (Red)
+                                            label = "AT LIMIT";
+                                        } else if (usage >= 70) {
+                                            statusColor = "#F59E0B"; // Warming (Amber/Primary)
+                                            label = "WARMING";
+                                        }
+
+                                        return (
+                                            <span
+                                                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] tracking-widest font-bold border"
+                                                style={{
+                                                    color: statusColor,
+                                                    backgroundColor: `${statusColor}10`,
+                                                    borderColor: `${statusColor}20`
+                                                }}
+                                            >
+                                                <span className="w-1 h-1 rounded-full animate-pulse" style={{ backgroundColor: statusColor, boxShadow: `0 0 4px ${statusColor}` }} />
+                                                {label}
+                                            </span>
+                                        );
+                                    })()}
+                                </div>
+
+                                <div className="w-full h-[4px] bg-[#1e1e1e] rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full transition-all duration-500"
+                                        style={{
+                                            width: `${Math.min(((acc.sent_today || 0) / 100) * 100, 100)}%`,
+                                            backgroundColor: (acc.sent_today || 0) >= 90 ? "#EF4444" : "#F59E0B"
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Actions row */}
+                            <div className="flex items-center justify-between mt-3">
+                                <div className="flex items-center gap-4">
+                                    {/* Empty or metadata placeholder if needed */}
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {status === "reauth_required" && (
