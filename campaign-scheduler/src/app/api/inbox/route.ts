@@ -18,6 +18,8 @@ export async function GET() {
                 lead:leads(
                     id,
                     email,
+                    first_name,
+                    last_name,
                     gmail_thread_id,
                     campaign:campaigns(
                         id,
@@ -26,29 +28,61 @@ export async function GET() {
                     )
                 )
             `)
-            .order("timestamp", { ascending: false });
+            .order("timestamp", { ascending: true }); // Chronological order for messages within threads
 
         if (error) {
             console.error("[Fetch Inbox Error]:", error);
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        // Flatten the structure for the frontend
-        const replies = (data || []).map((r: any) => ({
-            id: r.id,
-            senderEmail: r.sender_email,
-            campaignName: r.lead?.campaign?.name || "Unknown Campaign",
-            campaignId: r.lead?.campaign?.id,
-            subject: r.subject,
-            preview: r.body.slice(0, 150) + (r.body.length > 150 ? "..." : ""),
-            fullBody: r.body,
-            timestamp: r.timestamp,
-            isRead: r.is_read,
-            leadId: r.lead_id,
-            gmailThreadId: r.lead?.gmail_thread_id,
-        }));
+        // Group messages by leadId (which represents a unique thread in this context)
+        const threadMap: Record<string, any> = {};
 
-        return NextResponse.json({ replies });
+        (data || []).forEach((r: any) => {
+            const leadId = r.lead_id;
+            if (!leadId) return;
+
+            if (!threadMap[leadId]) {
+                threadMap[leadId] = {
+                    leadId: leadId,
+                    contactEmail: r.lead?.email,
+                    contactName: `${r.lead?.first_name || ""} ${r.lead?.last_name || ""}`.trim() || r.lead?.email,
+                    campaignName: r.lead?.campaign?.name || "Unknown Campaign",
+                    campaignId: r.lead?.campaign?.id,
+                    gmailThreadId: r.lead?.gmail_thread_id,
+                    subject: r.subject, // Initial subject
+                    messages: [],
+                    lastMessageAt: r.timestamp,
+                    lastMessagePreview: "",
+                    isRead: true, // Will track if any message is unread
+                };
+            }
+
+            const message = {
+                id: r.id,
+                type: r.type || "incoming",
+                senderEmail: r.sender_email,
+                subject: r.subject,
+                body: r.body,
+                timestamp: r.timestamp,
+                isRead: r.is_read,
+                gmailMessageId: r.gmail_message_id,
+            };
+
+            threadMap[leadId].messages.push(message);
+            threadMap[leadId].lastMessageAt = r.timestamp;
+            threadMap[leadId].lastMessagePreview = r.body.slice(0, 100) + (r.body.length > 100 ? "..." : "");
+            if (!r.is_read) {
+                threadMap[leadId].isRead = false;
+            }
+        });
+
+        // Convert map to array and sort by latest message
+        const threads = Object.values(threadMap).sort((a: any, b: any) =>
+            new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+        );
+
+        return NextResponse.json({ threads });
     } catch (error) {
         console.error("[Fetch Inbox Error]:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

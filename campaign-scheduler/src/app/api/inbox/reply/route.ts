@@ -11,7 +11,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { leadId, gmailThreadId, subject, body } = await req.json();
+        const { leadId, gmailThreadId, subject, body, senderAccountId } = await req.json();
 
         if (!leadId || !gmailThreadId || !body) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -35,7 +35,9 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Lead not found" }, { status: 404 });
         }
 
-        if (!lead.sender_account_id) {
+        if (senderAccountId) {
+            lead.sender_account_id = senderAccountId;
+        } else if (!lead.sender_account_id) {
             if (lead.sender_account_email) {
                 console.log(`[Reply API]: Falling back to email lookup for lead ${leadId}`);
                 const { data: fallbackAcc } = await insforge.database
@@ -99,7 +101,25 @@ export async function POST(req: Request) {
                 .eq("id", lead.sender_account_id);
         }
 
-        // 5. (Optional) Mark as replied in DB if needed
+        // 5. Save the outgoing reply to the database
+        const { error: insertError } = await insforge.database
+            .from("replies")
+            .insert([{
+                lead_id: leadId,
+                subject: subject.startsWith("Re: ") ? subject : `Re: ${subject}`,
+                body: body,
+                sender_email: sender.email,
+                type: 'outgoing',
+                gmail_message_id: response.messageId,
+                is_read: true,
+                timestamp: new Date().toISOString(),
+            }]);
+
+        if (insertError) {
+            console.warn("[Reply API]: Failed to save outgoing reply to DB", insertError);
+        }
+
+        // 6. Return success
         return NextResponse.json({
             success: true,
             messageId: response.messageId,
