@@ -40,6 +40,85 @@ interface Account {
     is_active: boolean;
 }
 
+function MessageBubble({ msg }: { msg: Message }) {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    // Logic to split the message
+    const lines = msg.body.split('\n');
+    let visibleLines: string[] = [];
+    let quotedLines: string[] = [];
+    let foundQuote = false;
+
+    for (const line of lines) {
+        const trimmed = line.trim();
+        // Detect common Gmail quote markers
+        if (!foundQuote && (
+            trimmed.startsWith('>') ||
+            (line.toLowerCase().includes('on ') && line.toLowerCase().includes('wrote:')) ||
+            (line.toLowerCase().includes('--- original message ---'))
+        )) {
+            foundQuote = true;
+        }
+
+        if (foundQuote) {
+            quotedLines.push(line);
+        } else {
+            visibleLines.push(line);
+        }
+    }
+
+    const hasQuotes = quotedLines.length > 0;
+    // If no visible lines but gathered quoted lines, usually it's just the quote. 
+    // Fallback: if visible is empty but quoted exists, show at least first few lines
+    const visibleBody = visibleLines.join('\n').trim();
+    const quotedBody = quotedLines.join('\n').trim();
+
+    return (
+        <div
+            className={`flex flex-col max-w-[80%] ${msg.type === 'outgoing' ? 'ml-auto items-end' : 'mr-auto items-start'
+                }`}
+        >
+            <div className="flex items-center gap-2 mb-1 px-1">
+                <span className="text-[10px] text-[#555]">
+                    {msg.type === 'outgoing' ? 'You' : msg.senderEmail}
+                </span>
+                <span className="text-[10px] text-[#444]">•</span>
+                <span className="text-[10px] text-[#444]">
+                    {formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true })}
+                </span>
+            </div>
+            <div
+                className={`px-4 py-3 rounded-2xl text-[13px] leading-relaxed whitespace-pre-wrap ${msg.type === 'outgoing'
+                    ? 'bg-indigo-600 text-white rounded-tr-none'
+                    : 'bg-[#1a1a1a] text-[#d4d4d4] border border-[#222] rounded-tl-none'
+                    }`}
+            >
+                {visibleBody || (hasQuotes && !isExpanded ? "..." : "")}
+                {hasQuotes && !isExpanded && (
+                    <button
+                        onClick={() => setIsExpanded(true)}
+                        className="inline-flex items-center gap-1 mx-1 px-1.5 py-0.5 rounded bg-[#222] hover:bg-[#333] text-[#666] transition-colors h-4 align-middle"
+                        title="Show quoted text"
+                    >
+                        <span className="text-[10px] font-bold tracking-widest">...</span>
+                    </button>
+                )}
+                {hasQuotes && isExpanded && (
+                    <div className="mt-2 pt-2 border-t border-white/5 opacity-50 text-[12px]">
+                        {quotedBody}
+                        <button
+                            onClick={() => setIsExpanded(false)}
+                            className="block mt-1 text-[10px] text-[#555] hover:text-indigo-400 underline"
+                        >
+                            Hide quoted text
+                        </button>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 function InboxContent() {
     const [threads, setThreads] = useState<Thread[]>([]);
     const [accounts, setAccounts] = useState<Account[]>([]);
@@ -284,29 +363,7 @@ function InboxContent() {
 
                         <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-4">
                             {selectedThread.messages.map((msg) => (
-                                <div
-                                    key={msg.id}
-                                    className={`flex flex-col max-w-[80%] ${msg.type === 'outgoing' ? 'ml-auto items-end' : 'mr-auto items-start'
-                                        }`}
-                                >
-                                    <div className="flex items-center gap-2 mb-1 px-1">
-                                        <span className="text-[10px] text-[#555]">
-                                            {msg.type === 'outgoing' ? 'You' : msg.senderEmail}
-                                        </span>
-                                        <span className="text-[10px] text-[#444]">•</span>
-                                        <span className="text-[10px] text-[#444]">
-                                            {formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true })}
-                                        </span>
-                                    </div>
-                                    <div
-                                        className={`px-4 py-3 rounded-2xl text-[13px] leading-relaxed whitespace-pre-wrap ${msg.type === 'outgoing'
-                                            ? 'bg-indigo-600 text-white rounded-tr-none'
-                                            : 'bg-[#1a1a1a] text-[#d4d4d4] border border-[#222] rounded-tl-none'
-                                            }`}
-                                    >
-                                        {msg.body}
-                                    </div>
-                                </div>
+                                <MessageBubble key={msg.id} msg={msg} />
                             ))}
                         </div>
 
