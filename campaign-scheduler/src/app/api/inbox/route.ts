@@ -9,9 +9,10 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Fetch replies along with lead and campaign info
         const insforge = await getInsforgeClient();
-        const { data, error } = await insforge.database
+
+        // Step 1: Fetch replies with lead data (flat, no nested relationships)
+        const { data: repliesData, error: repliesError } = await insforge.database
             .from("replies")
             .select(`
                 *,
@@ -20,43 +21,67 @@ export async function GET() {
                     email,
                     first_name,
                     last_name,
-                    company,
+                    business_name,
                     website,
                     phone,
                     custom_fields,
                     gmail_thread_id,
                     sender_account_id,
                     sender_account_email,
-                    campaign:campaigns(
-                        id,
-                        name,
-                        user_id
-                    )
+                    campaign_id
                 )
             `)
-            .order("timestamp", { ascending: true }); // Chronological order for messages within threads
+            .order("timestamp", { ascending: true });
 
-        if (error) {
-            console.error("[Fetch Inbox Error]:", error);
-            return NextResponse.json({ error: error.message }, { status: 500 });
+        if (repliesError) {
+            console.error("[Fetch Inbox Error - Replies]:", repliesError);
+            return NextResponse.json({ error: repliesError.message }, { status: 500 });
         }
 
-        // Group messages by contact email (unified thread)
+        // Step 2: Collect unique campaign IDs from the leads
+        const campaignIds = new Set<string>();
+        (repliesData || []).forEach((r: any) => {
+            if (r.lead?.campaign_id) {
+                campaignIds.add(r.lead.campaign_id);
+            }
+        });
+
+        // Step 3: Fetch campaigns separately
+        let campaignMap: Record<string, any> = {};
+        if (campaignIds.size > 0) {
+            const { data: campaignsData, error: campaignsError } = await insforge.database
+                .from("campaigns")
+                .select("id, name, user_id")
+                .in("id", Array.from(campaignIds));
+
+            if (campaignsError) {
+                console.error("[Fetch Inbox Error - Campaigns]:", campaignsError);
+                // Non-fatal: continue without campaign names
+            } else {
+                (campaignsData || []).forEach((c: any) => {
+                    campaignMap[c.id] = c;
+                });
+            }
+        }
+
+        // Step 4: Group messages by contact email (unified thread)
         const threadMap: Record<string, any> = {};
 
-        (data || []).forEach((r: any) => {
+        (repliesData || []).forEach((r: any) => {
             const email = r.lead?.email;
             if (!email) return;
 
+            const campaign = r.lead?.campaign_id ? campaignMap[r.lead.campaign_id] : null;
+
             if (!threadMap[email]) {
                 threadMap[email] = {
-                    email: email, // Logical ID for the thread
+                    email: email,
                     contactEmail: email,
                     contactName: `${r.lead?.first_name || ""} ${r.lead?.last_name || ""}`.trim() || email,
-                    campaignName: r.lead?.campaign?.name || "Unknown Campaign",
-                    campaignId: r.lead?.campaign?.id,
-                    leadId: r.lead?.id, // Use the latest leadId for actions
-                    company: r.lead?.company,
+                    campaignName: campaign?.name || "Unknown Campaign",
+                    campaignId: campaign?.id,
+                    leadId: r.lead?.id,
+                    company: r.lead?.business_name,
                     website: r.lead?.website,
                     phone: r.lead?.phone,
                     customFields: r.lead?.custom_fields,
@@ -76,10 +101,10 @@ export async function GET() {
             const messageAt = new Date(r.timestamp).getTime();
 
             if (messageAt >= currentLastAt) {
-                threadMap[email].campaignName = r.lead?.campaign?.name || "Unknown Campaign";
-                threadMap[email].campaignId = r.lead?.campaign?.id;
+                threadMap[email].campaignName = campaign?.name || "Unknown Campaign";
+                threadMap[email].campaignId = campaign?.id;
                 threadMap[email].leadId = r.lead?.id;
-                threadMap[email].company = r.lead?.company;
+                threadMap[email].company = r.lead?.business_name;
                 threadMap[email].website = r.lead?.website;
                 threadMap[email].phone = r.lead?.phone;
                 threadMap[email].customFields = r.lead?.custom_fields;
