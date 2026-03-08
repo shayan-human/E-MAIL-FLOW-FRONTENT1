@@ -75,7 +75,7 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
     const [campaigns, setCampaigns] = useState<CampaignWithStats[]>(initialCampaigns);
     const [statsData, setStatsData] = useState(initialStats);
     const [chartDataMaster, setChartDataMaster] = useState<Record<string, any[]>>(initialChartData);
-    const [activeTimeframe, setActiveTimeframe] = useState<"24H" | "7D" | "30D">("24H");
+    const [activeTimeframe, setActiveTimeframe] = useState<"24H" | "7D" | "30D">("30D");
     const [loading, setLoading] = useState(false);
     const [syncing, setSyncing] = useState(false);
     const [lastSynced, setLastSynced] = useState<Date | null>(null);
@@ -477,8 +477,7 @@ function EmailActivityChart({ data, activeTimeframe, onTimeframeChange }: { data
         <div className="glass-panel rounded-xl flex flex-col gap-6 p-8">
             <div className="flex justify-between items-center">
                 <div>
-                    <h3 className="text-lg font-bold text-white">Sending Volume & Neural Optimization</h3>
-                    <p className="text-slate-500 text-sm">Real-time throughput across all active nodes</p>
+                    <h3 className="text-lg font-bold text-white">EMAIL SENDED</h3>
                 </div>
                 <div className="flex gap-2">
                     {["24H", "7D", "30D"].map((tf) => (
