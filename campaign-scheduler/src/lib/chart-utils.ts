@@ -57,5 +57,5 @@ export function processChartData(activityData: any[]) {
         })
         .sort((a, b) => a.fullDate.localeCompare(b.fullDate));
 
-    return { chartData24H, chartData7D, chartData30D };
+    return { "24H": chartData24H, "7D": chartData7D, "30D": chartData30D };
 }
