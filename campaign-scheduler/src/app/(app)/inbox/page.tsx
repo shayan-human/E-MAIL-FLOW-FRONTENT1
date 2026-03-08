@@ -338,7 +338,7 @@ function InboxContent() {
             </div>
 
             {/* ── Right Column: Conversation Viewer ───────────────── */}
-            <div className="flex-1 flex flex-col min-w-0 bg-[#0c0c0c]">
+            <div className="flex-1 flex flex-col min-w-0 bg-[#0c0c0c] overflow-hidden">
                 {!selectedThread ? (
                     <div className="flex-1 flex flex-col items-center justify-center">
                         <div className="w-14 h-14 rounded-full bg-[#1a1a1a] flex items-center justify-center mb-4">
@@ -347,8 +347,8 @@ function InboxContent() {
                         <p className="text-[14px] font-medium text-white">Select a conversation</p>
                     </div>
                 ) : (
-                    <div className="flex-1 flex min-w-0 bg-[#0c0c0c]">
-                        <div className="flex-1 flex flex-col min-w-0 bg-[#0c0c0c] border-r border-[#1a1a1a]">
+                    <div className="flex-1 flex min-w-0 bg-[#0c0c0c] overflow-hidden">
+                        <div className="flex-1 flex flex-col min-w-0 bg-[#0c0c0c] border-r border-[#1a1a1a] overflow-hidden">
                             {/* Header */}
                             <div className="h-16 border-b border-[#1a1a1a] px-6 flex items-center justify-between bg-[#0c0c0c]/80 backdrop-blur-md sticky top-0 z-10">
                                 <div
