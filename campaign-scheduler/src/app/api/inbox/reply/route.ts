@@ -69,8 +69,15 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: response.error }, { status: 500 });
         }
 
-        // 4. (Optional) Mark as replied in DB if needed
-        // For now we just return success
+        // 4. Update the sender account with the new access token if it was refreshed
+        if (response.newAccessToken) {
+            await insforge.database
+                .from("sender_accounts")
+                .update({ google_access_token: response.newAccessToken })
+                .eq("id", lead.sender_account_id);
+        }
+
+        // 5. (Optional) Mark as replied in DB if needed
         return NextResponse.json({
             success: true,
             messageId: response.messageId,

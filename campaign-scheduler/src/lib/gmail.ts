@@ -69,7 +69,7 @@ function createMimeMessage(to: string, from: string, subject: string, body: stri
 /**
  * Send an email via Gmail API
  */
-export async function sendGmailEmail(options: SendEmailOptions): Promise<{ success: boolean; messageId?: string; threadId?: string; error?: string }> {
+export async function sendGmailEmail(options: SendEmailOptions): Promise<{ success: boolean; messageId?: string; threadId?: string; error?: string; newAccessToken?: string }> {
     const { to, subject, body, accessToken, refreshToken, fromEmail, threadId } = options;
 
     let token = accessToken;
@@ -127,5 +127,6 @@ export async function sendGmailEmail(options: SendEmailOptions): Promise<{ succe
         success: true,
         messageId: data.id,
         threadId: data.threadId,
+        newAccessToken: token !== accessToken ? token : undefined,
     };
 }
