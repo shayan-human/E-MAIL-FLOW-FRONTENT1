@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { insforge } from "@/lib/insforge";
 import { useRouter } from "next/navigation";
 import {
@@ -220,6 +220,12 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
 
     const statCards = allStatCards.filter(card => visibleCards.includes(card.label));
 
+    const bestCampaign = useMemo(() => {
+        if (campaigns.length === 0) return null;
+        const top = [...campaigns].sort((a, b) => b.reply_rate - a.reply_rate)[0];
+        return top.reply_rate > 0 ? top : null;
+    }, [campaigns]);
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Header */}
@@ -342,6 +348,23 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
                 activeTimeframe={activeTimeframe}
                 onTimeframeChange={(tf) => setActiveTimeframe(tf as "24H" | "7D" | "30D")}
             />
+
+            {bestCampaign && (
+                <div
+                    className="flex items-center gap-2 rounded-lg"
+                    style={{
+                        backgroundColor: "#141414",
+                        borderLeft: "3px solid #F59E0B",
+                        color: "#F59E0B",
+                        padding: "10px 16px",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        borderRadius: "8px"
+                    }}
+                >
+                    <span>⚡ Best performer: {bestCampaign.name} — {bestCampaign.reply_rate}% reply rate</span>
+                </div>
+            )}
 
             <div
                 className="rounded-[16px]"
