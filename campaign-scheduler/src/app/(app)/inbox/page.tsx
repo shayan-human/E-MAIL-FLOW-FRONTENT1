@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { insforge } from "@/lib/insforge";
 import { toast } from "@/components/ui/toast-provider";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Search, Mail, MessageSquareText, RefreshCw, ExternalLink } from "lucide-react";
+import { Loader2, Search, Mail, MessageSquareText, RefreshCw, ExternalLink, Building, Globe, Phone, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface Message {
@@ -24,6 +24,10 @@ interface Thread {
     contactName: string;
     campaignName: string;
     campaignId: string;
+    company?: string;
+    website?: string;
+    phone?: string;
+    customFields?: any;
     senderAccountId?: string;
     senderAccountEmail?: string;
     gmailThreadId: string;
@@ -130,6 +134,7 @@ function InboxContent() {
     const [selectedSenderId, setSelectedSenderId] = useState<string>("");
     const [isSending, setIsSending] = useState(false);
     const [syncing, setSyncing] = useState(false);
+    const [isInfoOpen, setIsInfoOpen] = useState(false);
 
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -342,84 +347,184 @@ function InboxContent() {
                         <p className="text-[14px] font-medium text-white">Select a conversation</p>
                     </div>
                 ) : (
-                    <>
-                        <div className="px-6 py-4 shrink-0 border-b border-[#1f1f1f] bg-[#141414]">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <h3 className="text-[15px] font-semibold text-white">{selectedThread.contactName}</h3>
-                                    <p className="text-[12px] text-[#888]">{selectedThread.contactEmail}</p>
+                    <div className="flex-1 flex min-w-0 bg-[#0c0c0c]">
+                        <div className="flex-1 flex flex-col min-w-0 bg-[#0c0c0c] border-r border-[#1a1a1a]">
+                            {/* Header */}
+                            <div className="h-16 border-b border-[#1a1a1a] px-6 flex items-center justify-between bg-[#0c0c0c]/80 backdrop-blur-md sticky top-0 z-10">
+                                <div
+                                    className="flex flex-col cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={() => setIsInfoOpen(!isInfoOpen)}
+                                    title="Click to view lead details"
+                                >
+                                    <h2 className="text-sm font-semibold text-white truncate max-w-[400px]">
+                                        {selectedThread.contactName}
+                                    </h2>
+                                    <p className="text-[11px] text-[#666] truncate italic">
+                                        {selectedThread.contactEmail}
+                                    </p>
                                 </div>
-                                {selectedThread.campaignId && (
+                                <div className="flex items-center gap-2">
                                     <button
-                                        onClick={() => router.push(`/campaigns/${selectedThread.campaignId}`)}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+                                        onClick={() => setIsInfoOpen(!isInfoOpen)}
+                                        className={`p-2 rounded-lg transition-colors ${isInfoOpen ? 'bg-indigo-600/20 text-indigo-400' : 'text-[#666] hover:bg-[#1a1a1a]'}`}
+                                        title="Toggle lead info"
                                     >
-                                        <ExternalLink className="w-3 h-3" />
-                                        View Campaign
+                                        <Mail className="w-4 h-4" />
                                     </button>
-                                )}
+                                    {selectedThread.campaignId && (
+                                        <button
+                                            onClick={() => router.push(`/campaigns/${selectedThread.campaignId}`)}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#222] text-[#888] hover:text-white hover:border-[#333] transition-all text-[11px] font-medium bg-[#111]"
+                                        >
+                                            <ExternalLink className="w-3 h-3" />
+                                            View Campaign
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-4">
+                                {selectedThread.messages.map((msg) => (
+                                    <MessageBubble key={msg.id} msg={msg} />
+                                ))}
+                            </div>
+
+                            <div className="px-6 py-5 shrink-0 border-t border-[#1f1f1f] bg-[#141414]">
+                                <div className="flex flex-col gap-3">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div className="flex items-center gap-2 text-[11px] text-[#888]">
+                                            <span>Reply from:</span>
+                                            <select
+                                                value={selectedSenderId}
+                                                onChange={(e) => setSelectedSenderId(e.target.value)}
+                                                className="bg-[#1a1a1a] border border-[#333] rounded px-2 py-1 text-white outline-none focus:border-indigo-500/50"
+                                            >
+                                                {accounts.map(acc => (
+                                                    <option key={acc.id} value={acc.id}>{acc.email}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="flex-1">
+                                            <input
+                                                type="text"
+                                                value={replySubject}
+                                                onChange={(e) => setReplySubject(e.target.value)}
+                                                placeholder="Subject"
+                                                className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-1 text-[12px] text-white outline-none focus:border-indigo-500/50"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="relative">
+                                        <textarea
+                                            value={replyText}
+                                            onChange={(e) => setReplyText(e.target.value)}
+                                            placeholder="Type your reply..."
+                                            className="w-full bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-4 text-[13px] text-[#d4d4d4] placeholder:text-[#555] outline-none focus:border-indigo-500/50 min-h-[120px] resize-none"
+                                            disabled={isSending}
+                                        />
+                                        <div className="absolute bottom-4 right-4 flex items-center gap-3">
+                                            <span className="text-[10px] text-[#444]">
+                                                Replying via {accounts.find(a => a.id === selectedSenderId)?.email || 'Gmail'}
+                                            </span>
+                                            <button
+                                                onClick={handleSendReply}
+                                                disabled={!replyText.trim() || isSending}
+                                                className="flex items-center gap-2 px-5 py-2 rounded-lg text-[12px] font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl shadow-indigo-500/20"
+                                            >
+                                                {isSending ? (
+                                                    <><Loader2 className="w-3.5 h-3.5 animate-spin" />Sending...</>
+                                                ) : (
+                                                    <><Mail className="w-3.5 h-3.5" />Send Reply</>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-4">
-                            {selectedThread.messages.map((msg) => (
-                                <MessageBubble key={msg.id} msg={msg} />
-                            ))}
-                        </div>
-
-                        <div className="px-6 py-5 shrink-0 border-t border-[#1f1f1f] bg-[#141414]">
-                            <div className="flex flex-col gap-3">
-                                <div className="flex items-center justify-between gap-4">
-                                    <div className="flex items-center gap-2 text-[11px] text-[#888]">
-                                        <span>Reply from:</span>
-                                        <select
-                                            value={selectedSenderId}
-                                            onChange={(e) => setSelectedSenderId(e.target.value)}
-                                            className="bg-[#1a1a1a] border border-[#333] rounded px-2 py-1 text-white outline-none focus:border-indigo-500/50"
-                                        >
-                                            {accounts.map(acc => (
-                                                <option key={acc.id} value={acc.id}>{acc.email}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="flex-1">
-                                        <input
-                                            type="text"
-                                            value={replySubject}
-                                            onChange={(e) => setReplySubject(e.target.value)}
-                                            placeholder="Subject"
-                                            className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-1 text-[12px] text-white outline-none focus:border-indigo-500/50"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="relative">
-                                    <textarea
-                                        value={replyText}
-                                        onChange={(e) => setReplyText(e.target.value)}
-                                        placeholder="Type your reply..."
-                                        className="w-full bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-4 text-[13px] text-[#d4d4d4] placeholder:text-[#555] outline-none focus:border-indigo-500/50 min-h-[120px] resize-none"
-                                        disabled={isSending}
-                                    />
-                                    <div className="absolute bottom-4 right-4 flex items-center gap-3">
-                                        <span className="text-[10px] text-[#444]">
-                                            Replying via {accounts.find(a => a.id === selectedSenderId)?.email || 'Gmail'}
-                                        </span>
+                        {/* Info Panel */}
+                        {isInfoOpen && (
+                            <div className="w-80 bg-[#0c0c0c] border-l border-[#1a1a1a] overflow-y-auto animate-in slide-in-from-right duration-300">
+                                <div className="p-6">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h3 className="text-sm font-semibold text-white">Lead Details</h3>
                                         <button
-                                            onClick={handleSendReply}
-                                            disabled={!replyText.trim() || isSending}
-                                            className="flex items-center gap-2 px-5 py-2 rounded-lg text-[12px] font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl shadow-indigo-500/20"
+                                            onClick={() => setIsInfoOpen(false)}
+                                            className="text-[#444] hover:text-white transition-colors"
                                         >
-                                            {isSending ? (
-                                                <><Loader2 className="w-3.5 h-3.5 animate-spin" />Sending...</>
-                                            ) : (
-                                                <><Mail className="w-3.5 h-3.5" />Send Reply</>
-                                            )}
+                                            <X className="w-4 h-4" /> {/* Changed Search to X for close button */}
                                         </button>
                                     </div>
+
+                                    <div className="space-y-6">
+                                        <div>
+                                            <label className="text-[10px] uppercase tracking-wider text-[#444] font-bold block mb-1">Contact</label>
+                                            <p className="text-sm text-[#d4d4d4] font-medium">{selectedThread.contactName}</p>
+                                            <p className="text-xs text-[#666] break-all">{selectedThread.contactEmail}</p>
+                                        </div>
+
+                                        {selectedThread.company && (
+                                            <div>
+                                                <label className="text-[10px] uppercase tracking-wider text-[#444] font-bold block mb-1">Company</label>
+                                                <div className="flex items-center gap-2 text-sm text-[#d4d4d4]">
+                                                    <Building className="w-3.5 h-3.5 text-indigo-400" /> {/* Changed MessageSquareText to Building */}
+                                                    {selectedThread.company}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {selectedThread.website && (
+                                            <div>
+                                                <label className="text-[10px] uppercase tracking-wider text-[#444] font-bold block mb-1">Website</label>
+                                                <a
+                                                    href={selectedThread.website.startsWith('http') ? selectedThread.website : `https://${selectedThread.website}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
+                                                >
+                                                    <Globe className="w-3.5 h-3.5" /> {/* Changed ExternalLink to Globe */}
+                                                    {selectedThread.website}
+                                                </a>
+                                            </div>
+                                        )}
+
+                                        {selectedThread.phone && (
+                                            <div>
+                                                <label className="text-[10px] uppercase tracking-wider text-[#444] font-bold block mb-1">Phone</label>
+                                                <a
+                                                    href={`tel:${selectedThread.phone}`}
+                                                    className="flex items-center gap-2 text-sm text-[#d4d4d4] hover:text-indigo-400 transition-colors"
+                                                >
+                                                    <Phone className="w-3.5 h-3.5 text-indigo-400" /> {/* Changed Mail to Phone, removed rotate */}
+                                                    {selectedThread.phone}
+                                                </a>
+                                            </div>
+                                        )}
+
+                                        <div>
+                                            <label className="text-[10px] uppercase tracking-wider text-[#444] font-bold block mb-1">Campaign</label>
+                                            <p className="text-sm text-[#d4d4d4]">{selectedThread.campaignName}</p>
+                                        </div>
+
+                                        {selectedThread.customFields && Object.keys(selectedThread.customFields).length > 0 && (
+                                            <div className="pt-4 border-t border-[#1a1a1a]">
+                                                <label className="text-[10px] uppercase tracking-wider text-[#444] font-bold block mb-2">Additional Info</label>
+                                                <div className="space-y-3">
+                                                    {Object.entries(selectedThread.customFields).map(([key, value]) => (
+                                                        <div key={key}>
+                                                            <label className="text-[10px] text-[#555] block capitalize">{key.replace(/_/g, ' ')}</label>
+                                                            <p className="text-xs text-[#aaa]">{String(value)}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </>
+                        )}
+                    </div>
                 )}
             </div>
         </div>

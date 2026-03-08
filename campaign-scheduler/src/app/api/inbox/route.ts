@@ -20,6 +20,10 @@ export async function GET() {
                     email,
                     first_name,
                     last_name,
+                    company,
+                    website,
+                    phone,
+                    custom_fields,
                     gmail_thread_id,
                     sender_account_id,
                     sender_account_email,
@@ -52,6 +56,10 @@ export async function GET() {
                     campaignName: r.lead?.campaign?.name || "Unknown Campaign",
                     campaignId: r.lead?.campaign?.id,
                     leadId: r.lead?.id, // Use the latest leadId for actions
+                    company: r.lead?.company,
+                    website: r.lead?.website,
+                    phone: r.lead?.phone,
+                    customFields: r.lead?.custom_fields,
                     senderAccountId: r.lead?.sender_account_id,
                     senderAccountEmail: r.lead?.sender_account_email,
                     gmailThreadId: r.lead?.gmail_thread_id || r.gmail_thread_id,
@@ -71,6 +79,10 @@ export async function GET() {
                 threadMap[email].campaignName = r.lead?.campaign?.name || "Unknown Campaign";
                 threadMap[email].campaignId = r.lead?.campaign?.id;
                 threadMap[email].leadId = r.lead?.id;
+                threadMap[email].company = r.lead?.company;
+                threadMap[email].website = r.lead?.website;
+                threadMap[email].phone = r.lead?.phone;
+                threadMap[email].customFields = r.lead?.custom_fields;
                 threadMap[email].senderAccountId = r.lead?.sender_account_id;
                 threadMap[email].senderAccountEmail = r.lead?.sender_account_email;
                 if (r.lead?.gmail_thread_id || r.gmail_thread_id) {
