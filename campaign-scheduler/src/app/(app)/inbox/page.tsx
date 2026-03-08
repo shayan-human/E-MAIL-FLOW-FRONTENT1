@@ -100,7 +100,7 @@ function InboxContent() {
         if (threadIdParam && threads.length > 0 && !selectedThreadId) {
             const thread = threads.find(t => t.gmailThreadId === threadIdParam);
             if (thread) {
-                setSelectedThreadId(thread.leadId);
+                setSelectedThreadId(thread.contactEmail);
             }
         }
     }, [threadIdParam, threads, selectedThreadId]);
@@ -122,7 +122,7 @@ function InboxContent() {
     };
 
     const handleSelectThread = (thread: Thread) => {
-        setSelectedThreadId(thread.leadId);
+        setSelectedThreadId(thread.contactEmail);
         setReplyText("");
         setReplySubject(`Re: ${thread.subject}`);
 
@@ -165,7 +165,7 @@ function InboxContent() {
         }
     };
 
-    const selectedThread = threads.find(t => t.leadId === selectedThreadId) || null;
+    const selectedThread = threads.find(t => t.contactEmail === selectedThreadId) || null;
 
     const filteredThreads = threads.filter(t =>
         t.contactEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -37,29 +37,46 @@ export async function GET() {
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        // Group messages by leadId (which represents a unique thread in this context)
+        // Group messages by contact email (unified thread)
         const threadMap: Record<string, any> = {};
 
         (data || []).forEach((r: any) => {
-            const leadId = r.lead_id;
-            if (!leadId) return;
+            const email = r.lead?.email;
+            if (!email) return;
 
-            if (!threadMap[leadId]) {
-                threadMap[leadId] = {
-                    leadId: leadId,
-                    contactEmail: r.lead?.email,
-                    contactName: `${r.lead?.first_name || ""} ${r.lead?.last_name || ""}`.trim() || r.lead?.email,
+            if (!threadMap[email]) {
+                threadMap[email] = {
+                    email: email, // Logical ID for the thread
+                    contactEmail: email,
+                    contactName: `${r.lead?.first_name || ""} ${r.lead?.last_name || ""}`.trim() || email,
                     campaignName: r.lead?.campaign?.name || "Unknown Campaign",
                     campaignId: r.lead?.campaign?.id,
+                    leadId: r.lead?.id, // Use the latest leadId for actions
                     senderAccountId: r.lead?.sender_account_id,
                     senderAccountEmail: r.lead?.sender_account_email,
                     gmailThreadId: r.lead?.gmail_thread_id || r.gmail_thread_id,
-                    subject: r.subject, // Initial subject
+                    subject: r.subject,
                     messages: [],
                     lastMessageAt: r.timestamp,
                     lastMessagePreview: "",
-                    isRead: true, // Will track if any message is unread
+                    isRead: true,
                 };
+            }
+
+            // Always update the thread metadata with the LATEST message's context
+            const currentLastAt = new Date(threadMap[email].lastMessageAt).getTime();
+            const messageAt = new Date(r.timestamp).getTime();
+
+            if (messageAt >= currentLastAt) {
+                threadMap[email].campaignName = r.lead?.campaign?.name || "Unknown Campaign";
+                threadMap[email].campaignId = r.lead?.campaign?.id;
+                threadMap[email].leadId = r.lead?.id;
+                threadMap[email].senderAccountId = r.lead?.sender_account_id;
+                threadMap[email].senderAccountEmail = r.lead?.sender_account_email;
+                if (r.lead?.gmail_thread_id || r.gmail_thread_id) {
+                    threadMap[email].gmailThreadId = r.lead?.gmail_thread_id || r.gmail_thread_id;
+                }
+                threadMap[email].lastMessageAt = r.timestamp;
             }
 
             const message = {
@@ -73,11 +90,10 @@ export async function GET() {
                 gmailMessageId: r.gmail_message_id,
             };
 
-            threadMap[leadId].messages.push(message);
-            threadMap[leadId].lastMessageAt = r.timestamp;
-            threadMap[leadId].lastMessagePreview = r.body.slice(0, 100) + (r.body.length > 100 ? "..." : "");
+            threadMap[email].messages.push(message);
+            threadMap[email].lastMessagePreview = r.body.slice(0, 100) + (r.body.length > 100 ? "..." : "");
             if (!r.is_read) {
-                threadMap[leadId].isRead = false;
+                threadMap[email].isRead = false;
             }
         });
 
