@@ -84,6 +84,8 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
     const [bestSendDayData, setBestSendDayData] = useState<any[]>(initialBestSendDay);
     const [replyQualityData, setReplyQualityData] = useState<any>(initialReplyQuality);
     const [activeTimeframe, setActiveTimeframe] = useState<"24H" | "7D" | "30D">("30D");
+    const [intelligenceTimeframe, setIntelligenceTimeframe] = useState<"24H" | "7D" | "30D">("7D");
+    const [intelligenceData, setIntelligenceData] = useState<any[]>(initialBestSendDay);
     const [loading, setLoading] = useState(false);
     const [syncing, setSyncing] = useState(false);
     const [lastSynced, setLastSynced] = useState<Date | null>(null);
@@ -138,7 +140,8 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
             if (statsRes.stats) {
                 setStatsData(statsRes.stats);
                 setChartDataMaster(statsRes.chartData || { "24H": [], "7D": [], "30D": [] });
-                setBestSendDayData(statsRes.bestSendDay || []);
+                setBestSendDayData(statsRes.sendIntelligence || []);
+                setIntelligenceData(statsRes.sendIntelligence || []);
                 setReplyQualityData(statsRes.replyQuality || { positive: 0, negative: 0, neutral: 0, total: 0, percentages: { positive: 0, negative: 0, neutral: 0 } });
             }
 
@@ -181,6 +184,23 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
             setLoading(false);
         }
     };
+
+    const fetchIntelligence = async (tf: "24H" | "7D" | "30D") => {
+        try {
+            const res = await fetch(`/api/dashboard/stats?timeframe=${tf}`).then(res => res.json());
+            if (res.sendIntelligence) {
+                setIntelligenceData(res.sendIntelligence);
+            }
+        } catch (err) {
+            console.error("Error fetching intelligence data:", err);
+        }
+    };
+
+    useEffect(() => {
+        if (intelligenceTimeframe) {
+            fetchIntelligence(intelligenceTimeframe);
+        }
+    }, [intelligenceTimeframe]);
 
     const autoSync = async () => {
         try {
@@ -480,7 +500,11 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <BestSendDayChart data={bestSendDayData} />
+                    <SendIntelligenceChart
+                        data={intelligenceData}
+                        timeframe={intelligenceTimeframe}
+                        onTimeframeChange={setIntelligenceTimeframe}
+                    />
                     <ReplyQualityCard data={replyQualityData} />
                 </div>
             </div>
@@ -488,28 +512,44 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
     );
 }
 
-function BestSendDayChart({ data }: { data: any[] }) {
+import { Line } from "recharts";
+
+function SendIntelligenceChart({ data, timeframe, onTimeframeChange }: { data: any[], timeframe: string, onTimeframeChange: (tf: "24H" | "7D" | "30D") => void }) {
     return (
         <div
-            className="rounded-[12px] p-6 space-y-6"
+            className="rounded-[12px] p-6 space-y-6 flex flex-col"
             style={{
                 backgroundColor: "#141414",
                 border: "1px solid #222222"
             }}
         >
-            <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#F59E0B" }} />
-                    <h3 className="text-[13px] font-semibold text-[#f0f0f0]">Best Send Day</h3>
+            <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#F59E0B" }} />
+                        <h3 className="text-[13px] font-semibold text-[#f0f0f0]">Send Intelligence</h3>
+                    </div>
+                    <p className="text-[12px] text-[#555]">Sent vs Replies comparison</p>
                 </div>
-                <p className="text-[12px] text-[#555]">Replies by day emails were sent</p>
+                <div className="flex gap-1.5 bg-[#0f0f0f] p-1 rounded-lg border border-[#222]">
+                    {(["24H", "7D", "30D"] as const).map((tf) => (
+                        <button
+                            key={tf}
+                            onClick={() => onTimeframeChange(tf)}
+                            className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all duration-200 ${timeframe === tf ? 'bg-[#F59E0B] text-black shadow-lg shadow-amber-500/10' : 'text-[#555] hover:text-[#888]'}`}
+                        >
+                            {tf}
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            <div className="h-[180px] w-full mt-4">
+            <div className="h-[200px] w-full mt-4">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data} margin={{ top: 20, right: 0, left: -35, bottom: 0 }}>
+                    <BarChart data={data} margin={{ top: 20, right: 0, left: -35, bottom: 0 }} barGap={4}>
+                        <CartesianGrid strokeDasharray="0" stroke="rgba(255,255,255,0.03)" vertical={false} />
                         <XAxis
-                            dataKey="day"
+                            dataKey="label"
                             axisLine={false}
                             tickLine={false}
                             tick={{ fill: "#444", fontSize: 10, fontWeight: 600 }}
@@ -521,48 +561,63 @@ function BestSendDayChart({ data }: { data: any[] }) {
                             tick={{ fill: "#444", fontSize: 10, fontWeight: 600 }}
                         />
                         <Tooltip
-                            cursor={{ fill: 'transparent' }}
-                            content={({ active, payload }) => {
+                            cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                            content={({ active, payload, label }) => {
                                 if (active && payload && payload.length) {
+                                    const sent = payload.find(p => p.dataKey === 'sent')?.value || 0;
+                                    const replies = payload.find(p => p.dataKey === 'replies')?.value || 0;
+                                    const rate = payload.find(p => p.dataKey === 'replyRate')?.value || 0;
                                     return (
-                                        <div className="bg-[#1f1f1f] border border-[#333] px-2 py-1 rounded text-[10px] text-white">
-                                            {payload[0].value} replies
+                                        <div className="bg-[#1a1a1a] border border-[#333] p-3 rounded-lg shadow-2xl backdrop-blur-md">
+                                            <p className="text-[11px] font-bold text-white mb-2 pb-2 border-b border-[#333]">{label}</p>
+                                            <div className="space-y-1.5">
+                                                <div className="flex items-center justify-between gap-8">
+                                                    <span className="text-[10px] text-zinc-500 font-medium">Sent</span>
+                                                    <span className="text-[10px] text-white font-mono">{sent}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between gap-8">
+                                                    <span className="text-[10px] text-zinc-500 font-medium">Replies</span>
+                                                    <span className="text-[10px] text-amber-500 font-mono font-bold">{replies}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between gap-8 pt-1.5 mt-1.5 border-t border-[#333]">
+                                                    <span className="text-[10px] text-zinc-500 font-medium">Reply Rate</span>
+                                                    <span className="text-[10px] text-emerald-500 font-mono font-bold">{rate}%</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     );
                                 }
                                 return null;
                             }}
                         />
-                        <Bar dataKey="replies" radius={[4, 4, 0, 0]} barSize={32}>
-                            {data.map((entry, index) => (
-                                <Cell
-                                    key={`cell-${index}`}
-                                    fill={entry.isHighest ? "#F59E0B" : "#2a2a2a"}
-                                />
-                            ))}
-                            <LabelList
-                                dataKey="replies"
-                                position="top"
-                                content={(props: any) => {
-                                    const { x, y, width, value, index } = props;
-                                    if (!data[index]?.isHighest) return null;
-                                    return (
-                                        <text
-                                            x={x + width / 2}
-                                            y={y - 8}
-                                            fill="#F59E0B"
-                                            fontSize={10}
-                                            fontWeight="bold"
-                                            textAnchor="middle"
-                                        >
-                                            {value}
-                                        </text>
-                                    );
-                                }}
-                            />
-                        </Bar>
+                        <Bar dataKey="sent" fill="#2a2a2a" radius={[3, 3, 0, 0]} barSize={timeframe === "30D" ? 6 : timeframe === "7D" ? 14 : 10} />
+                        <Bar dataKey="replies" fill="#F59E0B" radius={[3, 3, 0, 0]} barSize={timeframe === "30D" ? 6 : timeframe === "7D" ? 14 : 10} />
+                        <Line
+                            type="monotone"
+                            dataKey="replyRate"
+                            stroke="#10B981"
+                            strokeWidth={1.5}
+                            dot={false}
+                            yAxisId={0}
+                            opacity={0.3}
+                        />
                     </BarChart>
                 </ResponsiveContainer>
+            </div>
+
+            <div className="flex items-center gap-4 mt-2">
+                <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-sm bg-[#2a2a2a]" />
+                    <span className="text-[10px] text-zinc-500 font-medium">Sent</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-sm bg-[#F59E0B]" />
+                    <span className="text-[10px] text-zinc-500 font-medium">Replies</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <div className="w-5 h-[1.5px] bg-[#10B981] opacity-50" />
+                    <span className="text-[10px] text-zinc-500 font-medium">Rate %</span>
+                </div>
             </div>
         </div>
     );

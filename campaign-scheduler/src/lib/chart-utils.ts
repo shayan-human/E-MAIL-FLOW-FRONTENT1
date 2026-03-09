@@ -60,7 +60,74 @@ export function processChartData(activityData: any[]) {
     return { "24H": chartData24H, "7D": chartData7D, "30D": chartData30D };
 }
 
+export function processSendIntelligence(leads: any[], timeframe: "24H" | "7D" | "30D" = "7D") {
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const buckets: Record<string, { label: string; sent: number; replies: number }> = {};
+
+    const now = new Date();
+
+    if (timeframe === "24H") {
+        for (let i = 0; i < 24; i++) {
+            const d = new Date(now);
+            d.setHours(d.getHours() - i, 0, 0, 0);
+            const key = d.toISOString().substring(0, 13); // YYYY-MM-DDTHH
+            buckets[key] = {
+                label: d.toLocaleTimeString('en-US', { hour: '2-digit', hour12: false }) + ":00",
+                sent: 0,
+                replies: 0
+            };
+        }
+    } else {
+        const days = timeframe === "30D" ? 30 : 7;
+        for (let i = 0; i < days; i++) {
+            const d = new Date(now);
+            d.setDate(d.getDate() - i);
+            const key = d.toISOString().split('T')[0];
+            buckets[key] = {
+                label: timeframe === "30D" && i % 7 !== 0 && days > 7 ? d.toLocaleDateString('en-US', { day: 'numeric' }) : dayNames[d.getDay()],
+                sent: 0,
+                replies: 0
+            };
+        }
+    }
+
+    leads.forEach(lead => {
+        if (!lead.sent_at) return;
+        const sentDate = new Date(lead.sent_at);
+        let key = "";
+
+        if (timeframe === "24H") {
+            key = sentDate.toISOString().substring(0, 13);
+        } else {
+            key = sentDate.toISOString().split('T')[0];
+        }
+
+        if (buckets[key]) {
+            buckets[key].sent++;
+            if (lead.status === 'REPLIED') {
+                buckets[key].replies++;
+            }
+        }
+    });
+
+    const data = Object.entries(buckets)
+        .map(([key, value]) => ({
+            key,
+            ...value,
+            replyRate: value.sent > 0 ? parseFloat(((value.replies / value.sent) * 100).toFixed(1)) : 0
+        }))
+        .sort((a, b) => a.key.localeCompare(b.key));
+
+    const maxReplies = Math.max(...data.map(d => d.replies));
+
+    return data.map(d => ({
+        ...d,
+        isHighest: maxReplies > 0 && d.replies === maxReplies
+    }));
+}
+
 export function processBestSendDay(leads: any[]) {
+    // Keep for backward compatibility if needed, but we'll likely use processSendIntelligence
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const counts: Record<string, number> = {
         'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0

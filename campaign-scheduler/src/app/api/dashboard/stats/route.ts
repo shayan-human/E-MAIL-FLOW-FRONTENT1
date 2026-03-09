@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@insforge/nextjs/server";
-import { processChartData, processBestSendDay, processReplyQuality } from "@/lib/chart-utils";
+import { processChartData, processSendIntelligence, processReplyQuality } from "@/lib/chart-utils";
 
-export async function GET() {
+export async function GET(req: Request) {
+    const url = new URL(req.url);
+    const timeframe = (url.searchParams.get("timeframe") || "7D") as "24H" | "7D" | "30D";
+
     try {
         const { user } = await auth();
         if (!user) {
@@ -38,7 +41,8 @@ export async function GET() {
                     bouncedCount: 0,
                     avgReplyTime: "---"
                 },
-                chartData: { "24H": [], "7D": [], "30D": [] }
+                chartData: { "24H": [], "7D": [], "30D": [] },
+                sendIntelligence: []
             });
         }
 
@@ -84,7 +88,7 @@ export async function GET() {
                 .not("sent_at", "is", null)
                 .not("replied_at", "is", null),
 
-            // Activity Chart (Last 30 days)
+            // Activity Chart (Last 30 days) - used for both charts
             insforge.database
                 .from("leads")
                 .select("sent_at, status")
@@ -113,7 +117,7 @@ export async function GET() {
         // 3. Process activity data
         const activityData = activityRes.data || [];
         const chartData = processChartData(activityData);
-        const bestSendDay = processBestSendDay(activityData);
+        const sendIntelligence = processSendIntelligence(activityData, timeframe);
 
         // 4. Fetch replies for quality analysis
         const { data: replies } = await insforge.database
@@ -134,7 +138,7 @@ export async function GET() {
                 avgReplyTime: avgReplyTimeHours !== null ? `${avgReplyTimeHours}h` : "---"
             },
             chartData,
-            bestSendDay,
+            sendIntelligence,
             replyQuality
         });
 
