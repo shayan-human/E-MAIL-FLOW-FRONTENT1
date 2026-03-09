@@ -85,7 +85,7 @@ export async function GET(req: Request) {
 
         const { error: upsertError } = await insforge.database
             .from("sender_accounts")
-            .upsert([payload], { onConflict: "email" });
+            .upsert([payload], { onConflict: "user_id,email" });
 
         if (upsertError) {
             console.error("[Upsert Sender Account Error]:", upsertError);

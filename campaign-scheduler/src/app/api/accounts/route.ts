@@ -73,13 +73,10 @@ export async function POST(req: Request) {
             .from("sender_accounts")
             .select("id, user_id")
             .eq("email", email)
+            .eq("user_id", user.id)
             .maybeSingle();
 
         if (existing) {
-            if (existing.user_id !== user.id) {
-                return NextResponse.json({ error: "Email already connected by another user" }, { status: 409 });
-            }
-
             // Update existing account
             const { data: updated, error } = await insforge.database
                 .from("sender_accounts")
