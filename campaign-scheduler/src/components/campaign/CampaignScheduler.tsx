@@ -263,8 +263,18 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, se
 
     async function handleInstantExecution() {
         setIsInstantSubmitting(true);
-        const idempotencyKey = uuidv4();
 
+        // Validate the form before sending to prevent server-side Validation Failed errors
+        const isValid = await form.trigger();
+        if (!isValid) {
+            toast.error("Please fix form errors before sending.", {
+                description: "Check the highlighted fields below.",
+            });
+            setIsInstantSubmitting(false);
+            return;
+        }
+
+        const idempotencyKey = uuidv4();
         const instantData = form.getValues();
 
         const payload = {
@@ -367,8 +377,8 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, se
                                                         max={totalLeads}
                                                         {...field}
                                                         onChange={e => {
-                                                            const val = parseInt(e.target.value, 10) || 0;
-                                                            field.onChange(Math.min(val, totalLeads));
+                                                            const val = parseInt(e.target.value, 10) || 1;
+                                                            field.onChange(Math.min(Math.max(val, 1), totalLeads));
                                                         }}
                                                     />
                                                 </FormControl>
@@ -472,7 +482,7 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, se
                                             <FormItem>
                                                 <FormLabel>Min Delay (mins)</FormLabel>
                                                 <FormControl>
-                                                    <Input type="number" min={1} {...field} onChange={e => { field.onChange(parseInt(e.target.value, 10) || 0); form.trigger("maxDelay"); }} />
+                                                    <Input type="number" min={1} {...field} onChange={e => { field.onChange(Math.max(parseInt(e.target.value, 10) || 1, 1)); form.trigger("maxDelay"); }} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -485,7 +495,7 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, se
                                             <FormItem>
                                                 <FormLabel>Max Delay (mins)</FormLabel>
                                                 <FormControl>
-                                                    <Input type="number" min={1} {...field} onChange={e => { field.onChange(parseInt(e.target.value, 10) || 0); form.trigger("minDelay"); }} />
+                                                    <Input type="number" min={1} {...field} onChange={e => { field.onChange(Math.max(parseInt(e.target.value, 10) || 1, 1)); form.trigger("minDelay"); }} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
