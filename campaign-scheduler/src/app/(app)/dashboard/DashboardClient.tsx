@@ -132,10 +132,23 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
                     .select("*")
                     .eq("user_id", user.id)
                     .order("created_at", { ascending: false }),
-                fetch("/api/dashboard/stats").then(res => res.json())
+                fetch("/api/dashboard/stats").then(res => {
+                    if (res.status === 401) {
+                        window.location.href = "/";
+                        throw new Error("Unauthorized");
+                    }
+                    return res.json();
+                })
             ]);
 
-            if (campaignsRes.error) throw campaignsRes.error;
+            if (campaignsRes.error) {
+                // Check if it's an auth error from Supabase/InsForge
+                if (campaignsRes.error.message?.toLowerCase().includes("jwt") || campaignsRes.error.code === "PGRST301") {
+                    window.location.href = "/";
+                    throw new Error("Unauthorized");
+                }
+                throw campaignsRes.error;
+            }
 
             if (statsRes.stats) {
                 setStatsData(statsRes.stats);

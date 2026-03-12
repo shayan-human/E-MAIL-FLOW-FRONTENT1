@@ -173,7 +173,13 @@ export default function CampaignsPage() {
                     .in("status", ["SENT", "REPLIED"]),
             ]);
 
-            if (campaignsRes.error) throw campaignsRes.error;
+            if (campaignsRes.error) {
+                if (campaignsRes.error.message?.toLowerCase().includes("jwt") || campaignsRes.error.code === "PGRST301") {
+                    window.location.href = "/";
+                    throw new Error("Unauthorized");
+                }
+                throw campaignsRes.error;
+            }
             if (!campaignsRes.data) return;
 
             // Count sent/replied per campaign in memory

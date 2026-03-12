@@ -143,6 +143,10 @@ function InboxContent() {
     const fetchInbox = async () => {
         try {
             const res = await fetch("/api/inbox");
+            if (res.status === 401) {
+                window.location.href = "/";
+                throw new Error("Unauthorized");
+            }
             if (!res.ok) throw new Error("Failed to fetch inbox");
             const data = await res.json();
             if (data.threads) {
