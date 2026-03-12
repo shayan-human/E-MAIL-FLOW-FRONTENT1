@@ -59,13 +59,27 @@ export async function POST(req: Request) {
         const validationResult = CampaignPayloadSchema.safeParse(body);
 
         if (!validationResult.success) {
-            const formattedErrors = validationResult.error.format();
-            console.warn("[Campaign Validation Failed]:", JSON.stringify(formattedErrors, null, 2));
+            const fieldErrors = validationResult.error.flatten().fieldErrors;
+            const mappedLeadsErrors = fieldErrors.mappedLeads;
+
+            let message = "The campaign data provided is invalid.";
+            if (mappedLeadsErrors && mappedLeadsErrors.length > 0) {
+                message = `Lead Validation Failed: ${mappedLeadsErrors[0]}`;
+            } else {
+                // Check for other common fields
+                const firstError = Object.entries(fieldErrors).find(([_, errs]) => errs && errs.length > 0);
+                if (firstError) {
+                    message = `Validation Error (${firstError[0]}): ${firstError[1]?.[0]}`;
+                }
+            }
+
+            console.warn("[Campaign Validation Failed]:", JSON.stringify(validationResult.error.format(), null, 2));
+
             return NextResponse.json(
                 {
                     error: "Validation Failed",
-                    message: "The campaign data provided is invalid.",
-                    details: validationResult.error.flatten().fieldErrors,
+                    message,
+                    details: fieldErrors,
                 },
                 { status: 400 }
             );

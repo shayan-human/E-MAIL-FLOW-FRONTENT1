@@ -241,7 +241,7 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, se
             const result = await response.json().catch(() => null);
 
             if (!response.ok) {
-                throw new Error(result?.error || `Failed to start campaign: ${response.statusText}`);
+                throw new Error(result?.message || result?.error || `Failed to start campaign: ${response.statusText}`);
             }
 
             toast.success("Campaign Scheduled Successfully!", {
@@ -252,9 +252,10 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, se
             setTimeout(() => {
                 router.push("/campaigns");
             }, 1500);
-        } catch (error: unknown) {
+        } catch (error: any) {
+            console.error("[Schedule Error Details]:", error);
             toast.error("Failed to schedule campaign", {
-                description: error instanceof Error ? error.message : "Unknown error occurred",
+                description: error.message || "Unknown error occurred",
             });
         } finally {
             setIsScheduleSubmitting(false);
@@ -297,7 +298,7 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, se
             const result = await response.json().catch(() => null);
 
             if (!response.ok) {
-                throw new Error(result?.error || `Failed to instantly send campaign: ${response.statusText}`);
+                throw new Error(result?.message || result?.error || `Failed to instantly send campaign: ${response.statusText}`);
             }
 
             toast.success("Campaign Started Instantly!", {
@@ -308,9 +309,10 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, se
             setTimeout(() => {
                 router.push("/campaigns");
             }, 1500);
-        } catch (error: unknown) {
+        } catch (error: any) {
+            console.error("[Instant Error Details]:", error);
             toast.error("Failed to instantly send campaign", {
-                description: error instanceof Error ? error.message : "Unknown error occurred",
+                description: error.message || "Unknown error occurred",
             });
         } finally {
             setIsInstantSubmitting(false);
