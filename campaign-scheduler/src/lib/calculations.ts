@@ -18,8 +18,8 @@ export function calculateAverageDelay(minDelay: number, maxDelay: number): numbe
 export function checkWindowWarning(
     limitPerAccount: number,
     avgDelay: number,
-    startTime: string,
-    endTime: string
+    startTime: string | null | undefined,
+    endTime: string | null | undefined
 ): boolean {
     if (!startTime || !endTime) return false;
 
@@ -44,9 +44,9 @@ export function estimateCompletionTime(
     totalLeads: number,
     totalCapacity: number,
     avgDelay: number,
-    startTime: string,
-    endTime: string,
-    timezone: string,
+    startTime: string | null | undefined,
+    endTime: string | null | undefined,
+    timezone: string | null | undefined,
     skipWeekends: boolean,
     startDateArg: string,
     enableSchedule: boolean
@@ -58,14 +58,15 @@ export function estimateCompletionTime(
 
     // If schedule is disabled, we don't have startTime/endTime but we still need to estimate.
     // We treat it as 24/7 sending for estimation purposes.
-    const effectiveStartTime = enableSchedule ? startTime : "00:00";
+    const effectiveStartTime = (enableSchedule && startTime) ? startTime : "00:00";
+    const effectiveTimezone = timezone || "Asia/Kolkata";
 
     try {
         const [startH, startM] = effectiveStartTime.split(':').map(Number);
 
         // Start strictly timezone-aware calculation 
         const baseDate = new Date(startDateArg + "T00:00:00");
-        const tzDateString = formatInTimeZone(baseDate, timezone, "yyyy-MM-dd'T'HH:mm:ssXXX");
+        const tzDateString = formatInTimeZone(baseDate, effectiveTimezone, "yyyy-MM-dd'T'HH:mm:ssXXX");
         let currentDate = toDate(tzDateString);
 
         // Set to start time on the very first day
@@ -111,8 +112,8 @@ export function estimateCompletionTime(
         currentDate = setMinutes(currentDate, startM + minutesOnFinalDay);
 
         return {
-            estimatedEndDate: formatInTimeZone(currentDate, timezone, 'MMM dd, yyyy'),
-            estimatedEndTime: formatInTimeZone(currentDate, timezone, 'hh:mm a zzz'),
+            estimatedEndDate: formatInTimeZone(currentDate, effectiveTimezone, 'MMM dd, yyyy'),
+            estimatedEndTime: formatInTimeZone(currentDate, effectiveTimezone, 'hh:mm a zzz'),
             totalCalendarDaysScheduled
         };
     } catch {

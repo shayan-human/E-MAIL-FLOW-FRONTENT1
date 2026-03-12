@@ -425,7 +425,7 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, se
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Timezone</FormLabel>
-                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <Select onValueChange={field.onChange} defaultValue={field.value || "Asia/Kolkata"}>
                                                             <FormControl>
                                                                 <SelectTrigger>
                                                                     <SelectValue placeholder="Select a timezone" />
@@ -453,7 +453,7 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, se
                                                     <FormItem>
                                                         <FormLabel>Start Time (HH:MM)</FormLabel>
                                                         <FormControl>
-                                                            <Input type="time" className="block w-full appearance-none bg-muted/20 text-center font-medium tracking-widest text-lg" {...field} onChange={e => { field.onChange(e); form.trigger("endTime"); }} />
+                                                            <Input type="time" className="block w-full appearance-none bg-muted/20 text-center font-medium tracking-widest text-lg" {...field} value={field.value || "09:00"} onChange={e => { field.onChange(e); form.trigger("endTime"); }} />
                                                         </FormControl>
                                                         <FormMessage />
                                                     </FormItem>
@@ -466,7 +466,7 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, se
                                                     <FormItem>
                                                         <FormLabel>End Time (HH:MM)</FormLabel>
                                                         <FormControl>
-                                                            <Input type="time" className="block w-full appearance-none bg-muted/20 text-center font-medium tracking-widest text-lg" {...field} onChange={e => { field.onChange(e); form.trigger("startTime"); }} />
+                                                            <Input type="time" className="block w-full appearance-none bg-muted/20 text-center font-medium tracking-widest text-lg" {...field} value={field.value || "17:00"} onChange={e => { field.onChange(e); form.trigger("startTime"); }} />
                                                         </FormControl>
                                                         <FormMessage />
                                                     </FormItem>
