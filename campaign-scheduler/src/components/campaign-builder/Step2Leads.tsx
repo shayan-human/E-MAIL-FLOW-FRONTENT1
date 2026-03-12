@@ -114,7 +114,12 @@ export function Step2Leads({ onNext, onBack }: Step2Props) {
                 // Build mapped row
                 const data: any = row.data;
                 const e = data[emailCol]?.trim();
-                if (e) {
+
+                // Stricter email validation (simple regex to catch N/A, invalid, etc)
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                const isValidEmail = e && emailRegex.test(e);
+
+                if (isValidEmail) {
                     finalLeads.push({
                         email: e,
                         firstName: firstNameCol ? (data[firstNameCol]?.trim() || "") : "",
