@@ -71,6 +71,13 @@ export async function GET() {
             const email = r.lead?.email;
             if (!email) return;
 
+            // Filter out system bounce messages from the replies table
+            const isBounceMessage = 
+                r.sender_email.includes('mailer-daemon@googlemail.com') ||
+                r.subject.includes('Delivery Status Notification (Failure)');
+            
+            if (isBounceMessage) return;
+
             const campaign = r.lead?.campaign_id ? campaignMap[r.lead.campaign_id] : null;
 
             if (!threadMap[email]) {
@@ -93,7 +100,14 @@ export async function GET() {
                     lastMessageAt: r.timestamp,
                     lastMessagePreview: "",
                     isRead: true,
+                    status: r.lead?.status
                 };
+            }
+
+            // Skip threads that are explicitly BOUNCED at the lead level
+            if (threadMap[email].status === 'BOUNCED') {
+                delete threadMap[email];
+                return;
             }
 
             // Always update the thread metadata with the LATEST message's context
