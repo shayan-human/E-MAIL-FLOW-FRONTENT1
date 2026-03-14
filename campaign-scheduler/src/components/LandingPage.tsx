@@ -105,31 +105,31 @@ const LandingPage = () => {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.5, duration: 0.5 }}
-            className="mb-10 px-4 py-1.5 rounded-full border border-orange-500/20 bg-orange-500/5 text-orange-500 text-xs font-bold tracking-[0.2em] uppercase backdrop-blur-sm"
+            className="mb-8 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-slate-400 text-[10px] font-medium tracking-[0.2em] uppercase backdrop-blur-md"
           >
             Infrastructure Orchestration
           </motion.div>
           
-          <h1 className="bg-gradient-to-b from-white to-slate-500 py-4 bg-clip-text text-center text-5xl font-bold tracking-tight text-transparent md:text-8xl leading-[1.15]">
+          <h1 className="bg-gradient-to-b from-white to-slate-400 py-4 bg-clip-text text-center text-4xl font-bold tracking-tight text-transparent md:text-7xl leading-[1.1]">
             Build Email Automation <br /> 
-            <span className="text-orange-500 drop-shadow-[0_0_40px_rgba(236,91,19,0.4)]">the Right Way.</span>
+            with <span className="text-orange-500">Precision.</span>
           </h1>
           
-          <p className="mt-10 text-slate-400 text-center max-w-2xl text-lg md:text-xl leading-relaxed font-medium">
+          <p className="mt-8 text-slate-400 text-center max-w-xl text-base md:text-lg leading-relaxed font-normal">
             Deploy high-performance cold email infrastructure with 
-            precision. Engineered for the next generation of growth.
+            unmatched reliability. Engineered for the next generation of outreach.
           </p>
           
-          <div className="mt-14 flex flex-col sm:flex-row gap-6">
+          <div className="mt-12 flex flex-col sm:flex-row gap-4 items-center">
             <Link 
               href="/auth/signin" 
-              className="px-10 py-4 rounded-2xl bg-white text-slate-950 font-black hover:bg-slate-200 transition-all flex items-center gap-3 group shadow-[0_0_30_rgba(255,255,255,0.15)] active:scale-95"
+              className="px-8 py-3.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-all flex items-center gap-2 group shadow-[0_0_20px_rgba(236,91,19,0.3)] active:scale-95"
             >
-              Initialize System <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              Get Started <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link 
               href="/auth/signin" 
-              className="px-10 py-4 rounded-2xl bg-slate-900/80 border border-slate-800 text-white font-black hover:bg-slate-800 transition-all active:scale-95 backdrop-blur-md shadow-xl"
+              className="px-8 py-3.5 rounded-xl bg-slate-900/60 border border-white/5 text-slate-300 font-semibold hover:bg-slate-800/80 transition-all active:scale-95 backdrop-blur-md"
             >
               View Specs
             </Link>

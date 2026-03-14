@@ -16,15 +16,29 @@ export function ShaderAnimation() {
     renderer: any
     uniforms: any
     animationId: number | null
+    mouse: { x: number, y: number }
+    targetMouse: { x: number, y: number }
   }>({
     camera: null,
     scene: null,
     renderer: null,
     uniforms: null,
     animationId: null,
+    mouse: { x: 0.5, y: 0.5 },
+    targetMouse: { x: 0.5, y: 0.5 },
   })
 
   useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (rect) {
+        sceneRef.current.targetMouse.x = (e.clientX - rect.left) / rect.width
+        sceneRef.current.targetMouse.y = 1.0 - (e.clientY - rect.top) / rect.height
+      }
+    }
+
+    window.addEventListener("mousemove", handleMouseMove)
+
     // Load Three.js dynamically
     const script = document.createElement("script")
     script.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/89/three.min.js"
@@ -37,13 +51,16 @@ export function ShaderAnimation() {
 
     return () => {
       // Cleanup
+      window.removeEventListener("mousemove", handleMouseMove)
       if (sceneRef.current.animationId) {
         cancelAnimationFrame(sceneRef.current.animationId)
       }
       if (sceneRef.current.renderer) {
         sceneRef.current.renderer.dispose()
       }
-      document.head.removeChild(script)
+      if (document.head.contains(script)) {
+        document.head.removeChild(script)
+      }
     }
   }, [])
 
@@ -70,6 +87,7 @@ export function ShaderAnimation() {
     const uniforms = {
       time: { type: "f", value: 1.0 },
       resolution: { type: "v2", value: new THREE.Vector2() },
+      mouse: { type: "v2", value: new THREE.Vector2(0.5, 0.5) },
     }
 
     // Vertex shader
@@ -87,6 +105,7 @@ export function ShaderAnimation() {
       precision highp float;
       uniform vec2 resolution;
       uniform float time;
+      uniform vec2 mouse;
         
       float random (in float x) {
           return fract(sin(x)*1e4);
@@ -97,23 +116,27 @@ export function ShaderAnimation() {
               43758.5453123);
       }
       
-      varying vec2 vUv;
-
       void main(void) {
         vec2 uv = (gl_FragCoord.xy * 2.0 - resolution.xy) / min(resolution.x, resolution.y);
         
+        // Mouse displacement
+        vec2 m = (mouse * 2.0 - 1.0);
+        float dist = length(uv - m * 0.5);
+        uv += m * 0.05 * (1.0 - smoothstep(0.0, 1.5, dist));
+
         vec2 fMosaicScal = vec2(4.0, 2.0);
         vec2 vScreenSize = vec2(256,256);
         uv.x = floor(uv.x * vScreenSize.x / fMosaicScal.x) / (vScreenSize.x / fMosaicScal.x);
         uv.y = floor(uv.y * vScreenSize.y / fMosaicScal.y) / (vScreenSize.y / fMosaicScal.y);       
           
-        float t = time*0.06+random(uv.x)*0.4;
-        float lineWidth = 0.0008;
+        // Reduced baseline time movement
+        float t = time * 0.02 + random(uv.x) * 0.4;
+        float lineWidth = 0.0006;
 
         vec3 color = vec3(0.0);
         for(int j = 0; j < 3; j++){
           for(int i=0; i < 5; i++){
-            color[j] += lineWidth*float(i*i) / abs(fract(t - 0.01*float(j)+float(i)*0.01)*1.0 - length(uv));        
+            color[j] += lineWidth * float(i*i) / abs(fract(t - 0.01*float(j)+float(i)*0.01)*1.0 - length(uv));        
           }
         }
 
@@ -133,18 +156,15 @@ export function ShaderAnimation() {
     scene.add(mesh)
 
     // Initialize renderer
-    const renderer = new THREE.WebGLRenderer()
+    const renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setPixelRatio(window.devicePixelRatio)
     container.appendChild(renderer.domElement)
 
     // Store references
-    sceneRef.current = {
-      camera,
-      scene,
-      renderer,
-      uniforms,
-      animationId: null,
-    }
+    sceneRef.current.camera = camera
+    sceneRef.current.scene = scene
+    sceneRef.current.renderer = renderer
+    sceneRef.current.uniforms = uniforms
 
     // Handle resize
     const onWindowResize = () => {
@@ -160,7 +180,15 @@ export function ShaderAnimation() {
     // Animation loop
     const animate = () => {
       sceneRef.current.animationId = requestAnimationFrame(animate)
-      uniforms.time.value += 0.05
+      
+      // Smooth lerp for mouse
+      sceneRef.current.mouse.x += (sceneRef.current.targetMouse.x - sceneRef.current.mouse.x) * 0.05
+      sceneRef.current.mouse.y += (sceneRef.current.targetMouse.y - sceneRef.current.mouse.y) * 0.05
+      
+      uniforms.mouse.value.x = sceneRef.current.mouse.x
+      uniforms.mouse.value.y = sceneRef.current.mouse.y
+      uniforms.time.value += 0.03
+      
       renderer.render(scene, camera)
     }
 
