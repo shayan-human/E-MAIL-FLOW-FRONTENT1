@@ -10,7 +10,9 @@ import {
   useScroll,
 } from "framer-motion";
 
+import { Calendar, Code, FileText, User, Clock } from "lucide-react";
 import { TestimonialsColumn, type Testimonial } from "@/components/ui/testimonials-column";
+import RadialOrbitalTimeline from "@/components/ui/radial-orbital-timeline";
 
 const COLORS = {
   page: "#0f0f0f",
@@ -374,6 +376,53 @@ export default function LandingPage() {
       name: "Emma R.",
       role: "Growth Manager",
       company: "ScaleLab",
+    },
+  ];
+
+  const timelineData = [
+    {
+      id: 1,
+      title: "Connect",
+      date: "Step 1",
+      content: "Connect your clients' Gmail accounts via secure Google OAuth in one click. No passwords stored, no risk.",
+      category: "Connect",
+      icon: User,
+      relatedIds: [2],
+      status: "completed" as const,
+      energy: 100,
+    },
+    {
+      id: 2,
+      title: "Launch",
+      date: "Step 2",
+      content: "Build personalized campaigns with variables like first name and business name. Schedule and trigger in real time.",
+      category: "Launch",
+      icon: Calendar,
+      relatedIds: [1, 3],
+      status: "completed" as const,
+      energy: 90,
+    },
+    {
+      id: 3,
+      title: "Track",
+      date: "Step 3",
+      content: "Monitor every reply across all client accounts in a unified threaded inbox. No tab-switching ever again.",
+      category: "Track",
+      icon: Clock,
+      relatedIds: [2, 4],
+      status: "in-progress" as const,
+      energy: 60,
+    },
+    {
+      id: 4,
+      title: "Report",
+      date: "Step 4",
+      content: "Generate client-ready reports showing sends, replies, and campaign performance across all accounts.",
+      category: "Report",
+      icon: FileText,
+      relatedIds: [3],
+      status: "pending" as const,
+      energy: 30,
     },
   ];
 
@@ -951,6 +1000,20 @@ export default function LandingPage() {
               </Card>
             ))}
           </div>
+
+          <Reveal delay={0.12}>
+            <div className="mt-16">
+              <div className="text-center mb-8">
+                <div className="text-sm font-semibold" style={{ color: COLORS.accent }}>
+                  See how it works
+                </div>
+                <div className="text-lg font-bold mt-2" style={{ color: COLORS.text }}>
+                  Click any step to explore
+                </div>
+              </div>
+              <RadialOrbitalTimeline timelineData={timelineData} />
+            </div>
+          </Reveal>
         </Container>
       </section>
 
