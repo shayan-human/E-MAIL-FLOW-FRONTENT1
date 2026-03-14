@@ -4,8 +4,9 @@ import React from "react";
 import { motion } from "framer-motion";
 import { ShaderAnimation } from "@/components/ui/shader-lines";
 import { FeaturesSection } from "@/components/FeaturesSection";
+import DisplayCards from "@/components/ui/display-cards";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Send, MailOpen, Reply } from "lucide-react";
 
 const LandingPage = () => {
   return (
@@ -93,6 +94,44 @@ const LandingPage = () => {
 
         {/* Bottom gradient overlay to blend with next section */}
         <div className="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-black to-transparent z-40" />
+      </section>
+
+      {/* Email Metrics DisplayCards */}
+      <section className="relative z-50 -mt-20 pb-20">
+        <DisplayCards
+          cards={[
+            {
+              icon: <Send className="size-4 text-blue-300" />,
+              title: "Emails Sent",
+              description: "24,892",
+              date: "Total delivered",
+              iconClassName: "text-orange-500",
+              titleClassName: "text-orange-500",
+              className:
+                "[grid-area:stack] hover:-translate-y-10 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 grayscale-[100%] hover:before:opacity-0 before:transition-opacity before:duration:700 hover:grayscale-0 before:left-0 before:top-0",
+            },
+            {
+              icon: <MailOpen className="size-4 text-blue-300" />,
+              title: "Open Rate",
+              description: "47.3%",
+              date: "Industry avg: 21%",
+              iconClassName: "text-blue-500",
+              titleClassName: "text-blue-500",
+              className:
+                "[grid-area:stack] translate-x-12 translate-y-10 hover:-translate-y-1 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 grayscale-[100%] hover:before:opacity-0 before:transition-opacity before:duration:700 hover:grayscale-0 before:left-0 before:top-0",
+            },
+            {
+              icon: <Reply className="size-4 text-blue-300" />,
+              title: "Reply Rate",
+              description: "18.5%",
+              date: "Industry avg: 8%",
+              iconClassName: "text-green-500",
+              titleClassName: "text-green-500",
+              className:
+                "[grid-area:stack] translate-x-24 translate-y-20 hover:translate-y-10",
+            },
+          ]}
+        />
       </section>
 
       {/* Features Section */}
