@@ -53,7 +53,7 @@ const features = [
 
 const LandingPage = () => {
   return (
-    <div className="bg-slate-950 text-white min-h-screen font-sans selection:bg-orange-500/30">
+    <div className="bg-black text-white min-h-screen font-sans selection:bg-orange-500/30">
       {/* Navigation */}
       <nav className="fixed top-6 left-1/2 -translate-x-1/2 w-[90%] md:w-[80%] max-w-5xl z-[100]">
         <div className="flex items-center justify-between px-6 py-3 rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-2xl">
@@ -87,8 +87,7 @@ const LandingPage = () => {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative h-[100vh] w-full flex flex-col items-center justify-center overflow-hidden bg-slate-950">
+      <section className="relative h-[100vh] w-full flex flex-col items-center justify-center overflow-hidden bg-black">
         <ShaderAnimation />
         
         <motion.div
@@ -137,7 +136,7 @@ const LandingPage = () => {
         </motion.div>
 
         {/* Bottom gradient overlay to blend with next section */}
-        <div className="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-slate-950 to-transparent z-40" />
+        <div className="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-black to-transparent z-40" />
       </section>
 
       {/* Features Section */}
