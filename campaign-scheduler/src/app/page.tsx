@@ -1,6 +1,6 @@
 import { auth } from "@insforge/nextjs/server";
 import { redirect } from "next/navigation";
-import LoginClient from "./LoginClient";
+import LandingPage from "@/components/LandingPage";
 
 export default async function LoginPage() {
   const { user } = await auth();
@@ -10,5 +10,5 @@ export default async function LoginPage() {
     redirect("/dashboard");
   }
 
-  return <LoginClient />;
+  return <LandingPage />;
 }
