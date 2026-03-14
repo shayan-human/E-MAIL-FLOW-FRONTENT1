@@ -2,618 +2,1036 @@
 
 import React from "react";
 import Link from "next/link";
-import { 
-  ArrowRight, 
-  Star, 
-  Zap, 
-  Users, 
-  Inbox, 
-  BarChart3, 
-  Shield, 
-  Search,
-  CheckCircle2,
-  Mail,
-  Settings,
-  Activity,
-  Send,
-  Clock,
-  TrendingUp
-} from "lucide-react";
+import {
+  motion,
+  useInView,
+  useMotionValueEvent,
+  useReducedMotion,
+  useScroll,
+} from "framer-motion";
 
-const LandingPage = () => {
+const COLORS = {
+  page: "#0f0f0f",
+  card: "#141414",
+  border: "#222222",
+  accent: "#F59E0B",
+  text: "#FFFFFF",
+  muted: "#888888",
+} as const;
+
+const easeOut = [0.16, 1, 0.3, 1] as const;
+const easeInOut = [0.42, 0, 0.58, 1] as const;
+
+const revealTransition = { duration: 0.6, ease: easeOut } as const;
+
+function easeOutCubic(t: number) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+function useCountUp(params: {
+  value: number;
+  enabled: boolean;
+  durationMs?: number;
+  decimals?: number;
+}) {
+  const { value, enabled, durationMs = 2000, decimals = 0 } = params;
+  const [current, setCurrent] = React.useState(0);
+
+  React.useEffect(() => {
+    if (!enabled) return;
+    let raf = 0;
+    const start = performance.now();
+
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / durationMs);
+      const eased = easeOutCubic(t);
+      const next = value * eased;
+      const pow = Math.pow(10, decimals);
+      setCurrent(Math.round(next * pow) / pow);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [decimals, durationMs, enabled, value]);
+
+  return current;
+}
+
+function Container(props: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
-    <div className="bg-[#0f0f0f] text-white min-h-screen font-sans">
-      {/* 1. NAV BAR */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-[#222222] bg-[#0f0f0f]/80 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#F59E0B] flex items-center justify-center font-bold text-[#0f0f0f] text-sm">E</div>
-            <span className="font-semibold text-lg text-slate-200">EmailFlow</span>
-          </div>
-          
-          <div className="hidden md:flex items-center gap-8 text-sm text-slate-400">
-            <a href="#features" className="hover:text-white transition-colors">Features</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-            <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
-          </div>
-          
+    <div className={"mx-auto w-full max-w-6xl px-12 " + (props.className ?? "")} style={props.style}>
+      {props.children}
+    </div>
+  );
+}
+
+function Reveal(props: { children: React.ReactNode; className?: string; delay?: number }) {
+  const ref = React.useRef<HTMLDivElement | null>(null);
+  const inView = useInView(ref, { once: true, amount: 0.15 });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 30 }}
+      animate={inView ? { opacity: 1, y: 0 } : undefined}
+      transition={{ ...revealTransition, delay: props.delay ?? 0 }}
+      className={props.className}
+    >
+      {props.children}
+    </motion.div>
+  );
+}
+
+function RevealY(props: { children: React.ReactNode; className?: string; y?: number; delay?: number }) {
+  const ref = React.useRef<HTMLDivElement | null>(null);
+  const inView = useInView(ref, { once: true, amount: 0.15 });
+  const y = props.y ?? 60;
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y }}
+      animate={inView ? { opacity: 1, y: 0 } : undefined}
+      transition={{ ...revealTransition, delay: props.delay ?? 0 }}
+      className={props.className}
+    >
+      {props.children}
+    </motion.div>
+  );
+}
+
+function Card(props: { children: React.ReactNode; className?: string }) {
+  const ref = React.useRef<HTMLDivElement | null>(null);
+  const inView = useInView(ref, { once: true, amount: 0.15 });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 30 }}
+      animate={
+        inView
+          ? {
+              opacity: 1,
+              y: 0,
+              transition: revealTransition,
+            }
+          : undefined
+      }
+      transition={{ duration: 0.2, ease: easeOut }}
+      whileHover={{ y: -6, boxShadow: "0 20px 40px rgba(245, 158, 11, 0.08)" }}
+      className={"rounded-[12px] border " + (props.className ?? "")}
+      style={{ backgroundColor: COLORS.card, borderColor: COLORS.border }}
+    >
+      {props.children}
+    </motion.div>
+  );
+}
+
+function LogoMark(props: { size?: number }) {
+  const s = props.size ?? 32;
+  return (
+    <div
+      className="grid place-items-center rounded-[10px] font-bold"
+      style={{ width: s, height: s, backgroundColor: COLORS.accent, color: COLORS.page }}
+    >
+      E
+    </div>
+  );
+}
+
+function SepDot() {
+  return (
+    <span
+      aria-hidden
+      className="mx-2 inline-block h-1 w-1 rounded-full align-middle"
+      style={{ backgroundColor: COLORS.border }}
+    />
+  );
+}
+
+function NavIcon(props: { d: string; active?: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d={props.d}
+        stroke={props.active ? COLORS.accent : COLORS.muted}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function NoiseOverlay() {
+  const noiseSvg =
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E";
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0"
+      style={{ backgroundImage: `url(${noiseSvg})`, opacity: 0.03, mixBlendMode: "overlay" }}
+    />
+  );
+}
+
+function IconLink() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M10 13a5 5 0 0 0 7.07 0l1.41-1.41a5 5 0 0 0 0-7.07 5 5 0 0 0-7.07 0L10.7 5.22"
+        stroke={COLORS.accent}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M14 11a5 5 0 0 0-7.07 0L5.52 12.41a5 5 0 0 0 0 7.07 5 5 0 0 0 7.07 0l.71-.71"
+        stroke={COLORS.accent}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconZap() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M13 2L3 14h7l-1 8 12-14h-7l1-6Z"
+        stroke={COLORS.accent}
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconInbox() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M4 4h16v12l-3 4H7l-3-4V4Z"
+        stroke={COLORS.accent}
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4 16h5l1 2h4l1-2h5"
+        stroke={COLORS.accent}
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function StarRow() {
+  return (
+    <div className="flex items-center gap-1">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill={COLORS.accent} xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 17.3 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.3Z" />
+        </svg>
+      ))}
+    </div>
+  );
+}
+
+function TrustIconLock() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M7 11V8a5 5 0 0 1 10 0v3" stroke={COLORS.muted} strokeWidth="2" strokeLinecap="round" />
+      <path d="M6 11h12v10H6V11Z" stroke={COLORS.muted} strokeWidth="2" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TrustIconGmail() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 7l8 6 8-6" stroke={COLORS.muted} strokeWidth="2" strokeLinejoin="round" />
+      <path d="M4 7v10h16V7" stroke={COLORS.muted} strokeWidth="2" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TrustIconClock() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" stroke={COLORS.muted} strokeWidth="2" />
+      <path d="M12 6v6l4 2" stroke={COLORS.muted} strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function FeatureIcon(props: { path: string }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d={props.path} stroke={COLORS.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export default function LandingPage() {
+  const reducedMotion = useReducedMotion();
+  const { scrollY } = useScroll();
+  const [navSolid, setNavSolid] = React.useState(false);
+
+  useMotionValueEvent(scrollY, "change", (latest) => {
+    setNavSolid(latest > 60);
+  });
+
+  const headlineParent = React.useMemo(
+    () => ({
+      hidden: {},
+      show: { transition: { staggerChildren: 0.12 } },
+    }),
+    []
+  );
+  const headlineWord = React.useMemo(
+    () => ({
+      hidden: { opacity: 0, y: 40 },
+      show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: easeOut } },
+    }),
+    []
+  );
+
+  const headlineTokens = [
+    "Run",
+    "Every",
+    "Client",
+    "Campaign.",
+    "One",
+    "Dashboard.",
+    "Zero",
+    "Chaos.",
+  ];
+
+  // Social proof counters
+  const socialRef = React.useRef<HTMLDivElement | null>(null);
+  const socialInView = useInView(socialRef, { once: true, amount: 0.15 });
+  const delivered = useCountUp({ value: 24892, enabled: socialInView, durationMs: 2000, decimals: 0 });
+  const avgReply = useCountUp({ value: 18.5, enabled: socialInView, durationMs: 2000, decimals: 1 });
+  const industry = useCountUp({ value: 8, enabled: socialInView, durationMs: 2000, decimals: 0 });
+  const compliant = useCountUp({ value: 100, enabled: socialInView, durationMs: 2000, decimals: 0 });
+
+  return (
+    <div className="min-h-screen font-sans" style={{ backgroundColor: COLORS.page, color: COLORS.text }}>
+      {/* SECTION 1: NAVBAR */}
+      <motion.nav
+        initial={false}
+        animate={{
+          backgroundColor: navSolid ? COLORS.page : "rgba(15,15,15,0)",
+          borderColor: navSolid ? COLORS.border : "rgba(34,34,34,0)",
+        }}
+        transition={{ duration: 0.25, ease: easeOut }}
+        className="sticky top-0 z-50 border-b backdrop-blur"
+        style={{ height: 72 }}
+      >
+        <div className="flex h-full w-full items-center justify-between px-12">
           <div className="flex items-center gap-3">
-            <Link 
-              href="/auth/signin" 
-              className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white border border-[#222222] rounded-lg hover:border-slate-500 transition-all"
+            <LogoMark size={32} />
+            <div className="text-sm font-bold tracking-[0.16em]">EMAIL FLOW</div>
+          </div>
+
+          <div className="hidden md:flex items-center gap-8 text-sm" style={{ color: COLORS.muted }}>
+            <motion.a href="#features" whileHover={{ color: COLORS.text }} transition={{ duration: 0.18, ease: easeOut }}>
+              Features
+            </motion.a>
+            <motion.a href="#how" whileHover={{ color: COLORS.text }} transition={{ duration: 0.18, ease: easeOut }}>
+              How It Works
+            </motion.a>
+            <motion.a href="#about" whileHover={{ color: COLORS.text }} transition={{ duration: 0.18, ease: easeOut }}>
+              About
+            </motion.a>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link
+              href="/auth/signin"
+              className="inline-flex items-center justify-center rounded-[10px] border px-4 py-2 text-sm font-semibold"
+              style={{ borderColor: COLORS.border, color: COLORS.text, backgroundColor: "transparent" }}
             >
               Sign In
             </Link>
-            <Link 
-              href="/auth/signin" 
-              className="px-4 py-2 text-sm font-medium text-[#0f0f0f] bg-[#F59E0B] rounded-lg hover:bg-[#D97706] transition-all"
+            <Link
+              href="/auth/signin"
+              className="inline-flex items-center justify-center rounded-[10px] px-4 py-2 text-sm font-semibold"
+              style={{ backgroundColor: COLORS.accent, color: COLORS.page }}
             >
               Get Started
             </Link>
           </div>
         </div>
-      </nav>
+      </motion.nav>
 
-      {/* 2. HERO SECTION */}
-      <section className="relative pt-32 pb-20 px-6 overflow-hidden">
-        {/* Amber radial glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[#F59E0B]/5 rounded-full blur-[120px] pointer-events-none" />
-        
-        <div className="max-w-6xl mx-auto relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left side - Text */}
-            <div className="text-center lg:text-left">
-              <span className="inline-block px-4 py-1.5 rounded-full bg-[#F59E0B]/10 text-[#F59E0B] text-xs font-medium tracking-wide mb-6">
+      {/* SECTION 2: HERO */}
+      <section className="relative" style={{ backgroundColor: COLORS.page, minHeight: "calc(100vh - 72px)" }}>
+        <NoiseOverlay />
+        <Container className="relative flex items-center" style={{ minHeight: "calc(100vh - 72px)" }}>
+          <div className="w-full items-center gap-12 lg:flex lg:gap-12">
+            {/* Left (55%) */}
+            <div className="lg:w-[55%]">
+              <div className="inline-flex items-center rounded-full border px-4 py-2 text-xs font-semibold" style={{ borderColor: COLORS.accent, color: COLORS.accent }}>
                 Built for Cold Email Agencies
-              </span>
-              
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-                Run 10 Client Campaigns.{' '}
-                <span className="text-[#F59E0B]">One Dashboard.</span> Zero Chaos.
-              </h1>
-              
-              <p className="text-slate-400 text-lg mb-8 max-w-lg mx-auto lg:mx-0">
-                Manage unlimited Gmail accounts and run personalized cold email campaigns for all your clients from a single, powerful dashboard.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-                <Link 
-                  href="/auth/signin" 
-                  className="px-6 py-3 text-sm font-medium text-[#0f0f0f] bg-[#F59E0B] rounded-lg hover:bg-[#D97706] transition-all inline-flex items-center justify-center gap-2"
+              </div>
+
+              <motion.h1
+                initial="hidden"
+                animate="show"
+                variants={headlineParent}
+                className="mt-6 text-[44px] leading-[1.03] font-bold md:text-[56px]"
+              >
+                {headlineTokens.map((t, idx) => {
+                  const isChaos = t.startsWith("Chaos");
+                  const token = isChaos ? (
+                    <>
+                      <motion.span
+                        className="animated-gradient-text"
+                        style={{ backgroundPosition: "0% 50%" }}
+                        animate={
+                          reducedMotion
+                            ? undefined
+                            : { backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }
+                        }
+                        transition={
+                          reducedMotion
+                            ? undefined
+                            : { duration: 6, repeat: Infinity, ease: easeInOut }
+                        }
+                      >
+                        Chaos
+                      </motion.span>
+                      {t.endsWith(".") ? "." : null}
+                    </>
+                  ) : (
+                    t
+                  );
+
+                  return (
+                    <motion.span
+                      key={t + String(idx)}
+                      variants={headlineWord}
+                      className="inline-block"
+                      style={{ marginRight: idx === headlineTokens.length - 1 ? 0 : 10 }}
+                    >
+                      {token}
+                    </motion.span>
+                  );
+                })}
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...revealTransition, delay: 0.2 }}
+                className="mt-5 text-[16px] md:text-[18px]"
+                style={{ color: COLORS.muted, maxWidth: 640 }}
+              >
+                EmailFlow connects all your client Gmail accounts in one place - launch campaigns, track replies, and report results without switching tabs.
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...revealTransition, delay: 0.3 }}
+                className="mt-8 flex flex-col gap-4 sm:flex-row"
+              >
+                <Link
+                  href="/auth/signin"
+                  className="relative inline-flex items-center justify-center rounded-[10px] px-6 py-3 text-sm font-semibold"
+                  style={{ backgroundColor: COLORS.accent, color: COLORS.page }}
                 >
-                  Start Free <ArrowRight className="w-4 h-4" />
+                  <motion.span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 rounded-[10px]"
+                    style={{ border: "1px solid rgba(245,158,11,0.55)" }}
+                    animate={reducedMotion ? undefined : { scale: [1, 1.4], opacity: [0.4, 0] }}
+                    transition={
+                      reducedMotion
+                        ? undefined
+                        : { duration: 1.1, ease: easeOut, repeat: Infinity, repeatDelay: 1.9 }
+                    }
+                  />
+                  Get Started Free
                 </Link>
-                <Link 
-                  href="/auth/signin" 
-                  className="px-6 py-3 text-sm font-medium text-slate-300 border border-[#222222] rounded-lg hover:border-slate-500 transition-all inline-flex items-center justify-center"
+                <Link
+                  href="/auth/signin"
+                  className="inline-flex items-center justify-center rounded-[10px] border px-6 py-3 text-sm font-semibold"
+                  style={{ borderColor: COLORS.border, color: COLORS.text }}
                 >
                   See How It Works
                 </Link>
-              </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...revealTransition, delay: 0.4 }}
+                className="mt-6 text-sm"
+                style={{ color: COLORS.muted }}
+              >
+                <span>Official Gmail API</span>
+                <SepDot />
+                <span>No credit card required</span>
+                <SepDot />
+                <span>2 min setup</span>
+              </motion.div>
             </div>
-            
-            {/* Right side - Dashboard mockup */}
+
+            {/* Right (45%) */}
+            <div className="mt-10 lg:mt-0 lg:w-[45%]">
+              <motion.div
+                initial={{ opacity: 0, x: 60 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, ease: easeOut, delay: 0.4 }}
+                className="relative"
+              >
+                {/* Ambient glow (rule 4) */}
+                <motion.div
+                  aria-hidden
+                  className="absolute -inset-12 rounded-full blur-[120px]"
+                  style={{ background: "radial-gradient(circle, rgba(245,158,11,0.15) 0%, rgba(245,158,11,0) 65%)" }}
+                  animate={reducedMotion ? undefined : { opacity: [0.1, 0.2, 0.1] }}
+                  transition={reducedMotion ? undefined : { duration: 4, repeat: Infinity, ease: easeInOut }}
+                />
+
+                <div className="relative overflow-hidden rounded-[12px] border" style={{ backgroundColor: COLORS.card, borderColor: COLORS.border }}>
+                  <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: COLORS.border }}>
+                    <div className="text-sm font-semibold">Campaigns</div>
+                    <button
+                      type="button"
+                      className="rounded-[10px] px-3 py-2 text-xs font-semibold"
+                      style={{ backgroundColor: COLORS.accent, color: COLORS.page }}
+                    >
+                      New Campaign
+                    </button>
+                  </div>
+
+                  <div className="p-5">
+                    <div className="grid grid-cols-4 gap-3 px-3 py-2 text-[11px] font-semibold" style={{ color: COLORS.muted }}>
+                      <div>Campaign Name</div>
+                      <div>Account</div>
+                      <div>Sent</div>
+                      <div>Replies</div>
+                    </div>
+                    <div className="mt-2 overflow-hidden rounded-[12px] border" style={{ borderColor: COLORS.border }}>
+                      {[
+                        { name: "Acme Corp Outreach", acct: "@acme.co", sent: "6,140", replies: "482" },
+                        { name: "LeadLayer Q1", acct: "@leadlayer.io", sent: "4,920", replies: "301" },
+                        { name: "SaaS Founders List", acct: "@founders.co", sent: "3,210", replies: "198" },
+                        { name: "Roofing Leads March", acct: "@roofing.pro", sent: "2,680", replies: "167" },
+                      ].map((r, idx) => {
+                        const rowBg = idx % 2 === 0 ? COLORS.card : "#1a1a1a";
+                        return (
+                          <div
+                            key={r.name}
+                            className="grid grid-cols-4 gap-3 px-3 py-3 text-sm"
+                            style={{
+                              backgroundColor: rowBg,
+                              borderTop: idx === 0 ? "none" : `1px solid ${COLORS.border}`,
+                            }}
+                          >
+                            <div className="truncate font-medium">{r.name}</div>
+                            <div className="truncate" style={{ color: COLORS.muted }}>
+                              {r.acct}
+                            </div>
+                            <div style={{ color: COLORS.muted }}>{r.sent}</div>
+                            <div
+                              style={{
+                                color: idx === 0 ? COLORS.accent : COLORS.text,
+                                fontWeight: idx === 0 ? 700 : 600,
+                              }}
+                            >
+                              {r.replies}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      {/* SECTION 3: SOCIAL PROOF BAR */}
+      <section className="py-[100px]">
+        <div className="w-full border-y" style={{ backgroundColor: COLORS.card, borderColor: COLORS.border, paddingTop: 28, paddingBottom: 28 }}>
+          <div ref={socialRef} className="mx-auto w-full max-w-6xl px-12">
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:flex lg:items-center lg:justify-center lg:gap-12">
+            {[
+              {
+                value: socialInView ? `${Math.round(delivered).toLocaleString("en-US")}+` : "0+",
+                label: "Emails Delivered",
+              },
+              {
+                value: socialInView ? `${avgReply.toFixed(1)}%` : "0.0%",
+                label: "Average Reply Rate",
+              },
+              {
+                value: socialInView ? `${industry.toFixed(0)}%` : "0%",
+                label: "Industry Average",
+                badge: "we 2x this",
+              },
+              {
+                value: socialInView ? `${compliant.toFixed(0)}%` : "0%",
+                label: "Gmail API Compliant",
+              },
+            ].map((x, idx) => (
+              <Reveal key={x.label} delay={idx * 0.06} className="text-center md:text-left">
+                <div className="text-3xl font-bold" style={{ color: COLORS.accent }}>
+                  {x.value}
+                </div>
+                <div className="mt-1 text-sm" style={{ color: COLORS.muted }}>
+                  <span>{x.label}</span>
+                  {x.badge ? (
+                    <span
+                      className="ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-[11px]"
+                      style={{ borderColor: COLORS.border, color: COLORS.muted, backgroundColor: COLORS.page }}
+                    >
+                      {x.badge}
+                    </span>
+                  ) : null}
+                </div>
+              </Reveal>
+            ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 4: HOW IT WORKS */}
+      <section id="how" className="py-[100px]">
+        <Container>
+          <div className="text-center">
+            <Reveal>
+              <div className="text-xs font-semibold tracking-[0.28em]" style={{ color: COLORS.accent }}>
+                THE PROCESS
+              </div>
+            </Reveal>
+            <Reveal delay={0.04}>
+              <div className="mt-4 text-[32px] md:text-[40px] font-semibold" style={{ color: COLORS.text }}>
+                Agency-ready in three steps.
+              </div>
+            </Reveal>
+            <Reveal delay={0.08}>
+              <div className="mx-auto mt-4 max-w-[520px] text-sm md:text-base" style={{ color: COLORS.muted }}>
+                From connecting your first client account to reporting results - EmailFlow fits into your agency workflow in minutes.
+              </div>
+            </Reveal>
+          </div>
+
+          <div className="mt-14 flex flex-col items-stretch gap-6 md:flex-row md:items-stretch md:gap-6">
+            {[
+              {
+                step: "01",
+                icon: <IconLink />,
+                title: "Connect",
+                desc: "Connect your clients' Gmail accounts via secure Google OAuth in one click. No passwords stored, no risk.",
+              },
+              {
+                step: "02",
+                icon: <IconZap />,
+                title: "Launch",
+                desc: "Build personalized campaigns with variables like first name and business name. Schedule and trigger in real time.",
+              },
+              {
+                step: "03",
+                icon: <IconInbox />,
+                title: "Track",
+                desc: "Monitor every reply across all client accounts in a unified threaded inbox. No tab-switching ever again.",
+              },
+            ].map((s, idx) => (
+              <React.Fragment key={s.step}>
+                <Card className="flex-1 p-8">
+                  <div className="text-[48px] font-bold leading-none" style={{ color: COLORS.accent }}>
+                    {s.step}
+                  </div>
+                  <div className="mt-5">{s.icon}</div>
+                  <div className="mt-5 text-[20px] font-bold">{s.title}</div>
+                  <div className="mt-3 text-[15px]" style={{ color: COLORS.muted }}>
+                    {s.desc}
+                  </div>
+                </Card>
+                {idx !== 2 ? (
+                  <div className="hidden md:flex items-center justify-center" aria-hidden>
+                    <div className="w-16 border-t border-dashed" style={{ borderColor: COLORS.accent, opacity: 0.7 }} />
+                  </div>
+                ) : null}
+              </React.Fragment>
+            ))}
+          </div>
+        </Container>
+      </section>
+
+      {/* SECTION 5: PRODUCT DEMO MOCKUP */}
+      <section id="about" className="py-[100px]">
+        <Container>
+          <div className="text-center">
+            <Reveal>
+              <div className="text-xs font-semibold tracking-[0.28em]" style={{ color: COLORS.accent }}>
+                THE PLATFORM
+              </div>
+            </Reveal>
+            <Reveal delay={0.04}>
+              <div className="mt-4 text-[32px] md:text-[40px] font-semibold">Your agency's command center.</div>
+            </Reveal>
+            <Reveal delay={0.08}>
+              <div className="mx-auto mt-4 max-w-[720px] text-sm md:text-base" style={{ color: COLORS.muted }}>
+                Every client. Every campaign. Every reply. All in one place.
+              </div>
+            </Reveal>
+          </div>
+
+          <RevealY className="mt-14" y={60}>
             <div className="relative">
-              <div className="relative rounded-xl border border-[#222222] bg-[#141414] p-4 shadow-2xl">
-                {/* Browser-like top bar */}
-                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[#222222]">
-                  <div className="w-3 h-3 rounded-full bg-red-500/20" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/20" />
-                  <div className="w-3 h-3 rounded-full bg-green-500/20" />
-                  <span className="ml-4 text-xs text-slate-500">EmailFlow Dashboard</span>
-                </div>
-                
-                {/* Campaign table mockup */}
-                <div className="space-y-2">
-                  {/* Header */}
-                  <div className="grid grid-cols-5 gap-2 text-xs text-slate-500 pb-2 border-b border-[#222222]">
-                    <div>Campaign</div>
-                    <div>Account</div>
-                    <div>Sent</div>
-                    <div>Replies</div>
-                    <div>Status</div>
-                  </div>
-                  
-                  {/* Row 1 */}
-                  <div className="grid grid-cols-5 gap-2 text-sm py-2">
-                    <div className="font-medium text-white">Q1 Outreach</div>
-                    <div className="text-slate-400">@client1.com</div>
-                    <div className="text-slate-300">2,450</div>
-                    <div className="text-[#F59E0B]">187</div>
-                    <div><span className="px-2 py-0.5 rounded text-xs bg-green-500/20 text-green-400">Active</span></div>
-                  </div>
-                  
-                  {/* Row 2 */}
-                  <div className="grid grid-cols-5 gap-2 text-sm py-2">
-                    <div className="font-medium text-white">LeadGen Series</div>
-                    <div className="text-slate-400">@agency.co</div>
-                    <div className="text-slate-300">5,120</div>
-                    <div className="text-[#F59E0B]">412</div>
-                    <div><span className="px-2 py-0.5 rounded text-xs bg-green-500/20 text-green-400">Active</span></div>
-                  </div>
-                  
-                  {/* Row 3 */}
-                  <div className="grid grid-cols-5 gap-2 text-sm py-2">
-                    <div className="font-medium text-white">SaaS Startup</div>
-                    <div className="text-slate-400">@startup.io</div>
-                    <div className="text-slate-300">1,890</div>
-                    <div className="text-[#F59E0B]">98</div>
-                    <div><span className="px-2 py-0.5 rounded text-xs bg-yellow-500/20 text-yellow-400">Paused</span></div>
-                  </div>
-                  
-                  {/* Row 4 */}
-                  <div className="grid grid-cols-5 gap-2 text-sm py-2">
-                    <div className="font-medium text-white">Enterprise B2B</div>
-                    <div className="text-slate-400">@corp.net</div>
-                    <div className="text-slate-300">890</div>
-                    <div className="text-[#F59E0B]">45</div>
-                    <div><span className="px-2 py-0.5 rounded text-xs bg-green-500/20 text-green-400">Active</span></div>
-                  </div>
-                </div>
-                
-                {/* Stats bar */}
-                <div className="mt-4 pt-3 border-t border-[#222222] flex gap-6">
-                  <div>
-                    <div className="text-xs text-slate-500">Total Sent</div>
-                    <div className="text-lg font-semibold text-white">10,350</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-500">Total Replies</div>
-                    <div className="text-lg font-semibold text-[#F59E0B]">742</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-500">Active Campaigns</div>
-                    <div className="text-lg font-semibold text-white">3</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+              <div
+                aria-hidden
+                className="absolute -bottom-10 left-1/2 h-40 w-[70%] -translate-x-1/2 rounded-full blur-[60px]"
+                style={{ background: "radial-gradient(circle, rgba(245,158,11,0.18) 0%, rgba(245,158,11,0) 70%)" }}
+              />
 
-      {/* 3. SOCIAL PROOF BAR */}
-      <section className="py-8 px-6 border-y border-[#222222] bg-[#141414]">
-        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-center gap-8 md:gap-16">
-          <div className="flex items-center gap-2 text-sm">
-            <div className="flex gap-1">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-4 h-4 fill-[#F59E0B] text-[#F59E0B]" />
-              ))}
-            </div>
-            <span className="text-slate-300">4.9 / 5 from agency users</span>
-          </div>
-          
-          <div className="hidden md:block h-4 w-px bg-[#222222]" />
-          
-          <div className="flex items-center gap-2 text-sm text-slate-300">
-            <TrendingUp className="w-4 h-4 text-[#F59E0B]" />
-            <span>$2.4M in client pipeline generated</span>
-          </div>
-          
-          <div className="hidden md:block h-4 w-px bg-[#222222]" />
-          
-          <div className="flex items-center gap-2 text-sm text-slate-300">
-            <Shield className="w-4 h-4 text-[#F59E0B]" />
-            <span>Official Gmail API — Zero suspension risk</span>
-          </div>
-          
-          <div className="hidden md:block h-4 w-px bg-[#222222]" />
-          
-          <div className="flex items-center gap-3">
-            <div className="flex -space-x-2">
-              <div className="w-8 h-8 rounded-full bg-[#222222] border-2 border-[#141414]" />
-              <div className="w-8 h-8 rounded-full bg-[#333] border-2 border-[#141414]" />
-              <div className="w-8 h-8 rounded-full bg-[#444] border-2 border-[#141414]" />
-            </div>
-            <span className="text-sm text-slate-400">Agency Partner</span>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. HOW IT WORKS */}
-      <section id="how-it-works" className="py-24 px-6">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
-            Simple. Powerful. <span className="text-[#F59E0B]">Agency-Ready.</span>
-          </h2>
-          
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Step 1 */}
-            <div className="relative p-6 rounded-xl bg-[#141414] border border-[#222222]">
-              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-[#F59E0B] text-[#0f0f0f] font-bold flex items-center justify-center text-sm">1</div>
-              <div className="w-12 h-12 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center mb-4">
-                <Users className="w-6 h-6 text-[#F59E0B]" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Connect Client Gmail Accounts</h3>
-              <p className="text-sm text-slate-400">Secure OAuth integration to connect unlimited client Gmail accounts in seconds.</p>
-            </div>
-            
-            {/* Step 2 */}
-            <div className="relative p-6 rounded-xl bg-[#141414] border border-[#222222]">
-              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-[#F59E0B] text-[#0f0f0f] font-bold flex items-center justify-center text-sm">2</div>
-              <div className="w-12 h-12 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center mb-4">
-                <Mail className="w-6 h-6 text-[#F59E0B]" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Build Campaigns with Personalization</h3>
-              <p className="text-sm text-slate-400">Create sequenced outreach with dynamic personalization variables for each client.</p>
-            </div>
-            
-            {/* Step 3 */}
-            <div className="relative p-6 rounded-xl bg-[#141414] border border-[#222222]">
-              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-[#F59E0B] text-[#0f0f0f] font-bold flex items-center justify-center text-sm">3</div>
-              <div className="w-12 h-12 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center mb-4">
-                <Inbox className="w-6 h-6 text-[#F59E0B]" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Monitor Replies Across All Clients</h3>
-              <p className="text-sm text-slate-400">Track campaign performance and replies from a unified inbox for every client.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. PRODUCT SCREENSHOT */}
-      <section className="py-24 px-6 bg-[#0f0f0f]">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-3 gap-12 items-center">
-            {/* Left benefit blurb */}
-            <div className="lg:col-span-1">
-              <h2 className="text-2xl md:text-3xl font-bold mb-4">
-                One Dashboard.<br /><span className="text-[#F59E0B]">Complete Control.</span>
-              </h2>
-              <p className="text-slate-400">
-                EmailFlow gives agencies a unified view across all connected Gmail accounts — no tab-switching, no confusion. Every reply, every campaign, every client in one place.
-              </p>
-            </div>
-            
-            {/* Right - Browser mockup */}
-            <div className="lg:col-span-2">
-              <div className="rounded-xl border border-[#222222] bg-[#141414] overflow-hidden">
+              <div className="relative overflow-hidden rounded-[12px] border" style={{ backgroundColor: COLORS.card, borderColor: COLORS.border }}>
                 {/* Browser bar */}
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-[#222222]">
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-red-500/20" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500/20" />
-                    <div className="w-3 h-3 rounded-full bg-green-500/20" />
+                <div className="flex items-center gap-3 border-b px-4 py-3" style={{ borderColor: COLORS.border, backgroundColor: "#101010" }}>
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 rounded-full border" style={{ borderColor: COLORS.border, backgroundColor: COLORS.page }} />
+                    <div className="h-3 w-3 rounded-full" style={{ backgroundColor: COLORS.accent }} />
+                    <div className="h-3 w-3 rounded-full border" style={{ borderColor: COLORS.border, backgroundColor: COLORS.page }} />
                   </div>
-                  <div className="flex-1 mx-4 px-4 py-1.5 rounded-lg bg-[#0f0f0f] text-xs text-slate-500 text-center">
-                    emailflow.app/dashboard
-                  </div>
-                </div>
-                
-                {/* Dashboard content */}
-                <div className="p-6">
-                  {/* Stats row */}
-                  <div className="grid grid-cols-4 gap-4 mb-6">
-                    <div className="p-4 rounded-lg bg-[#0f0f0f] border border-[#222222]">
-                      <div className="text-xs text-slate-500 mb-1">Accounts</div>
-                      <div className="text-2xl font-bold text-white">8</div>
-                    </div>
-                    <div className="p-4 rounded-lg bg-[#0f0f0f] border border-[#222222]">
-                      <div className="text-xs text-slate-500 mb-1">Campaigns</div>
-                      <div className="text-2xl font-bold text-white">12</div>
-                    </div>
-                    <div className="p-4 rounded-lg bg-[#0f0f0f] border border-[#222222]">
-                      <div className="text-xs text-slate-500 mb-1">Emails Sent</div>
-                      <div className="text-2xl font-bold text-white">24.5K</div>
-                    </div>
-                    <div className="p-4 rounded-lg bg-[#0f0f0f] border border-[#222222]">
-                      <div className="text-xs text-slate-500 mb-1">Replies</div>
-                      <div className="text-2xl font-bold text-[#F59E0B]">1,842</div>
-                    </div>
-                  </div>
-                  
-                  {/* Campaign table */}
-                  <div className="rounded-lg border border-[#222222] overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead className="bg-[#0f0f0f]">
-                        <tr className="text-left text-xs text-slate-500">
-                          <th className="px-4 py-3 font-medium">Campaign Name</th>
-                          <th className="px-4 py-3 font-medium">Account</th>
-                          <th className="px-4 py-3 font-medium">Sent</th>
-                          <th className="px-4 py-3 font-medium">Replies</th>
-                          <th className="px-4 py-3 font-medium">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#222222]">
-                        <tr className="hover:bg-[#0f0f0f]/50">
-                          <td className="px-4 py-3 font-medium text-white">Q1 Lead Generation</td>
-                          <td className="px-4 py-3 text-slate-400">@acme.co</td>
-                          <td className="px-4 py-3 text-slate-300">4,250</td>
-                          <td className="px-4 py-3 text-[#F59E0B]">312</td>
-                          <td className="px-4 py-3"><span className="px-2 py-1 rounded text-xs bg-green-500/20 text-green-400">Active</span></td>
-                        </tr>
-                        <tr className="hover:bg-[#0f0f0f]/50">
-                          <td className="px-4 py-3 font-medium text-white">SaaS Outreach</td>
-                          <td className="px-4 py-3 text-slate-400">@startup.io</td>
-                          <td className="px-4 py-3 text-slate-300">2,890</td>
-                          <td className="px-4 py-3 text-[#F59E0B]">198</td>
-                          <td className="px-4 py-3"><span className="px-2 py-1 rounded text-xs bg-green-500/20 text-green-400">Active</span></td>
-                        </tr>
-                        <tr className="hover:bg-[#0f0f0f]/50">
-                          <td className="px-4 py-3 font-medium text-white">Enterprise B2B</td>
-                          <td className="px-4 py-3 text-slate-400">@corp.net</td>
-                          <td className="px-4 py-3 text-slate-300">1,560</td>
-                          <td className="px-4 py-3 text-[#F59E0B]">87</td>
-                          <td className="px-4 py-3"><span className="px-2 py-1 rounded text-xs bg-yellow-500/20 text-yellow-400">Paused</span></td>
-                        </tr>
-                      </tbody>
-                    </table>
+                  <div
+                    className="mx-auto w-[min(520px,70%)] rounded-full border px-4 py-1.5 text-xs"
+                    style={{ borderColor: COLORS.border, color: COLORS.muted, backgroundColor: COLORS.page }}
+                  >
+                    app.emailflow.io/campaigns
                   </div>
                 </div>
-              </div>
-              
-              <p className="text-center text-sm text-slate-500 mt-4">
-                Manage every client campaign from a single command center.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* 6. FEATURES GRID */}
-      <section id="features" className="py-24 px-6">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-            Everything Your Agency <span className="text-[#F59E0B]">Needs</span>
-          </h2>
-          <p className="text-slate-400 text-center mb-16 max-w-xl mx-auto">
-            Built specifically for agencies managing multiple client accounts.
-          </p>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Feature 1 */}
-            <div className="p-5 rounded-xl bg-[#141414] border border-[#222222] hover:border-[#F59E0B]/30 transition-colors group">
-              <div className="w-10 h-10 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center mb-4 group-hover:bg-[#F59E0B]/20 transition-colors">
-                <Users className="w-5 h-5 text-[#F59E0B]" />
-              </div>
-              <h3 className="text-base font-semibold mb-2">Multi-Account Gmail OAuth</h3>
-              <p className="text-sm text-slate-400">Connect unlimited client Gmail accounts securely via official Google OAuth.</p>
-            </div>
-            
-            {/* Feature 2 */}
-            <div className="p-5 rounded-xl bg-[#141414] border border-[#222222] hover:border-[#F59E0B]/30 transition-colors group">
-              <div className="w-10 h-10 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center mb-4 group-hover:bg-[#F59E0B]/20 transition-colors">
-                <Mail className="w-5 h-5 text-[#F59E0B]" />
-              </div>
-              <h3 className="text-base font-semibold mb-2">Campaign Builder</h3>
-              <p className="text-sm text-slate-400">Build sequenced outreach campaigns with powerful personalization variables.</p>
-            </div>
-            
-            {/* Feature 3 */}
-            <div className="p-5 rounded-xl bg-[#141414] border border-[#222222] hover:border-[#F59E0B]/30 transition-colors group">
-              <div className="w-10 h-10 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center mb-4 group-hover:bg-[#F59E0B]/20 transition-colors">
-                <Inbox className="w-5 h-5 text-[#F59E0B]" />
-              </div>
-              <h3 className="text-base font-semibold mb-2">Unified Inbox</h3>
-              <p className="text-sm text-slate-400">See all client replies in one threaded inbox. Never miss a response.</p>
-            </div>
-            
-            {/* Feature 4 */}
-            <div className="p-5 rounded-xl bg-[#141414] border border-[#222222] hover:border-[#F59E0B]/30 transition-colors group">
-              <div className="w-10 h-10 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center mb-4 group-hover:bg-[#F59E0B]/20 transition-colors">
-                <Activity className="w-5 h-5 text-[#F59E0B]" />
-              </div>
-              <h3 className="text-base font-semibold mb-2">Reply Tracking</h3>
-              <p className="text-sm text-slate-400">Know exactly who replied, when, and from which campaign — instantly.</p>
-            </div>
-            
-            {/* Feature 5 */}
-            <div className="p-5 rounded-xl bg-[#141414] border border-[#222222] hover:border-[#F59E0B]/30 transition-colors group">
-              <div className="w-10 h-10 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center mb-4 group-hover:bg-[#F59E0B]/20 transition-colors">
-                <Shield className="w-5 h-5 text-[#F59E0B]" />
-              </div>
-              <h3 className="text-base font-semibold mb-2">Official Google Compliance</h3>
-              <p className="text-sm text-slate-400">Built on Gmail API only — no scraping, no unauthorized patterns, zero suspension risk.</p>
-            </div>
-            
-            {/* Feature 6 */}
-            <div className="p-5 rounded-xl bg-[#141414] border border-[#222222] hover:border-[#F59E0B]/30 transition-colors group">
-              <div className="w-10 h-10 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center mb-4 group-hover:bg-[#F59E0B]/20 transition-colors">
-                <BarChart3 className="w-5 h-5 text-[#F59E0B]" />
-              </div>
-              <h3 className="text-base font-semibold mb-2">Real-Time Analytics</h3>
-              <p className="text-sm text-slate-400">Track sends and replies per campaign and per client account in real-time.</p>
-            </div>
-          </div>
-        </div>
-      </section>
+                <div className="grid min-h-[420px] grid-cols-12">
+                  {/* Sidebar */}
+                  <div className="col-span-3 border-r p-4" style={{ borderColor: COLORS.border, backgroundColor: COLORS.page }}>
+                    <div className="grid gap-2">
+                      {[
+                        { label: "Dashboard", active: false, d: "M4 13h7V4H4v9Zm9 7h7V11h-7v9ZM4 20h7v-5H4v5Zm9-7h7V4h-7v9Z" },
+                        { label: "Campaigns", active: true, d: "M4 6h16M4 12h10M4 18h16" },
+                        { label: "Inbox", active: false, d: "M4 4h16v12l-3 4H7l-3-4V4Zm0 12h5l1 2h4l1-2h5" },
+                        { label: "Accounts", active: false, d: "M16 11V8a4 4 0 0 0-8 0v3M6 11h12v9H6v-9Z" },
+                        { label: "Settings", active: false, d: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8-3a7.8 7.8 0 0 0-.1-1l2-1.5-2-3.5-2.3 1a7.9 7.9 0 0 0-1.7-1L13.7 2h-3.4L9.1 5a7.9 7.9 0 0 0-1.7 1L5.1 5l-2 3.5 2 1.5a7.8 7.8 0 0 0 0 2l-2 1.5 2 3.5 2.3-1c.5.4 1.1.8 1.7 1l1.2 3h3.4l1.2-3c.6-.2 1.2-.6 1.7-1l2.3 1 2-3.5-2-1.5c.1-.3.1-.7.1-1Z" },
+                      ].map((x) => (
+                        <div
+                          key={x.label}
+                          className="flex items-center gap-3 rounded-[12px] border px-3 py-2"
+                          style={{
+                            borderColor: x.active ? COLORS.accent : COLORS.border,
+                            backgroundColor: x.active ? "rgba(245,158,11,0.08)" : "transparent",
+                            color: x.active ? COLORS.text : COLORS.muted,
+                          }}
+                        >
+                          <NavIcon d={x.d} active={x.active} />
+                          <div className="text-sm font-semibold">{x.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
-      {/* 7. TESTIMONIALS */}
-      <section className="py-24 px-6 bg-[#0f0f0f]">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-            Agencies Trust <span className="text-[#F59E0B]">EmailFlow</span>
-          </h2>
-          <p className="text-slate-400 text-center mb-16 max-w-xl mx-auto">
-            Real feedback from agency owners who scaled their outreach.
-          </p>
-          
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Testimonial 1 */}
-            <div className="p-6 rounded-xl bg-[#141414] border border-[#222222]">
-              <div className="flex gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-[#F59E0B] text-[#F59E0B]" />
-                ))}
-              </div>
-              <p className="text-sm text-slate-300 mb-6">
-                "We manage 8 client campaigns and EmailFlow is the only tool that doesn't make us want to quit. The unified inbox alone saved us 4 hours a week."
-              </p>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#222222] flex items-center justify-center text-sm font-medium text-slate-300">JM</div>
-                <div>
-                  <div className="text-sm font-medium text-white">Jordan M.</div>
-                  <div className="text-xs text-slate-500">Founder, LeadLayer Agency</div>
+                  {/* Main */}
+                  <div className="col-span-9 p-5">
+                    <div className="grid gap-3 md:grid-cols-3">
+                      {[
+                        { label: "Emails Sent", value: "24,892" },
+                        { label: "Total Replies", value: "4,612" },
+                        { label: "Active Campaigns", value: "7" },
+                      ].map((s) => (
+                        <div
+                          key={s.label}
+                          className="rounded-[12px] border p-4"
+                          style={{ borderColor: COLORS.border, backgroundColor: COLORS.card }}
+                        >
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: COLORS.muted }}>
+                            {s.label}
+                          </div>
+                          <div className="mt-2 text-2xl font-bold" style={{ color: COLORS.accent }}>
+                            {s.value}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-6">
+                      <div className="text-sm font-semibold">Campaign Performance</div>
+                      <div className="mt-3 overflow-hidden rounded-[12px] border" style={{ borderColor: COLORS.border }}>
+                        <div className="grid grid-cols-5 gap-3 px-4 py-3 text-[11px] font-semibold" style={{ color: COLORS.muted, backgroundColor: COLORS.page }}>
+                          <div>Campaign Name</div>
+                          <div>Gmail Account</div>
+                          <div>Emails Sent</div>
+                          <div>Replies</div>
+                          <div>Status</div>
+                        </div>
+                        {[
+                          { name: "Acme Corp Outreach", acct: "@acme.co", sent: "6,140", replies: "482", status: "Active" },
+                          { name: "LeadLayer Q1", acct: "@leadlayer.io", sent: "4,920", replies: "301", status: "Paused" },
+                          { name: "SaaS Founders List", acct: "@founders.co", sent: "3,210", replies: "198", status: "Completed" },
+                          { name: "Roofing Leads March", acct: "@roofing.pro", sent: "2,680", replies: "167", status: "Active" },
+                          { name: "Agency Partners", acct: "@partners.io", sent: "7,942", replies: "1,104", status: "Active" },
+                        ].map((r, idx) => {
+                          const bg = idx % 2 === 0 ? COLORS.card : "#1a1a1a";
+                          const statusStyle =
+                            r.status === "Active"
+                              ? { backgroundColor: "rgba(245,158,11,0.10)", color: COLORS.text, borderColor: "rgba(245,158,11,0.25)" }
+                              : r.status === "Paused"
+                                ? { backgroundColor: "rgba(136,136,136,0.10)", color: COLORS.muted, borderColor: COLORS.border }
+                                : { backgroundColor: "rgba(245,158,11,0.10)", color: COLORS.accent, borderColor: "rgba(245,158,11,0.25)" };
+
+                          return (
+                            <div
+                              key={r.name}
+                              className="grid grid-cols-5 gap-3 px-4 py-3 text-sm"
+                              style={{ backgroundColor: bg, borderTop: `1px solid ${COLORS.border}` }}
+                            >
+                              <div className="truncate font-medium">{r.name}</div>
+                              <div className="truncate" style={{ color: COLORS.muted }}>
+                                {r.acct}
+                              </div>
+                              <div style={{ color: COLORS.muted }}>{r.sent}</div>
+                              <div style={{ color: COLORS.accent, fontWeight: 700 }}>{r.replies}</div>
+                              <div>
+                                <span
+                                  className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold"
+                                  style={statusStyle}
+                                >
+                                  {r.status}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-            
-            {/* Testimonial 2 */}
-            <div className="p-6 rounded-xl bg-[#141414] border border-[#222222]">
-              <div className="flex gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-[#F59E0B] text-[#F59E0B]" />
-                ))}
+          </RevealY>
+        </Container>
+      </section>
+
+      {/* SECTION 6: FEATURES GRID */}
+      <section id="features" className="py-[100px]">
+        <Container>
+          <div>
+            <Reveal>
+              <div className="text-xs font-semibold tracking-[0.28em]" style={{ color: COLORS.accent }}>
+                FEATURES
               </div>
-              <p className="text-sm text-slate-300 mb-6">
-                "Finally, a tool that understands how agencies work. Connecting 15 client accounts took 10 minutes. Campaign setup is blazing fast."
-              </p>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#222222] flex items-center justify-center text-sm font-medium text-slate-300">SK</div>
-                <div>
-                  <div className="text-sm font-medium text-white">Sarah K.</div>
-                  <div className="text-xs text-slate-500">Director, OutreachPros</div>
+            </Reveal>
+            <Reveal delay={0.04}>
+              <div className="mt-4 text-[32px] md:text-[40px] font-semibold">Everything your agency needs.</div>
+            </Reveal>
+            <Reveal delay={0.08}>
+              <div className="mt-4 max-w-[720px] text-sm md:text-base" style={{ color: COLORS.muted }}>
+                No extra tools. No duct tape. EmailFlow is purpose-built for agency-scale outreach.
+              </div>
+            </Reveal>
+          </div>
+
+          <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                title: "Multi-Account Gmail OAuth",
+                desc: "Connect unlimited client Gmail accounts with one-click secure Google authorization.",
+                icon: <FeatureIcon path="M16 11V7a4 4 0 0 0-8 0v4M6 11h12v9H6v-9Z" />,
+              },
+              {
+                title: "Campaign Builder",
+                desc: "Build personalized email sequences with slash-command variables for any client list.",
+                icon: <FeatureIcon path="M4 6h16M4 12h10M4 18h16" />,
+              },
+              {
+                title: "Unified Inbox",
+                desc: "All client replies land in one threaded inbox organized by campaign and account.",
+                icon: <FeatureIcon path="M4 4h16v12l-3 4H7l-3-4V4Zm0 12h5l1 2h4l1-2h5" />,
+              },
+              {
+                title: "Reply Tracking",
+                desc: "See exactly who replied, from which campaign, and on which Gmail account, in real time.",
+                icon: <FeatureIcon path="M21 12a9 9 0 1 1-3-6.7M21 4v6h-6" />,
+              },
+              {
+                title: "Official Google Compliance",
+                desc: "Built exclusively on the Gmail API. No scraping, no third-party SMTP tricks, zero suspension risk.",
+                icon: <FeatureIcon path="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4Z" />,
+              },
+              {
+                title: "Real-Time Analytics",
+                desc: "Track sends and replies per campaign and per account with live-updating stats.",
+                icon: <FeatureIcon path="M4 19V5M8 17v-6m4 6V7m4 10v-4m4 4V9" />,
+              },
+            ].map((f) => (
+              <Card key={f.title} className="p-7">
+                <div className="grid h-10 w-10 place-items-center rounded-[12px] border" style={{ borderColor: COLORS.border, backgroundColor: COLORS.page }}>
+                  {f.icon}
                 </div>
-              </div>
-            </div>
-            
-            {/* Testimonial 3 */}
-            <div className="p-6 rounded-xl bg-[#141414] border border-[#222222]">
-              <div className="flex gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-[#F59E0B] text-[#F59E0B]" />
-                ))}
-              </div>
-              <p className="text-sm text-slate-300 mb-6">
-                "Our clients love the reporting. We can show them exactly what's working. Closed $180K in new business last quarter thanks to better tracking."
-              </p>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#222222] flex items-center justify-center text-sm font-medium text-slate-300">DR</div>
-                <div>
-                  <div className="text-sm font-medium text-white">David R.</div>
-                  <div className="text-xs text-slate-500">CEO, GrowthStack Agency</div>
+                <div className="mt-5 text-[17px] font-bold">{f.title}</div>
+                <div className="mt-2 text-[14px]" style={{ color: COLORS.muted }}>
+                  {f.desc}
                 </div>
-              </div>
-            </div>
+              </Card>
+            ))}
           </div>
+        </Container>
+      </section>
+
+      {/* SECTION 7: TESTIMONIALS */}
+      <section className="py-[100px]">
+        <Container>
+          <div>
+            <Reveal>
+              <div className="text-xs font-semibold tracking-[0.28em]" style={{ color: COLORS.accent }}>
+                SOCIAL PROOF
+              </div>
+            </Reveal>
+            <Reveal delay={0.04}>
+              <div className="mt-4 text-[32px] md:text-[40px] font-semibold">Agencies ship more with EmailFlow.</div>
+            </Reveal>
+          </div>
+
+          <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                quote:
+                  "We run campaigns for 6 clients simultaneously. EmailFlow is the only tool where I don't lose track of which reply belongs to which client. The unified inbox is a game changer.",
+                name: "Jordan M.",
+                role: "Founder",
+                company: "LeadLayer Agency",
+              },
+              {
+                quote:
+                  "Onboarding a new client used to mean setting up a whole new tool stack. Now it's just OAuth and go. We cut our setup time from 2 hours to 10 minutes.",
+                name: "Priya S.",
+                role: "Operations Lead",
+                company: "ScaleReach",
+              },
+              {
+                quote:
+                  "Our clients keep asking how we get 18%+ reply rates. The answer is simple sequences, real Gmail accounts, and EmailFlow keeping everything organized.",
+                name: "Marcus T.",
+                role: "CEO",
+                company: "OutboundOS",
+              },
+            ].map((t) => (
+              <Card key={t.name} className="p-7">
+                <StarRow />
+                <div className="mt-4 text-[15px] italic" style={{ color: COLORS.text }}>
+                  "{t.quote}"
+                </div>
+                <div className="mt-6 flex items-center gap-3">
+                  <div
+                    className="h-10 w-10 rounded-full"
+                    style={{ background: "linear-gradient(135deg, #222222 0%, #333333 100%)" }}
+                  />
+                  <div>
+                    <div className="text-sm font-semibold">{t.name}</div>
+                    <div className="text-xs" style={{ color: COLORS.muted }}>
+                      {t.role}, {t.company}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </Container>
+      </section>
+
+      {/* SECTION 8: FINAL CTA */}
+      <section className="py-[100px]">
+        <div
+          className="w-full"
+          style={{
+            background:
+              "radial-gradient(circle at 50% 30%, rgba(245,158,11,0.05) 0%, rgba(15,15,15,0) 60%)",
+          }}
+        >
+          <Container>
+            <div className="mx-auto max-w-3xl text-center">
+              <Reveal>
+                <div className="text-[36px] md:text-[48px] font-bold leading-tight">Ready to scale your agency's outreach?</div>
+              </Reveal>
+              <Reveal delay={0.04}>
+                <div className="mt-4 text-sm md:text-base" style={{ color: COLORS.muted }}>
+                  Connect your first client account in 2 minutes. No credit card required.
+                </div>
+              </Reveal>
+
+              <Reveal delay={0.08}>
+                <div className="mt-8 flex items-center justify-center">
+                  <Link
+                    href="/auth/signin"
+                    className="relative inline-flex items-center justify-center rounded-[12px] px-10 py-4 text-base font-semibold"
+                    style={{ backgroundColor: COLORS.accent, color: COLORS.page }}
+                  >
+                    <motion.span
+                      aria-hidden
+                      className="absolute inset-0 rounded-[12px]"
+                      style={{ border: "1px solid rgba(245,158,11,0.55)" }}
+                      animate={reducedMotion ? undefined : { scale: [1, 1.4], opacity: [0.4, 0] }}
+                      transition={
+                        reducedMotion
+                          ? undefined
+                          : { duration: 1.1, ease: easeOut, repeat: Infinity, repeatDelay: 1.9 }
+                      }
+                    />
+                    Get Started Free
+                  </Link>
+                </div>
+              </Reveal>
+
+              <Reveal delay={0.12}>
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-xs" style={{ color: COLORS.muted }}>
+                  <span className="inline-flex items-center gap-2">
+                    <TrustIconLock /> Secure OAuth
+                  </span>
+                  <SepDot />
+                  <span className="inline-flex items-center gap-2">
+                    <TrustIconGmail /> Official Gmail API
+                  </span>
+                  <SepDot />
+                  <span className="inline-flex items-center gap-2">
+                    <TrustIconClock /> 2 min setup
+                  </span>
+                </div>
+              </Reveal>
+            </div>
+          </Container>
         </div>
       </section>
 
-      {/* 8. PRICING */}
-      <section id="pricing" className="py-24 px-6">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-            Straightforward Pricing for <span className="text-[#F59E0B]">Agencies</span>
-          </h2>
-          <p className="text-slate-400 text-center mb-16 max-w-xl mx-auto">
-            Choose the plan that fits your agency size.
-          </p>
-          
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Starter */}
-            <div className="p-6 rounded-xl bg-[#141414] border border-[#222222]">
-              <h3 className="text-lg font-semibold mb-2">Starter</h3>
-              <div className="mb-4">
-                <span className="text-4xl font-bold text-white">$49</span>
-                <span className="text-slate-400">/month</span>
-              </div>
-              <ul className="space-y-3 mb-6">
-                <li className="flex items-center gap-2 text-sm text-slate-300">
-                  <CheckCircle2 className="w-4 h-4 text-[#F59E0B]" /> Up to 3 Gmail accounts
-                </li>
-                <li className="flex items-center gap-2 text-sm text-slate-300">
-                  <CheckCircle2 className="w-4 h-4 text-[#F59E0B]" /> 1,000 emails/month
-                </li>
-                <li className="flex items-center gap-2 text-sm text-slate-300">
-                  <CheckCircle2 className="w-4 h-4 text-[#F59E0B]" /> Campaign builder
-                </li>
-                <li className="flex items-center gap-2 text-sm text-slate-300">
-                  <CheckCircle2 className="w-4 h-4 text-[#F59E0B]" /> Unified inbox
-                </li>
-                <li className="flex items-center gap-2 text-sm text-slate-300">
-                  <CheckCircle2 className="w-4 h-4 text-[#F59E0B]" /> Standard support
-                </li>
-              </ul>
-              <Link 
-                href="/auth/signin" 
-                className="block w-full py-3 text-center text-sm font-medium text-white bg-[#222222] rounded-lg hover:bg-[#333] transition-all"
-              >
-                Get Started
-              </Link>
+      {/* SECTION 9: FOOTER */}
+      <footer className="border-t py-10" style={{ borderColor: COLORS.border }}>
+        <div className="mx-auto w-full max-w-6xl px-12">
+          <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
+            <div className="flex items-center gap-3" style={{ color: COLORS.muted }}>
+              <LogoMark size={28} />
+              <div className="text-sm">© 2025 EmailFlow</div>
             </div>
-            
-            {/* Agency */}
-            <div className="p-6 rounded-xl bg-[#141414] border-2 border-[#F59E0B] relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#F59E0B] text-[#0f0f0f] text-xs font-medium rounded-full">
-                Most Popular
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Agency</h3>
-              <div className="mb-4">
-                <span className="text-4xl font-bold text-white">$99</span>
-                <span className="text-slate-400">/month</span>
-              </div>
-              <ul className="space-y-3 mb-6">
-                <li className="flex items-center gap-2 text-sm text-slate-300">
-                  <CheckCircle2 className="w-4 h-4 text-[#F59E0B]" /> Unlimited Gmail accounts
-                </li>
-                <li className="flex items-center gap-2 text-sm text-slate-300">
-                  <CheckCircle2 className="w-4 h-4 text-[#F59E0B]" /> Unlimited emails
-                </li>
-                <li className="flex items-center gap-2 text-sm text-slate-300">
-                  <CheckCircle2 className="w-4 h-4 text-[#F59E0B]" /> All features
-                </li>
-                <li className="flex items-center gap-2 text-sm text-slate-300">
-                  <CheckCircle2 className="w-4 h-4 text-[#F59E0B]" /> Priority support
-                </li>
-                <li className="flex items-center gap-2 text-sm text-slate-300">
-                  <CheckCircle2 className="w-4 h-4 text-[#F59E0B]" /> White-label ready <span className="text-xs text-slate-500">(coming soon)</span>
-                </li>
-              </ul>
-              <Link 
-                href="/auth/signin" 
-                className="block w-full py-3 text-center text-sm font-medium text-[#0f0f0f] bg-[#F59E0B] rounded-lg hover:bg-[#D97706] transition-all"
-              >
-                Get Started
-              </Link>
+            <div className="flex items-center gap-6 text-sm" style={{ color: COLORS.muted }}>
+              <motion.a href="#" whileHover={{ color: COLORS.text }} transition={{ duration: 0.18, ease: easeOut }}>
+                Privacy
+              </motion.a>
+              <motion.a href="#" whileHover={{ color: COLORS.text }} transition={{ duration: 0.18, ease: easeOut }}>
+                Terms
+              </motion.a>
+              <motion.a href="#" whileHover={{ color: COLORS.text }} transition={{ duration: 0.18, ease: easeOut }}>
+                Twitter
+              </motion.a>
             </div>
           </div>
-          
-          <p className="text-center text-sm text-slate-500 mt-8">
-            No credit card required to start.
-          </p>
-        </div>
-      </section>
-
-      {/* 9. FINAL CTA */}
-      <section className="py-24 px-6 bg-[#141414] border-y border-[#222222]">
-        <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Ready to Run Your Agency's<br />Outreach at <span className="text-[#F59E0B]">Scale?</span>
-          </h2>
-          <Link 
-            href="/auth/signin" 
-            className="inline-block px-8 py-4 text-lg font-medium text-[#0f0f0f] bg-[#F59E0B] rounded-lg hover:bg-[#D97706] transition-all"
-          >
-            Get Started Free
-          </Link>
-          <p className="text-sm text-slate-500 mt-4">
-            Takes 2 minutes to connect. No card required.
-          </p>
-        </div>
-      </section>
-
-      {/* 10. FOOTER */}
-      <footer className="py-8 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-[#F59E0B] flex items-center justify-center font-bold text-[#0f0f0f] text-xs">E</div>
-            <span className="text-sm text-slate-400">EmailFlow</span>
-          </div>
-          
-          <div className="flex items-center gap-6 text-sm text-slate-500">
-            <a href="#" className="hover:text-slate-300 transition-colors">Privacy</a>
-            <a href="#" className="hover:text-slate-300 transition-colors">Terms</a>
-            <a href="#" className="hover:text-slate-300 transition-colors">Twitter</a>
-          </div>
-          
-          <p className="text-xs text-slate-600">
-            © 2025 EmailFlow
-          </p>
         </div>
       </footer>
     </div>
   );
-};
-
-export default LandingPage;
+}

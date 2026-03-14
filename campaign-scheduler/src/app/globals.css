@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #ec5b13;
-  --color-background-light: #f8f6f6;
-  --color-background-dark: #0a0705;
-  --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --color-primary: #F59E0B;
+  --color-background-light: #ffffff;
+  --color-background-dark: #0f0f0f;
+  --font-sans: var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
 @utility gradient-conic {
@@ -13,23 +13,31 @@
 
 body {
   background-color: var(--color-background-dark);
-  color: #f1f5f9;
+  color: #ffffff;
+}
+
+.animated-gradient-text {
+  background-image: linear-gradient(90deg, #F59E0B 0%, #FFFFFF 55%, #F59E0B 100%);
+  background-size: 200% 200%;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
 }
 
 .glass-panel {
-  background: rgba(10, 7, 5, 0.4);
+  background: rgba(15, 15, 15, 0.4);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(236, 91, 19, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.1);
 }
 
 .ethereal-sidebar {
-  background: linear-gradient(to bottom, rgba(10, 7, 5, 0.8), rgba(10, 7, 5, 0.2));
-  border-right: 1px solid rgba(236, 91, 19, 0.05);
+  background: linear-gradient(to bottom, rgba(15, 15, 15, 0.8), rgba(15, 15, 15, 0.2));
+  border-right: 1px solid rgba(245, 158, 11, 0.05);
 }
 
 .glow-accent {
-  box-shadow: 0 0 15px rgba(236, 91, 19, 0.3);
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
 }
 
 .status-dot-active {
