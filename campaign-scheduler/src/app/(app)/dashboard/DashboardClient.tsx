@@ -651,7 +651,7 @@ function EmailActivityChart({ data, activeTimeframe, onTimeframeChange }: { data
         <div className="glass-panel rounded-xl flex flex-col gap-6 p-8">
             <div className="flex justify-between items-center">
                 <div>
-                    <h3 className="text-lg font-bold text-white">EMAIL SENDED</h3>
+                    <h3 className="text-lg font-bold text-white">EMAILS SENT</h3>
                 </div>
                 <div className="flex gap-2">
                     {["24H", "7D", "30D"].map((tf) => (

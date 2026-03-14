@@ -12,6 +12,7 @@ import {
     Sparkles,
     ChevronLeft,
     ChevronRight,
+    Settings,
 } from "lucide-react";
 import { useAuth } from "@insforge/nextjs";
 
@@ -20,6 +21,7 @@ const navItems = [
     { href: "/campaigns", label: "Campaigns", icon: Megaphone },
     { href: "/inbox", label: "Inbox", icon: MessageSquareText },
     { href: "/accounts", label: "Gmail Accounts", icon: Mail },
+    { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 interface SidebarProps {
@@ -41,12 +43,12 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
     const isExpanded = !collapsed;
 
     return (
-        <aside
+            <aside
             className={`h-full flex flex-col transition-all duration-300 ease-in-out shrink-0 overflow-x-hidden ${isExpanded ? "border-r" : "border-r-0"}`}
             style={{
                 width: isExpanded ? 240 : 64,
-                backgroundColor: "var(--color-background-dark)",
-                borderColor: "rgba(236, 91, 19, 0.05)",
+                backgroundColor: "var(--bg-card)",
+                borderColor: "var(--border)",
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
             }}

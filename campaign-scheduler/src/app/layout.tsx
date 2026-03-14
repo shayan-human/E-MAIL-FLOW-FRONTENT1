@@ -22,6 +22,24 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={plusJakarta.variable} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var theme = localStorage.getItem('theme');
+                if (theme) {
+                  if (theme === 'system') {
+                    document.documentElement.removeAttribute('data-theme');
+                  } else {
+                    document.documentElement.setAttribute('data-theme', theme);
+                  }
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className="antialiased min-h-screen bg-background text-foreground font-sans">
         <ThemeProvider>
           <InsforgeProvider>
