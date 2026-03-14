@@ -44,60 +44,54 @@ const LandingPage = () => {
         </div>
       </nav>
 
-      <section className="relative h-[100vh] w-full flex flex-col items-center justify-center overflow-hidden bg-black">
+      <section className="relative min-h-[700px] h-[85vh] w-full flex flex-col items-center justify-center overflow-hidden bg-black">
         <ShaderAnimation />
         
         <motion.div
-          initial={{ opacity: 0, y: 100 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{
-            delay: 0.3,
-            duration: 0.8,
-            ease: "easeInOut",
-          }}
-          className="flex flex-col items-center relative z-50 px-6"
+          initial={{ opacity: 0, y: 60 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }}
+          className="flex flex-col items-center relative z-50 px-6 pt-16"
         >
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
-            className="mb-8 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-slate-400 text-[10px] font-medium tracking-[0.2em] uppercase backdrop-blur-md"
+            transition={{ delay: 0.4, duration: 0.5 }}
+            className="mb-5 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-slate-400 text-[11px] font-medium tracking-[0.2em] uppercase backdrop-blur-md"
           >
             Infrastructure Orchestration
           </motion.div>
           
-          <h1 className="bg-gradient-to-b from-white to-slate-400 py-4 bg-clip-text text-center text-4xl font-bold tracking-tight text-transparent md:text-7xl leading-[1.1]">
+          <h1 className="bg-gradient-to-b from-white to-slate-400 py-2 bg-clip-text text-center text-4xl font-bold tracking-tight text-transparent md:text-6xl lg:text-7xl leading-[1.1]">
             Build Email Automation <br /> 
             with <span className="text-orange-500">Precision.</span>
           </h1>
           
-          <p className="mt-8 text-slate-400 text-center max-w-xl text-base md:text-lg leading-relaxed font-normal">
+          <p className="mt-5 text-slate-400 text-center max-w-xl text-base md:text-lg leading-relaxed font-normal">
             Deploy high-performance cold email infrastructure with 
             unmatched reliability. Engineered for the next generation of outreach.
           </p>
           
-          <div className="mt-12 flex flex-col sm:flex-row gap-4 items-center">
+          <div className="mt-8 flex flex-col sm:flex-row gap-3 items-center">
             <Link 
               href="/auth/signin" 
-              className="px-8 py-3.5 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 transition-all flex items-center gap-2 group shadow-[0_0_20px_rgba(236,91,19,0.3)] active:scale-95"
+              className="px-7 py-3 rounded-lg bg-orange-500 text-white font-medium hover:bg-orange-600 transition-all flex items-center gap-2 group"
             >
               Get Started <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link 
               href="/auth/signin" 
-              className="px-8 py-3.5 rounded-xl bg-slate-900/60 border border-white/5 text-slate-300 font-semibold hover:bg-slate-800/80 transition-all active:scale-95 backdrop-blur-md"
+              className="px-7 py-3 rounded-lg bg-white/5 border border-white/10 text-slate-300 font-medium hover:bg-white/10 transition-all"
             >
               View Specs
             </Link>
           </div>
         </motion.div>
 
-        {/* Bottom gradient overlay to blend with next section */}
-        <div className="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-black to-transparent z-40" />
+        <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-black to-transparent z-40" />
       </section>
 
-      {/* Email Metrics DisplayCards */}
-      <section className="relative z-50 -mt-20 pb-20">
+      <section className="relative z-50 -mt-24 pb-14">
         <DisplayCards
           cards={[
             {
@@ -137,30 +131,22 @@ const LandingPage = () => {
       {/* Features Section */}
       <FeaturesSection />
 
-      {/* Footer */}
-      <footer className="py-24 px-6 border-t border-slate-900/50 mt-20">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-12">
-          <div className="flex flex-col gap-5">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-orange-500 flex items-center justify-center font-bold text-2xl shadow-[0_0_20px_rgba(236,91,19,0.3)]">E</div>
-              <span className="font-bold text-2xl tracking-tight">EMAIL FLOW</span>
-            </div>
-            <p className="text-slate-500 max-w-sm font-medium">
-              Next-generation email infrastructure for high-growth teams. 
-              Built for speed, delivered with precision.
-            </p>
+      <footer className="py-16 px-6 border-t border-white/5 mt-20">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center font-bold text-white text-sm">E</div>
+            <span className="font-medium text-lg text-slate-300">EMAIL FLOW</span>
           </div>
           
-          <div className="flex flex-col md:text-right gap-6">
-            <div className="flex gap-10 text-sm font-bold text-slate-400">
-              <a href="#" className="hover:text-white transition-colors uppercase tracking-widest">Privacy</a>
-              <a href="#" className="hover:text-white transition-colors uppercase tracking-widest">Terms</a>
-              <a href="#" className="hover:text-white transition-colors uppercase tracking-widest">Twitter</a>
-            </div>
-            <p className="text-slate-600 text-xs font-bold tracking-widest uppercase">
-              © 2024 EMAIL FLOW. PREMIER INFRASTRUCTURE.
-            </p>
+          <div className="flex gap-8 text-sm text-slate-500">
+            <a href="#" className="hover:text-slate-300 transition-colors">Privacy</a>
+            <a href="#" className="hover:text-slate-300 transition-colors">Terms</a>
+            <a href="#" className="hover:text-slate-300 transition-colors">Twitter</a>
           </div>
+          
+          <p className="text-slate-600 text-xs">
+            © 2024 EMAIL FLOW
+          </p>
         </div>
       </footer>
     </div>
