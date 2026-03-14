@@ -6,14 +6,16 @@ import { cn } from "@/lib/utils";
 export const LampContainer = ({
   children,
   className,
+  childrenClassName,
 }: {
   children: React.ReactNode;
   className?: string;
+  childrenClassName?: string;
 }) => {
   return (
     <div
       className={cn(
-        "relative flex min-h-[800px] flex-col items-center justify-center overflow-hidden bg-slate-950 w-full z-0",
+        "relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-slate-950 w-full z-0",
         className
       )}
     >
@@ -77,7 +79,7 @@ export const LampContainer = ({
         <div className="absolute inset-auto z-40 h-44 w-full -translate-y-[12.5rem] bg-slate-950 "></div>
       </div>
 
-      <div className="relative z-50 flex -translate-y-80 flex-col items-center px-5">
+      <div className={cn("relative z-50 flex flex-col items-center px-5", childrenClassName)}>
         {children}
       </div>
     </div>
