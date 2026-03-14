@@ -1,5 +1,4 @@
 .agent/
-!.agent/instructions.md
 .agents/
 PROJECT_BRAIN.md
 AGENTS.md
@@ -10,3 +9,5 @@ node_modules/
 dist/
 build/
 *.log
+litellm_config.yaml
+start-glm-proxy.sh
