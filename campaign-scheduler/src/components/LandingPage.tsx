@@ -3,6 +3,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { LampContainer } from "@/components/ui/lamp";
+import { ShaderAnimation } from "@/components/ui/shader-lines";
 import Link from "next/link";
 import { 
   Mail, 
@@ -87,7 +88,9 @@ const LandingPage = () => {
       </nav>
 
       {/* Hero Section */}
-      <LampContainer childrenClassName="pt-60 pb-20">
+      <section className="relative h-[100vh] w-full flex flex-col items-center justify-center overflow-hidden bg-slate-950">
+        <ShaderAnimation />
+        
         <motion.div
           initial={{ opacity: 0, y: 100 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -96,13 +99,13 @@ const LandingPage = () => {
             duration: 0.8,
             ease: "easeInOut",
           }}
-          className="flex flex-col items-center relative z-50 mt-10"
+          className="flex flex-col items-center relative z-50 px-6"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.5, duration: 0.5 }}
-            className="mb-10 px-4 py-1.5 rounded-full border border-orange-500/20 bg-orange-500/5 text-orange-500 text-xs font-bold tracking-[0.2em] uppercase"
+            className="mb-10 px-4 py-1.5 rounded-full border border-orange-500/20 bg-orange-500/5 text-orange-500 text-xs font-bold tracking-[0.2em] uppercase backdrop-blur-sm"
           >
             Infrastructure Orchestration
           </motion.div>
@@ -120,19 +123,22 @@ const LandingPage = () => {
           <div className="mt-14 flex flex-col sm:flex-row gap-6">
             <Link 
               href="/auth/signin" 
-              className="px-10 py-4 rounded-2xl bg-white text-slate-950 font-black hover:bg-slate-200 transition-all flex items-center gap-3 group shadow-[0_0_30px_rgba(255,255,255,0.15)] active:scale-95"
+              className="px-10 py-4 rounded-2xl bg-white text-slate-950 font-black hover:bg-slate-200 transition-all flex items-center gap-3 group shadow-[0_0_30_rgba(255,255,255,0.15)] active:scale-95"
             >
               Initialize System <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link 
               href="/auth/signin" 
-              className="px-10 py-4 rounded-2xl bg-slate-900/80 border border-slate-800 text-white font-black hover:bg-slate-800 transition-all active:scale-95 backdrop-blur-sm shadow-xl"
+              className="px-10 py-4 rounded-2xl bg-slate-900/80 border border-slate-800 text-white font-black hover:bg-slate-800 transition-all active:scale-95 backdrop-blur-md shadow-xl"
             >
               View Specs
             </Link>
           </div>
         </motion.div>
-      </LampContainer>
+
+        {/* Bottom gradient overlay to blend with next section */}
+        <div className="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-slate-950 to-transparent z-40" />
+      </section>
 
       {/* Features Section */}
       <section id="features" className="py-40 px-6 max-w-7xl mx-auto relative mt-[-100px]">
