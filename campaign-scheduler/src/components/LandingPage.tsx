@@ -2,54 +2,10 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { LampContainer } from "@/components/ui/lamp";
 import { ShaderAnimation } from "@/components/ui/shader-lines";
+import { FeaturesSection } from "@/components/FeaturesSection";
 import Link from "next/link";
-import { 
-  Mail, 
-  Users, 
-  Send, 
-  BarChart3, 
-  RefreshCcw, 
-  Zap,
-  Globe,
-  ArrowRight,
-  Shield,
-  Layers
-} from "lucide-react";
-
-const features = [
-  {
-    icon: <Globe className="w-6 h-6 text-orange-500" />,
-    title: "Unlimited Infrastructure",
-    description: "Scale your email automation without limits on volume or account count."
-  },
-  {
-    icon: <Users className="w-6 h-6 text-orange-500" />,
-    title: "Multi-Account System",
-    description: "Manage multiple sending identities seamlessly from a single dashboard."
-  },
-  {
-    icon: <RefreshCcw className="w-6 h-6 text-orange-500" />,
-    title: "Smart Distribution",
-    description: "Load balance emails across accounts to ensure maximum deliverability."
-  },
-  {
-    icon: <Shield className="w-6 h-6 text-orange-500" />,
-    title: "Gmail API Powered",
-    description: "Built on official Google APIs for industry-leading security and reliability."
-  },
-  {
-    icon: <Layers className="w-6 h-6 text-orange-500" />,
-    title: "Inbox Sync & Tracking",
-    description: "Real-time reply tracking and unified inbox management for all campaigns."
-  },
-  {
-    icon: <BarChart3 className="w-6 h-6 text-orange-500" />,
-    title: "Campaign Analytics",
-    description: "Deep dive into your campaign performance with granular data reporting."
-  }
-];
+import { ArrowRight } from "lucide-react";
 
 const LandingPage = () => {
   return (
@@ -140,49 +96,7 @@ const LandingPage = () => {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-40 px-6 max-w-7xl mx-auto relative mt-[-100px]">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[1px] bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
-        
-        <div className="text-center mb-28">
-          <motion.h2 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-4xl md:text-6xl font-black tracking-tight"
-          >
-            Core <span className="text-orange-500">Protocol</span>
-          </motion.h2>
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="text-slate-400 mt-8 max-w-2xl mx-auto text-lg leading-relaxed font-medium"
-          >
-            Sovereign infrastructure designed for high-deliverability outreach at scale.
-          </motion.p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
-              whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1, duration: 0.6 }}
-              className="p-12 rounded-[3rem] bg-slate-900/40 border border-slate-800/50 hover:border-orange-500/30 transition-all group relative overflow-hidden shadow-2xl"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="mb-8 p-5 rounded-2xl bg-slate-800/50 w-fit group-hover:scale-110 transition-transform duration-500 shadow-xl">
-                {feature.icon}
-              </div>
-              <h3 className="text-2xl font-black mb-4 tracking-tight">{feature.title}</h3>
-              <p className="text-slate-400 leading-relaxed font-medium">{feature.description}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
+      <FeaturesSection />
 
       {/* Footer */}
       <footer className="py-24 px-6 border-t border-slate-900/50 mt-20">
