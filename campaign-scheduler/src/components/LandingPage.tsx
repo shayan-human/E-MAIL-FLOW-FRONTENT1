@@ -10,6 +10,8 @@ import {
   useScroll,
 } from "framer-motion";
 
+import { TestimonialsColumn, type Testimonial } from "@/components/ui/testimonials-column";
+
 const COLORS = {
   page: "#0f0f0f",
   card: "#141414",
@@ -307,6 +309,72 @@ export default function LandingPage() {
     "Dashboard.",
     "Zero",
     "Chaos.",
+  ];
+
+  const testimonials = [
+    {
+      text: "We run campaigns for 6 clients simultaneously. EmailFlow is the only tool where I don't lose track of which reply belongs to which client. The unified inbox is a game changer.",
+      image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop&crop=faces",
+      name: "Jordan M.",
+      role: "Founder",
+      company: "LeadLayer Agency",
+    },
+    {
+      text: "Onboarding a new client used to mean setting up a whole new tool stack. Now it's just OAuth and go. We cut our setup time from 2 hours to 10 minutes.",
+      image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&h=100&fit=crop&crop=faces",
+      name: "Priya S.",
+      role: "Operations Lead",
+      company: "ScaleReach",
+    },
+    {
+      text: "Our clients keep asking how we get 18%+ reply rates. The answer is simple sequences, real Gmail accounts, and EmailFlow keeping everything organized.",
+      image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=faces",
+      name: "Marcus T.",
+      role: "CEO",
+      company: "OutboundOS",
+    },
+    {
+      text: "The unified inbox alone saved us 4 hours a week. We can now manage all client replies from one place without switching tabs.",
+      image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&h=100&fit=crop&crop=faces",
+      name: "Sarah K.",
+      role: "Director",
+      company: "OutreachPros",
+    },
+    {
+      text: "Finally, a tool that understands how agencies work. Connecting 15 client accounts took less than 10 minutes.",
+      image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&h=100&fit=crop&crop=faces",
+      name: "David R.",
+      role: "CEO",
+      company: "GrowthStack",
+    },
+    {
+      text: "Reply tracking is the difference. When a client asks where replies came from, we can answer instantly by campaign and account.",
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces",
+      name: "Alex T.",
+      role: "Head of Sales",
+      company: "PipelinePro",
+    },
+    {
+      text: "Our clients love the reporting. We can show them exactly what's working and close more deals based on real data.",
+      image: "https://images.unsplash.com/photo-1598550874175-4d0ef436c909?w=100&h=100&fit=crop&crop=faces",
+      name: "Michelle L.",
+      role: "Agency Owner",
+      company: "ConvertWise",
+    },
+    {
+      text: "Zero suspension risk with the official Gmail API. We sleep better at night knowing our client accounts are safe.",
+      image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=faces",
+      name: "Chris P.",
+      role: "Managing Partner",
+      company: "B2B Force",
+    },
+    {
+      text: "Campaign setup is blazing fast. We launched 3 new client campaigns this week alone without any headaches.",
+      image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=faces",
+      name: "Emma R.",
+      role: "Growth Manager",
+      company: "ScaleLab",
+    },
   ];
 
   // Social proof counters
@@ -887,64 +955,52 @@ export default function LandingPage() {
       </section>
 
       {/* SECTION 7: TESTIMONIALS */}
-      <section className="py-[100px]">
-        <Container>
-          <div>
-            <Reveal>
-              <div className="text-xs font-semibold tracking-[0.28em]" style={{ color: COLORS.accent }}>
+      <section className="py-[100px] relative" style={{ backgroundColor: COLORS.page }}>
+        <div className="container mx-auto px-4 z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.1, ease: easeOut }}
+            viewport={{ once: true }}
+            className="flex flex-col items-center justify-center max-w-[540px] mx-auto"
+          >
+            <div className="flex justify-center">
+              <div
+                className="text-xs font-semibold tracking-[0.28em] px-4 py-1 rounded-lg border"
+                style={{ borderColor: COLORS.accent, color: COLORS.accent, backgroundColor: "rgba(245,158,11,0.08)" }}
+              >
                 SOCIAL PROOF
               </div>
-            </Reveal>
-            <Reveal delay={0.04}>
-              <div className="mt-4 text-[32px] md:text-[40px] font-semibold">Agencies ship more with EmailFlow.</div>
-            </Reveal>
-          </div>
+            </div>
 
-          <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                quote:
-                  "We run campaigns for 6 clients simultaneously. EmailFlow is the only tool where I don't lose track of which reply belongs to which client. The unified inbox is a game changer.",
-                name: "Jordan M.",
-                role: "Founder",
-                company: "LeadLayer Agency",
-              },
-              {
-                quote:
-                  "Onboarding a new client used to mean setting up a whole new tool stack. Now it's just OAuth and go. We cut our setup time from 2 hours to 10 minutes.",
-                name: "Priya S.",
-                role: "Operations Lead",
-                company: "ScaleReach",
-              },
-              {
-                quote:
-                  "Our clients keep asking how we get 18%+ reply rates. The answer is simple sequences, real Gmail accounts, and EmailFlow keeping everything organized.",
-                name: "Marcus T.",
-                role: "CEO",
-                company: "OutboundOS",
-              },
-            ].map((t) => (
-              <Card key={t.name} className="p-7">
-                <StarRow />
-                <div className="mt-4 text-[15px] italic" style={{ color: COLORS.text }}>
-                  "{t.quote}"
-                </div>
-                <div className="mt-6 flex items-center gap-3">
-                  <div
-                    className="h-10 w-10 rounded-full"
-                    style={{ background: "linear-gradient(135deg, #222222 0%, #333333 100%)" }}
-                  />
-                  <div>
-                    <div className="text-sm font-semibold">{t.name}</div>
-                    <div className="text-xs" style={{ color: COLORS.muted }}>
-                      {t.role}, {t.company}
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            ))}
+            <h2 className="text-[32px] md:text-[40px] font-bold mt-5 text-center" style={{ color: COLORS.text }}>
+              Agencies ship more with EmailFlow.
+            </h2>
+            <p className="text-center mt-4" style={{ color: COLORS.muted }}>
+              See what agency owners are saying about us.
+            </p>
+          </motion.div>
+
+          <div
+            className="flex justify-center gap-6 mt-10 overflow-hidden"
+            style={{ maskImage: "linear-gradient(to bottom,transparent,black_25%,black_75%,transparent)" }}
+          >
+            <TestimonialsColumn
+              testimonials={testimonials.slice(0, 3) as Testimonial[]}
+              duration={15}
+            />
+            <TestimonialsColumn
+              testimonials={testimonials.slice(3, 6) as Testimonial[]}
+              className="hidden md:block"
+              duration={19}
+            />
+            <TestimonialsColumn
+              testimonials={testimonials.slice(6, 9) as Testimonial[]}
+              className="hidden lg:block"
+              duration={17}
+            />
           </div>
-        </Container>
+        </div>
       </section>
 
       {/* SECTION 8: FINAL CTA */}
