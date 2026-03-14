@@ -1,4 +1,5 @@
 .agent/
+!.agent/instructions.md
 .agents/
 PROJECT_BRAIN.md
 AGENTS.md
