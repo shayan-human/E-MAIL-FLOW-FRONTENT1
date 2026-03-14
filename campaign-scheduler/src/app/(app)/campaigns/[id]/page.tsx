@@ -17,7 +17,8 @@ import {
     Clock,
     CheckCircle2,
     ChevronRight,
-    ExternalLink
+    ExternalLink,
+    Eye
 } from "lucide-react";
 import {
     ResponsiveContainer,
@@ -28,6 +29,7 @@ import {
     CartesianGrid,
     Tooltip,
 } from "recharts";
+import { motion } from "framer-motion";
 
 interface Lead {
     id: string;
@@ -42,6 +44,7 @@ interface CampaignDetail {
     name: string;
     status: string;
     subject: string;
+    body: string | null;
     total_leads: number;
     created_at: string;
     daily_limit: number;
@@ -69,6 +72,7 @@ export default function CampaignDetailPage() {
     const [recentReplies, setRecentReplies] = useState<any[]>([]);
     const [isEditingName, setIsEditingName] = useState(false);
     const [editedName, setEditedName] = useState("");
+    const [showMessageModal, setShowMessageModal] = useState(false);
 
     const fetchData = async () => {
         try {
@@ -415,6 +419,32 @@ export default function CampaignDetailPage() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* View Message Button */}
+                            <div className="pt-4 mt-2 border-t border-[#222222]">
+                                <button
+                                    onClick={() => setShowMessageModal(true)}
+                                    className="w-full flex items-center justify-between px-3 py-2 rounded-[8px] border border-transparent hover:border-amber-500/30 transition-all group"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Eye className="w-4 h-4 text-amber-500" />
+                                        <span className="text-[13px] text-white">View Message</span>
+                                    </div>
+                                    <span className="text-[12px] px-2 py-1 rounded-[8px] h-7 flex items-center border transition-all cursor-pointer"
+                                        style={{ borderColor: "#222222", color: "#888888" }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.borderColor = "#F59E0B";
+                                            e.currentTarget.style.color = "#FFFFFF";
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.borderColor = "#222222";
+                                            e.currentTarget.style.color = "#888888";
+                                        }}
+                                    >
+                                        Preview
+                                    </span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -455,6 +485,96 @@ export default function CampaignDetailPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Message Modal */}
+            {showMessageModal && (
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) setShowMessageModal(false);
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === "Escape") setShowMessageModal(false);
+                    }}
+                    tabIndex={0}
+                >
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                        className="w-full max-w-[560px] rounded-[12px] overflow-hidden"
+                        style={{ backgroundColor: "#141414", border: "1px solid #222222" }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex items-start justify-between p-6 pb-4">
+                            <div>
+                                <h2 className="text-[18px] font-bold text-white">Campaign Message</h2>
+                                <p className="text-[13px] mt-1" style={{ color: "#888888" }}>{campaign.name}</p>
+                            </div>
+                            <button
+                                onClick={() => setShowMessageModal(false)}
+                                className="p-1 transition-colors"
+                                style={{ color: "#888888" }}
+                                onMouseEnter={(e) => (e.currentTarget.style.color = "#FFFFFF")}
+                                onMouseLeave={(e) => (e.currentTarget.style.color = "#888888")}
+                            >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M18 6L6 18M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Divider */}
+                        <div style={{ borderTop: "1px solid #222222" }} />
+
+                        {/* Subject */}
+                        <div className="px-6 py-4">
+                            <label className="text-[11px] uppercase tracking-wider" style={{ color: "#888888" }}>Subject</label>
+                            <p className="text-[15px] font-bold text-white mt-1">{campaign.subject}</p>
+                        </div>
+
+                        {/* Divider */}
+                        <div style={{ borderTop: "1px solid #222222" }} />
+
+                        {/* Body */}
+                        <div className="px-6 py-4">
+                            <label className="text-[11px] uppercase tracking-wider" style={{ color: "#888888" }}>Message Body</label>
+                            {campaign.body ? (
+                                <div 
+                                    className="mt-2 text-[14px] text-white overflow-y-auto"
+                                    style={{ 
+                                        lineHeight: 1.8, 
+                                        whiteSpace: "pre-wrap", 
+                                        maxHeight: 360,
+                                        scrollbarColor: "#222222 #141414"
+                                    }}
+                                >
+                                    {campaign.body}
+                                </div>
+                            ) : (
+                                <p className="mt-2 text-[14px] italic" style={{ color: "#888888" }}>
+                                    No message body was saved for this campaign.
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="px-6 py-4 pb-6 flex justify-center">
+                            <button
+                                onClick={() => setShowMessageModal(false)}
+                                className="px-6 py-2 rounded-[8px] text-white text-[14px] transition-all"
+                                style={{ border: "1px solid #222222" }}
+                                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#F59E0B")}
+                                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#222222")}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </div>
     );
 }
