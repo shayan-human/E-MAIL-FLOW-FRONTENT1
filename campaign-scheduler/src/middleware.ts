@@ -18,6 +18,7 @@ export default function middleware(request: NextRequest) {
         baseUrl: process.env.NEXT_PUBLIC_INSFORGE_BASE_URL || 'https://4njfm5n4.us-east.insforge.app',
         publicRoutes: [
             '/',
+            '/auth/signin',
             '/auth/callback',
             '/api/auth',
             '/api/auth/(.*)',

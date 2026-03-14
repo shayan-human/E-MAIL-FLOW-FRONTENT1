@@ -87,7 +87,7 @@ const LandingPage = () => {
       </nav>
 
       {/* Hero Section */}
-      <LampContainer childrenClassName="-translate-y-40">
+      <LampContainer childrenClassName="pt-60 pb-20">
         <motion.div
           initial={{ opacity: 0, y: 100 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -96,7 +96,7 @@ const LandingPage = () => {
             duration: 0.8,
             ease: "easeInOut",
           }}
-          className="flex flex-col items-center relative z-50 mt-20"
+          className="flex flex-col items-center relative z-50 mt-10"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
