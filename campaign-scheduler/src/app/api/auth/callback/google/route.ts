@@ -45,6 +45,10 @@ export async function GET(req: Request) {
         const tokens = await tokenResponse.json();
         const accessToken = tokens.access_token;
         const refreshToken = tokens.refresh_token;
+        const expiresIn = tokens.expires_in || 3600;
+
+        // Calculate token expiration time (buffer of 5 minutes)
+        const tokenExpiresAt = new Date(Date.now() + (expiresIn - 300) * 1000).toISOString();
 
         // Get the user's email from Google
         const userInfoResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
@@ -73,7 +77,8 @@ export async function GET(req: Request) {
             name: name || null,
             google_access_token: encrypt(accessToken),
             is_active: true,
-            status: 'CONNECTED', // Reset status on successful connection
+            status: 'CONNECTED',
+            token_expires_at: tokenExpiresAt,
         };
 
         if (refreshToken) {
