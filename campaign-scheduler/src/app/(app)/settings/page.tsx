@@ -30,6 +30,7 @@ interface UserSettings {
   timezone: string;
   send_window_from: string;
   send_window_to: string;
+  send_window_enabled: boolean;
   theme: string;
   reply_notifications: boolean;
   bounce_notifications: boolean;
@@ -44,6 +45,7 @@ export default function SettingsPage() {
     timezone: getBrowserTimezone(),
     send_window_from: "09:00",
     send_window_to: "17:00",
+    send_window_enabled: false,
     theme: "dark",
     reply_notifications: true,
     bounce_notifications: true,
@@ -75,6 +77,7 @@ export default function SettingsPage() {
           ...data,
           send_window_from: data.send_window_from?.slice(0, 5) || "09:00",
           send_window_to: data.send_window_to?.slice(0, 5) || "17:00",
+          send_window_enabled: data.send_window_enabled || false,
         };
         setSettings(newSettings);
         setOriginalSettings(newSettings);
@@ -147,6 +150,7 @@ export default function SettingsPage() {
       timezone: settings.timezone,
       send_window_from: settings.send_window_from,
       send_window_to: settings.send_window_to,
+      send_window_enabled: settings.send_window_enabled,
     });
   };
 
@@ -163,7 +167,8 @@ export default function SettingsPage() {
   const hasCampaignChanges = 
     settings.timezone !== originalSettings.timezone ||
     settings.send_window_from !== originalSettings.send_window_from ||
-    settings.send_window_to !== originalSettings.send_window_to;
+    settings.send_window_to !== originalSettings.send_window_to ||
+    settings.send_window_enabled !== originalSettings.send_window_enabled;
 
   if (loading) {
     return (
@@ -226,7 +231,7 @@ export default function SettingsPage() {
 
           <div style={{ borderTop: "1px solid var(--border)" }} />
 
-          {/* Daily Send Window */}
+          {/* Daily Send Window Toggle */}
           <div 
             className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-[#1a1a1a]"
             style={{ minHeight: 56 }}
@@ -234,51 +239,85 @@ export default function SettingsPage() {
             <div>
               <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Daily Send Window</div>
               <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                Campaigns will only send emails within this time window each day.
+                {settings.send_window_enabled 
+                  ? `Emails will only send between ${settings.send_window_from} and ${settings.send_window_to} your time.`
+                  : "Turn on to restrict sending to specific hours each day."}
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="time"
-                value={settings.send_window_from}
-                onChange={(e) => setSettings(prev => ({ ...prev, send_window_from: e.target.value }))}
-                className="w-[100px] h-9 rounded-[10px] px-3 text-sm outline-none transition-all"
-                style={{ 
-                  backgroundColor: "#0f0f0f", 
-                  border: "1px solid #222222", 
-                  color: "var(--text-primary)" 
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = "#F59E0B";
-                  e.target.style.boxShadow = "0 0 0 3px rgba(245,158,11,0.15)";
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = "#222222";
-                  e.target.style.boxShadow = "none";
-                }}
+            <button
+              onClick={() => {
+                const newValue = !settings.send_window_enabled;
+                setSettings(prev => ({ ...prev, send_window_enabled: newValue }));
+              }}
+              className={`relative w-12 h-6 rounded-full transition-all duration-200 ${
+                settings.send_window_enabled ? "bg-amber-500" : "bg-gray-700"
+              }`}
+              style={{
+                backgroundColor: settings.send_window_enabled ? "#F59E0B" : "#374151"
+              }}
+            >
+              <span
+                className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-200 ${
+                  settings.send_window_enabled ? "left-7" : "left-1"
+                }`}
               />
-              <span style={{ color: "var(--text-muted)" }}>to</span>
-              <input
-                type="time"
-                value={settings.send_window_to}
-                onChange={(e) => setSettings(prev => ({ ...prev, send_window_to: e.target.value }))}
-                className="w-[100px] h-9 rounded-[10px] px-3 text-sm outline-none transition-all"
-                style={{ 
-                  backgroundColor: "#0f0f0f", 
-                  border: "1px solid #222222", 
-                  color: "var(--text-primary)" 
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = "#F59E0B";
-                  e.target.style.boxShadow = "0 0 0 3px rgba(245,158,11,0.15)";
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = "#222222";
-                  e.target.style.boxShadow = "none";
-                }}
-              />
-            </div>
+            </button>
           </div>
+
+          {/* Time Inputs - Only show when toggle is ON */}
+          {settings.send_window_enabled && (
+            <div 
+              className="flex items-center justify-between px-6 py-4 transition-colors"
+              style={{ minHeight: 56 }}
+            >
+              <div>
+                <div className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  Send hours (your timezone: {settings.timezone})
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="time"
+                  value={settings.send_window_from}
+                  onChange={(e) => setSettings(prev => ({ ...prev, send_window_from: e.target.value }))}
+                  className="w-[100px] h-9 rounded-[10px] px-3 text-sm outline-none transition-all"
+                  style={{ 
+                    backgroundColor: "#0f0f0f", 
+                    border: "1px solid #222222", 
+                    color: "var(--text-primary)" 
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = "#F59E0B";
+                    e.target.style.boxShadow = "0 0 0 3px rgba(245,158,11,0.15)";
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = "#222222";
+                    e.target.style.boxShadow = "none";
+                  }}
+                />
+                <span style={{ color: "var(--text-muted)" }}>to</span>
+                <input
+                  type="time"
+                  value={settings.send_window_to}
+                  onChange={(e) => setSettings(prev => ({ ...prev, send_window_to: e.target.value }))}
+                  className="w-[100px] h-9 rounded-[10px] px-3 text-sm outline-none transition-all"
+                  style={{ 
+                    backgroundColor: "#0f0f0f", 
+                    border: "1px solid #222222", 
+                    color: "var(--text-primary)" 
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = "#F59E0B";
+                    e.target.style.boxShadow = "0 0 0 3px rgba(245,158,11,0.15)";
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = "#222222";
+                    e.target.style.boxShadow = "none";
+                  }}
+                />
+              </div>
+            </div>
+          )}
 
           {hasCampaignChanges && (
             <>
