@@ -324,6 +324,24 @@ export default function CampaignDetailPage() {
                             <h3 className="text-sm font-medium text-white">Target Leads</h3>
                             <span className="text-[11px] text-muted-foreground">{leads.length} leads total</span>
                         </div>
+                        {(() => {
+                            const sent = leads.filter(l => l.status === 'SENT' || l.status === 'REPLIED').length;
+                            const failed = leads.filter(l => l.status === 'FAILED').length;
+                            const pending = leads.filter(l => l.status === 'PENDING').length;
+                            return (
+                                <div className="px-6 py-2 border-b border-[#1f1f1f] text-[11px]">
+                                    <span className="text-muted-foreground">
+                                        {sent} sent ·{' '}
+                                        {failed > 0 ? (
+                                            <span style={{ color: '#ff4444' }}>{failed} failed</span>
+                                        ) : (
+                                            '0 failed'
+                                        )}
+                                        {' · '}{pending} pending
+                                    </span>
+                                </div>
+                            );
+                        })()}
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
@@ -582,9 +600,9 @@ export default function CampaignDetailPage() {
 function StatusBadge({ status }: { status: string }) {
     const config: Record<string, { bg: string; text: string; label: string }> = {
         DRAFT: { bg: "bg-zinc-800/50", text: "text-zinc-400", label: "Draft" },
-        RUNNING: { bg: "bg-emerald-500/10", text: "text-emerald-500", label: "Active" },
-        PAUSED: { bg: "bg-amber-500/10", text: "text-amber-500", label: "Paused" },
-        COMPLETED: { bg: "bg-violet-500/10", text: "text-violet-500", label: "Completed" },
+        RUNNING: { bg: "bg-amber-500/10", text: "text-amber-500", label: "Active" },
+        PAUSED: { bg: "bg-zinc-800/50", text: "text-zinc-400", label: "Paused" },
+        COMPLETED: { bg: "bg-emerald-500/10", text: "text-emerald-500", label: "Completed" },
     };
     const c = config[status || "DRAFT"];
     return (
@@ -599,11 +617,14 @@ function LeadStatusBadge({ status }: { status: string }) {
         PENDING: { bg: "bg-zinc-800", text: "text-zinc-500", label: "Pending" },
         SENT: { bg: "bg-emerald-500/10", text: "text-emerald-500", label: "Sent" },
         REPLIED: { bg: "bg-amber-500/10", text: "text-amber-500", label: "Replied" },
-        FAILED: { bg: "bg-red-500/10", text: "text-red-500", label: "Failed" },
+        FAILED: { bg: "#2a1010", text: "#ff4444", label: "Failed" },
     };
     const c = config[status || "PENDING"];
     return (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium leading-none ${c.bg} ${c.text}`}>
+        <span 
+            className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium leading-none"
+            style={{ backgroundColor: c.bg, color: c.text }}
+        >
             {c.label}
         </span>
     );
