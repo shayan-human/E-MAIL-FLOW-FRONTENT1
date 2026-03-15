@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Folder, 
@@ -16,6 +16,16 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useSlashCommand } from "@/hooks/useSlashCommand";
+
+const PERSONALIZATION_OPTIONS = [
+  { label: 'First Name', tag: '{{firstName}}' },
+  { label: 'Last Name', tag: '{{lastName}}' },
+  { label: 'Full Name', tag: '{{fullName}}' },
+  { label: 'Business Name', tag: '{{businessName}}' },
+  { label: 'Email', tag: '{{email}}' },
+  { label: 'Website', tag: '{{website}}' },
+];
 
 type Folder = {
   id: string;
@@ -62,6 +72,21 @@ export default function DraftsPage() {
   const [moveMenuOpenDraftId, setMoveMenuOpenDraftId] = useState<string | null>(null);
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
   const [draftForm, setDraftForm] = useState({ name: "", subject: "", body: "" });
+
+  const subjectInputRef = useRef<HTMLInputElement>(null);
+  const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const subjectSlash = useSlashCommand({
+    options: PERSONALIZATION_OPTIONS,
+    value: draftForm.subject,
+    onChange: (val) => setDraftForm(prev => ({ ...prev, subject: val })),
+  });
+
+  const bodySlash = useSlashCommand({
+    options: PERSONALIZATION_OPTIONS,
+    value: draftForm.body,
+    onChange: (val) => setDraftForm(prev => ({ ...prev, body: val })),
+  });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -584,26 +609,68 @@ export default function DraftsPage() {
                     style={{ backgroundColor: "#0f0f0f", borderColor: "#222222", color: "white" }}
                   />
                 </div>
-                <div>
+                <div className="relative" ref={subjectSlash.popupRef}>
                   <label className="text-sm text-[#888888] mb-1 block">Subject</label>
                   <Input
+                    ref={subjectInputRef}
                     value={draftForm.subject}
-                    onChange={(e) => setDraftForm(prev => ({ ...prev, subject: e.target.value }))}
+                    onChange={(e) => subjectSlash.handleInputChange(e.target.value, e.target.selectionStart ?? undefined)}
+                    onKeyDown={subjectSlash.handleKeyDown}
                     placeholder="Email subject..."
                     className="w-full"
                     style={{ backgroundColor: "#0f0f0f", borderColor: "#222222", color: "white" }}
                   />
+                  {subjectSlash.activePopup && (
+                    <div className="absolute top-full left-0 mt-2 w-56 rounded-xl border shadow-xl z-[60] overflow-hidden" style={{ backgroundColor: "#141414", borderColor: "#222" }}>
+                      <div className="px-3 py-2 border-b text-xs font-semibold text-[#888888] uppercase" style={{ borderColor: "#222" }}>
+                        Insert Personalization
+                      </div>
+                      <div className="p-1 max-h-60 overflow-y-auto">
+                        {PERSONALIZATION_OPTIONS.map((option, idx) => (
+                          <button
+                            key={option.tag}
+                            onClick={() => subjectSlash.handleSelectOption(option)}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${idx === subjectSlash.selectedIndex ? 'bg-[#F59E0B]/10 text-[#F59E0B]' : 'text-zinc-300 hover:bg-zinc-800'}`}
+                          >
+                            <span>{option.label}</span>
+                            <span className={`text-xs font-mono opacity-50 ${idx === subjectSlash.selectedIndex ? 'text-[#F59E0B]' : ''}`}>{option.tag}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div>
+                <div className="relative" ref={bodySlash.popupRef}>
                   <label className="text-sm text-[#888888] mb-1 block">Body</label>
                   <textarea
+                    ref={bodyTextareaRef}
                     value={draftForm.body}
-                    onChange={(e) => setDraftForm(prev => ({ ...prev, body: e.target.value }))}
+                    onChange={(e) => bodySlash.handleInputChange(e.target.value, e.target.selectionStart ?? undefined)}
+                    onKeyDown={bodySlash.handleKeyDown}
                     placeholder="Email body..."
                     rows={6}
                     className="w-full rounded-lg px-3 py-2 text-sm resize-none"
                     style={{ backgroundColor: "#0f0f0f", borderColor: "#222222", color: "white" }}
                   />
+                  {bodySlash.activePopup && (
+                    <div className="absolute top-full left-0 mt-2 w-56 rounded-xl border shadow-xl z-[60] overflow-hidden" style={{ backgroundColor: "#141414", borderColor: "#222" }}>
+                      <div className="px-3 py-2 border-b text-xs font-semibold text-[#888888] uppercase" style={{ borderColor: "#222" }}>
+                        Insert Personalization
+                      </div>
+                      <div className="p-1 max-h-60 overflow-y-auto">
+                        {PERSONALIZATION_OPTIONS.map((option, idx) => (
+                          <button
+                            key={option.tag}
+                            onClick={() => bodySlash.handleSelectOption(option)}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${idx === bodySlash.selectedIndex ? 'bg-[#F59E0B]/10 text-[#F59E0B]' : 'text-zinc-300 hover:bg-zinc-800'}`}
+                          >
+                            <span>{option.label}</span>
+                            <span className={`text-xs font-mono opacity-50 ${idx === bodySlash.selectedIndex ? 'text-[#F59E0B]' : ''}`}>{option.tag}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex justify-end gap-3 mt-6">
