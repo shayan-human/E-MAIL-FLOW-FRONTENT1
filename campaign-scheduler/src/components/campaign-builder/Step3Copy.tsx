@@ -12,6 +12,7 @@ import { toast } from "@/components/ui/toast-provider";
 import { Account } from "./Step1Accounts";
 import { insforge } from "@/lib/insforge";
 import { useUser } from "@insforge/nextjs";
+import { RotateDraftsSelector } from "@/components/campaign-builder/RotateDraftsSelector";
 
 interface Step3Props {
     onNext: (subject: string, body: string, selectedAccountIds: string[], senderDisplayName?: string) => void;
@@ -30,6 +31,9 @@ const PERSONALIZATION_OPTIONS = [
 export function Step3Copy({ onNext, onBack }: Step3Props) {
     const [subject, setSubject] = useState("");
     const [body, setBody] = useState("");
+
+    const [copyMode, setCopyMode] = useState<"single" | "rotate">("single");
+    const [selectedDraftIds, setSelectedDraftIds] = useState<string[]>([]);
 
     // Popup state
     const [activePopup, setActivePopup] = useState<'subject' | 'body' | null>(null);
@@ -260,6 +264,43 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
                                     </div>
                                 )}
                             </div>
+                        </div>
+
+                        <div className="space-y-3 pt-2">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-base font-semibold">Copy Mode</Label>
+                                <span className="text-xs text-muted-foreground">Optional</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setCopyMode("single")}
+                                    className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 text-center ${copyMode === "single"
+                                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 shadow-sm ring-1 ring-indigo-500/20"
+                                        : "border-border bg-background hover:border-muted-foreground/30 hover:bg-muted/30"
+                                        }`}
+                                >
+                                    <p className={`text-sm font-semibold ${copyMode === "single" ? "text-indigo-700 dark:text-indigo-300" : "text-foreground"}`}>Single Draft</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">Use the subject/body you typed</p>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setCopyMode("rotate")}
+                                    className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 text-center ${copyMode === "rotate"
+                                        ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30 shadow-sm ring-1 ring-amber-500/20"
+                                        : "border-border bg-background hover:border-muted-foreground/30 hover:bg-muted/30"
+                                        }`}
+                                >
+                                    <p className={`text-sm font-semibold ${copyMode === "rotate" ? "text-amber-700 dark:text-amber-300" : "text-foreground"}`}>Rotate Drafts</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">Pick saved drafts to rotate</p>
+                                </button>
+                            </div>
+
+                            <RotateDraftsSelector
+                                enabled={copyMode === "rotate"}
+                                selectedDraftIds={selectedDraftIds}
+                                onSelectedDraftIdsChange={setSelectedDraftIds}
+                            />
                         </div>
                     </CardContent>
                 </Card>
