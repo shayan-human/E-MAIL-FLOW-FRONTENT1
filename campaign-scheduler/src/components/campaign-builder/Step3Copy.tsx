@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { PenTool, KeySquare, HelpCircle, ArrowLeft, ArrowRight, UserCircle2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,20 +103,37 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
         }
     };
 
+    const [validationError, setValidationError] = useState<string | null>(null);
+
     const handleNext = () => {
-        if (!subject.trim()) {
-            toast.error("Please enter an email subject");
-            return;
+        setValidationError(null);
+        
+        if (copyMode === "single") {
+            if (!subject.trim()) {
+                toast.error("Please enter a subject line and email body.");
+                return;
+            }
+            if (!body.trim()) {
+                toast.error("Please enter a subject line and email body.");
+                return;
+            }
+        } else {
+            if (selectedDraftIds.length < 2) {
+                setValidationError("Please select at least 2 drafts to rotate.");
+                return;
+            }
         }
-        if (!body.trim()) {
-            toast.error("Please enter the email body");
-            return;
-        }
+        
         if (selectedAccountIds.length === 0) {
             toast.error("Please select at least one sender account");
             return;
         }
-        onNext(subject, body, selectedAccountIds, sendNameMode === 'custom' ? customSenderName.trim() : undefined);
+        
+        if (copyMode === "single") {
+            onNext(subject, body, selectedAccountIds, sendNameMode === 'custom' ? customSenderName.trim() : undefined);
+        } else {
+            onNext("", "", selectedAccountIds, sendNameMode === 'custom' ? customSenderName.trim() : undefined);
+        }
     };
 
     const handleInputChange = (
@@ -199,73 +217,7 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6 space-y-6 flex-1 flex flex-col">
-                        <div className="space-y-2">
-                            <Label htmlFor="subject" className="text-base font-semibold">Subject Line</Label>
-                            <div className="relative" ref={subjectContainerRef}>
-                                <Input
-                                    id="subject"
-                                    placeholder="e.g. Quick question about {{firstName}}..."
-                                    value={subject}
-                                    onChange={(e) => handleInputChange(e, 'subject')}
-                                    onKeyDown={(e) => handleKeyDown(e, 'subject')}
-                                    className="text-base py-6"
-                                    autoComplete="off"
-                                />
-                                {activePopup === 'subject' && (
-                                    <div className="absolute top-full left-0 mt-2 w-56 rounded-xl border shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200" style={{ backgroundColor: "#141414", borderColor: "#222" }}>
-                                        <div className="px-3 py-2 border-b bg-muted/10 text-xs font-semibold text-muted-foreground uppercase tracking-wider" style={{ borderColor: "#222" }}>
-                                            Insert Personalization
-                                        </div>
-                                        <div className="p-1 max-h-60 overflow-y-auto">
-                                            {PERSONALIZATION_OPTIONS.map((option, idx) => (
-                                                <button
-                                                    key={option.tag}
-                                                    onClick={() => handleSelectOption(option, 'subject')}
-                                                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between group ${idx === selectedIndex ? 'bg-primary/10 text-primary' : 'text-zinc-300 hover:bg-zinc-800'}`}
-                                                >
-                                                    <span>{option.label}</span>
-                                                    <span className={`text-xs font-mono opacity-50 ${idx === selectedIndex ? 'text-primary' : 'group-hover:text-zinc-400'}`}>{option.tag}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="space-y-2 flex-1 flex flex-col">
-                            <Label htmlFor="body" className="text-base font-semibold">Email Body</Label>
-                            <div className="relative flex-1 flex flex-col" ref={bodyContainerRef}>
-                                <Textarea
-                                    id="body"
-                                    placeholder="Hi {{firstName}},&#10;&#10;I noticed you..."
-                                    value={body}
-                                    onChange={(e) => handleInputChange(e, 'body')}
-                                    onKeyDown={(e) => handleKeyDown(e, 'body')}
-                                    className="flex-1 min-h-[300px] text-base leading-relaxed resize-none font-sans"
-                                />
-                                {activePopup === 'body' && (
-                                    <div className="absolute top-full left-0 mt-2 w-56 rounded-xl border shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200" style={{ backgroundColor: "#141414", borderColor: "#222" }}>
-                                        <div className="px-3 py-2 border-b bg-muted/10 text-xs font-semibold text-muted-foreground uppercase tracking-wider" style={{ borderColor: "#222" }}>
-                                            Insert Personalization
-                                        </div>
-                                        <div className="p-1 max-h-60 overflow-y-auto">
-                                            {PERSONALIZATION_OPTIONS.map((option, idx) => (
-                                                <button
-                                                    key={option.tag}
-                                                    onClick={() => handleSelectOption(option, 'body')}
-                                                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between group ${idx === selectedIndex ? 'bg-primary/10 text-primary' : 'text-zinc-300 hover:bg-zinc-800'}`}
-                                                >
-                                                    <span>{option.label}</span>
-                                                    <span className={`text-xs font-mono opacity-50 ${idx === selectedIndex ? 'text-primary' : 'group-hover:text-zinc-400'}`}>{option.tag}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
+                        {/* Copy Mode Toggle - Always visible */}
                         <div className="space-y-3 pt-2">
                             <div className="flex items-center justify-between">
                                 <Label className="text-base font-semibold">Copy Mode</Label>
@@ -295,13 +247,110 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
                                     <p className="text-xs text-muted-foreground mt-0.5">Pick saved drafts to rotate</p>
                                 </button>
                             </div>
-
-                            <RotateDraftsSelector
-                                enabled={copyMode === "rotate"}
-                                selectedDraftIds={selectedDraftIds}
-                                onSelectedDraftIdsChange={setSelectedDraftIds}
-                            />
                         </div>
+
+                        {/* Animated Content Area */}
+                        <AnimatePresence mode="wait">
+                            {copyMode === "single" ? (
+                                <motion.div
+                                    key="single-fields"
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: "auto" }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="space-y-6"
+                                >
+                                    <div className="space-y-2">
+                                        <Label htmlFor="subject" className="text-base font-semibold">Subject Line</Label>
+                                        <div className="relative" ref={subjectContainerRef}>
+                                            <Input
+                                                id="subject"
+                                                placeholder="e.g. Quick question about {{firstName}}..."
+                                                value={subject}
+                                                onChange={(e) => handleInputChange(e, 'subject')}
+                                                onKeyDown={(e) => handleKeyDown(e, 'subject')}
+                                                className="text-base py-6"
+                                                autoComplete="off"
+                                            />
+                                            {activePopup === 'subject' && (
+                                                <div className="absolute top-full left-0 mt-2 w-56 rounded-xl border shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200" style={{ backgroundColor: "#141414", borderColor: "#222" }}>
+                                                    <div className="px-3 py-2 border-b bg-muted/10 text-xs font-semibold text-muted-foreground uppercase tracking-wider" style={{ borderColor: "#222" }}>
+                                                        Insert Personalization
+                                                    </div>
+                                                    <div className="p-1 max-h-60 overflow-y-auto">
+                                                        {PERSONALIZATION_OPTIONS.map((option, idx) => (
+                                                            <button
+                                                                key={option.tag}
+                                                                onClick={() => handleSelectOption(option, 'subject')}
+                                                                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between group ${idx === selectedIndex ? 'bg-primary/10 text-primary' : 'text-zinc-300 hover:bg-zinc-800'}`}
+                                                            >
+                                                                <span>{option.label}</span>
+                                                                <span className={`text-xs font-mono opacity-50 ${idx === selectedIndex ? 'text-primary' : 'group-hover:text-zinc-400'}`}>{option.tag}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2 flex-1 flex flex-col">
+                                        <Label htmlFor="body" className="text-base font-semibold">Email Body</Label>
+                                        <div className="relative flex-1 flex flex-col" ref={bodyContainerRef}>
+                                            <Textarea
+                                                id="body"
+                                                placeholder="Hi {{firstName}},&#10;&#10;I noticed you..."
+                                                value={body}
+                                                onChange={(e) => handleInputChange(e, 'body')}
+                                                onKeyDown={(e) => handleKeyDown(e, 'body')}
+                                                className="flex-1 min-h-[300px] text-base leading-relaxed resize-none font-sans"
+                                            />
+                                            {activePopup === 'body' && (
+                                                <div className="absolute top-full left-0 mt-2 w-56 rounded-xl border shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200" style={{ backgroundColor: "#141414", borderColor: "#222" }}>
+                                                    <div className="px-3 py-2 border-b bg-muted/10 text-xs font-semibold text-muted-foreground uppercase tracking-wider" style={{ borderColor: "#222" }}>
+                                                        Insert Personalization
+                                                    </div>
+                                                    <div className="p-1 max-h-60 overflow-y-auto">
+                                                        {PERSONALIZATION_OPTIONS.map((option, idx) => (
+                                                            <button
+                                                                key={option.tag}
+                                                                onClick={() => handleSelectOption(option, 'body')}
+                                                                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between group ${idx === selectedIndex ? 'bg-primary/10 text-primary' : 'text-zinc-300 hover:bg-zinc-800'}`}
+                                                            >
+                                                                <span>{option.label}</span>
+                                                                <span className={`text-xs font-mono opacity-50 ${idx === selectedIndex ? 'text-primary' : 'group-hover:text-zinc-400'}`}>{option.tag}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ) : (
+                                <motion.div
+                                    key="rotate-selector"
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -8 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="space-y-3"
+                                >
+                                    <RotateDraftsSelector
+                                        enabled={copyMode === "rotate"}
+                                        selectedDraftIds={selectedDraftIds}
+                                        onSelectedDraftIdsChange={(ids) => {
+                                            setSelectedDraftIds(ids);
+                                            setValidationError(null);
+                                        }}
+                                    />
+                                    
+                                    {validationError && (
+                                        <p className="text-sm" style={{ color: "#ff4444" }}>{validationError}</p>
+                                    )}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </CardContent>
                 </Card>
 
@@ -435,7 +484,7 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
                 <Button
                     size="lg"
                     onClick={handleNext}
-                    disabled={!subject.trim() || !body.trim() || selectedAccountIds.length === 0}
+                    disabled={(copyMode === "single" && (!subject.trim() || !body.trim())) || selectedAccountIds.length === 0}
                     className="px-8 font-bold"
                 >
                     Finalize Schedule <ArrowRight className="w-4 h-4 ml-2" />
