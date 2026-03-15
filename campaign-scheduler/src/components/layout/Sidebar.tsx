@@ -13,6 +13,7 @@ import {
     ChevronLeft,
     ChevronRight,
     Settings,
+    FileText,
 } from "lucide-react";
 import { useAuth } from "@insforge/nextjs";
 
@@ -20,6 +21,7 @@ const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/campaigns", label: "Campaigns", icon: Megaphone },
     { href: "/inbox", label: "Inbox", icon: MessageSquareText },
+    { href: "/drafts", label: "Drafts", icon: FileText },
     { href: "/accounts", label: "Gmail Accounts", icon: Mail },
     { href: "/settings", label: "Settings", icon: Settings },
 ];
