@@ -2,6 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Folder } from "lucide-react";
+
+type Folder = {
+    id: string;
+    name: string;
+    color: string;
+};
 
 type Draft = {
     id: string;
@@ -9,6 +16,7 @@ type Draft = {
     subject: string | null;
     body: string | null;
     created_at: string;
+    folder_id: string | null;
 };
 
 function SkeletonRow() {
@@ -23,6 +31,11 @@ function SkeletonRow() {
     );
 }
 
+type GroupedDrafts = {
+    folder: Folder | null;
+    drafts: Draft[];
+};
+
 export function RotateDraftsSelector(props: {
     enabled: boolean;
     selectedDraftIds: string[];
@@ -30,11 +43,40 @@ export function RotateDraftsSelector(props: {
 }) {
     const { enabled, selectedDraftIds, onSelectedDraftIdsChange } = props;
     const [drafts, setDrafts] = useState<Draft[]>([]);
+    const [folders, setFolders] = useState<Folder[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [hasFetched, setHasFetched] = useState(false);
 
     const selectedSet = useMemo(() => new Set(selectedDraftIds), [selectedDraftIds]);
+
+    const groupedDrafts = useMemo((): GroupedDrafts[] => {
+        const folderMap = new Map<string | null, Draft[]>();
+        
+        drafts.forEach(draft => {
+            const folderId = draft.folder_id;
+            if (!folderMap.has(folderId)) {
+                folderMap.set(folderId, []);
+            }
+            folderMap.get(folderId)!.push(draft);
+        });
+
+        const result: GroupedDrafts[] = [];
+        
+        folders.forEach(folder => {
+            const folderDrafts = folderMap.get(folder.id) || [];
+            if (folderDrafts.length > 0) {
+                result.push({ folder, drafts: folderDrafts });
+            }
+        });
+        
+        const uncategorized = folderMap.get(null) || [];
+        if (uncategorized.length > 0) {
+            result.push({ folder: null, drafts: uncategorized });
+        }
+
+        return result;
+    }, [drafts, folders]);
 
     useEffect(() => {
         if (!enabled || hasFetched) return;
@@ -44,20 +86,31 @@ export function RotateDraftsSelector(props: {
             setLoading(true);
             setError(null);
             try {
-                const res = await fetch("/api/drafts", { method: "GET" });
-                if (!res.ok) {
-                    throw new Error(`HTTP ${res.status}`);
+                const [draftsRes, foldersRes] = await Promise.all([
+                    fetch("/api/drafts", { method: "GET" }),
+                    fetch("/api/folders", { method: "GET" }),
+                ]);
+                
+                if (!draftsRes.ok || !foldersRes.ok) {
+                    throw new Error(`HTTP ${draftsRes.status}`);
                 }
-                const json = await res.json().catch(() => ({}));
-                const rows = Array.isArray(json?.data) ? (json.data as Draft[]) : [];
+                
+                const draftsJson = await draftsRes.json().catch(() => ({}));
+                const foldersJson = await foldersRes.json().catch(() => ({}));
+                
+                const rows = Array.isArray(draftsJson?.data) ? (draftsJson.data as Draft[]) : [];
+                const folderData = Array.isArray(foldersJson?.data) ? (foldersJson.data as Folder[]) : [];
+                
                 if (!cancelled) {
                     setDrafts(rows);
+                    setFolders(folderData);
                     setHasFetched(true);
                 }
             } catch (e) {
                 if (!cancelled) {
                     setError("Failed to load drafts. Please refresh.");
                     setDrafts([]);
+                    setFolders([]);
                     setHasFetched(true);
                 }
             } finally {
@@ -113,29 +166,48 @@ export function RotateDraftsSelector(props: {
                         </a>
                     </div>
                 ) : (
-                    <div className="space-y-2">
-                        {drafts.map((d) => {
-                            const checked = selectedSet.has(d.id);
-                            const subj = (d.subject || "").trim();
-                            return (
-                                <div
-                                    key={d.id}
-                                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${checked ? "bg-white/5" : "hover:bg-white/3"}`}
-                                    style={{ borderColor: checked ? "rgba(245, 158, 11, 0.35)" : "#222222" }}
-                                    onClick={() => toggleDraft(d.id, !checked)}
-                                >
-                                    <Checkbox
-                                        checked={checked}
-                                        onCheckedChange={(c: boolean | "indeterminate") => toggleDraft(d.id, c as boolean)}
-                                        onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-sm font-semibold text-white truncate">{d.name}</div>
-                                        <div className="text-xs text-[#9ca3af] truncate">{subj || "(No subject)"}</div>
-                                    </div>
+                    <div className="space-y-4">
+                        {groupedDrafts.map((group) => (
+                            <div key={group.folder?.id || "uncategorized"}>
+                                <div className="flex items-center gap-2 mb-2">
+                                    {group.folder ? (
+                                        <>
+                                            <Folder className="w-3.5 h-3.5" style={{ color: group.folder.color }} />
+                                            <span className="text-xs uppercase tracking-wider text-[#6b7280]">{group.folder.name}</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Folder className="w-3.5 h-3.5 text-[#888888]" />
+                                            <span className="text-xs uppercase tracking-wider text-[#6b7280]">Uncategorized</span>
+                                        </>
+                                    )}
                                 </div>
-                            );
-                        })}
+                                <div className="space-y-2">
+                                    {group.drafts.map((d) => {
+                                        const checked = selectedSet.has(d.id);
+                                        const subj = (d.subject || "").trim();
+                                        return (
+                                            <div
+                                                key={d.id}
+                                                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${checked ? "bg-white/5" : "hover:bg-white/3"}`}
+                                                style={{ borderColor: checked ? "rgba(245, 158, 11, 0.35)" : "#222222" }}
+                                                onClick={() => toggleDraft(d.id, !checked)}
+                                            >
+                                                <Checkbox
+                                                    checked={checked}
+                                                    onCheckedChange={(c: boolean | "indeterminate") => toggleDraft(d.id, c as boolean)}
+                                                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                                />
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-sm font-semibold text-white truncate">{d.name}</div>
+                                                    <div className="text-xs text-[#9ca3af] truncate">{subj || "(No subject)"}</div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>

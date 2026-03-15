@@ -10,20 +10,20 @@ export async function GET() {
         }
 
         const insforge = await getInsforgeClient();
-        const { data, error } = await insforge.database
-            .from("drafts")
-            .select("id, name, subject, body, created_at, folder_id")
+        const { data: folders, error } = await insforge.database
+            .from("draft_folders")
+            .select("id, name, color, created_at")
             .eq("user_id", user.id)
-            .order("updated_at", { ascending: false });
+            .order("name", { ascending: true });
 
         if (error) {
             throw error;
         }
 
-        return NextResponse.json({ data: data || [] });
+        return NextResponse.json({ data: folders || [] });
     } catch (error) {
-        console.error("[GET Drafts API Error]:", error);
-        return NextResponse.json({ error: "Failed to fetch drafts" }, { status: 500 });
+        console.error("[GET Folders API Error]:", error);
+        return NextResponse.json({ error: "Failed to fetch folders" }, { status: 500 });
     }
 }
 
@@ -35,23 +35,21 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { name, subject, body: draftBody, folder_id } = body;
+        const { name, color } = body;
 
         if (!name) {
-            return NextResponse.json({ error: "Draft name is required" }, { status: 400 });
+            return NextResponse.json({ error: "Folder name is required" }, { status: 400 });
         }
 
         const insforge = await getInsforgeClient();
         const { data, error } = await insforge.database
-            .from("drafts")
+            .from("draft_folders")
             .insert([{
                 user_id: user.id,
                 name,
-                subject: subject || "",
-                body: draftBody || "",
-                folder_id: folder_id || null,
+                color: color || "#F59E0B",
             }])
-            .select("id, name, subject, body, created_at, folder_id")
+            .select("id, name, color, created_at")
             .single();
 
         if (error) {
@@ -60,7 +58,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ data }, { status: 201 });
     } catch (error) {
-        console.error("[POST Drafts API Error]:", error);
-        return NextResponse.json({ error: "Failed to create draft" }, { status: 500 });
+        console.error("[POST Folders API Error]:", error);
+        return NextResponse.json({ error: "Failed to create folder" }, { status: 500 });
     }
 }
