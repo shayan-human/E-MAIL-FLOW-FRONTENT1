@@ -4,6 +4,8 @@ import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
+import { useTheme } from "next-themes";
 import { insforge } from "@/lib/insforge";
 
 const COLORS = {
@@ -23,6 +25,8 @@ export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const reducedMotion = useReducedMotion();
+  const { resolvedTheme } = useTheme();
+  const isLightMode = resolvedTheme === 'light';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,15 +64,15 @@ export default function SignInPage() {
       {/* Minimal Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 md:px-8">
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center font-bold"
-            style={{ backgroundColor: COLORS.accent, color: COLORS.page }}
-          >
-            E
+          <div className={isLightMode ? "rounded-lg p-1.5 bg-white" : ""}>
+            <Image 
+              src="/email_flow_logo.png" 
+              alt="Email Flow" 
+              height={40} 
+              width={120}
+              style={{ width: 'auto', height: 40 }}
+            />
           </div>
-          <span className="font-bold text-lg tracking-tight" style={{ color: COLORS.text }}>
-            EMAIL FLOW
-          </span>
         </Link>
         <Link
           href="/"
@@ -95,11 +99,14 @@ export default function SignInPage() {
         >
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
-            <div
-              className="w-12 h-12 rounded-lg flex items-center justify-center font-bold text-xl mb-4"
-              style={{ backgroundColor: COLORS.accent, color: COLORS.page }}
-            >
-              E
+            <div className={isLightMode ? "rounded-lg p-2 bg-white mb-4" : "mb-4"}>
+              <Image 
+                src="/email_flow_logo.png" 
+                alt="Email Flow" 
+                height={48} 
+                width={144}
+                style={{ width: 'auto', height: 48 }}
+              />
             </div>
             <h1 className="text-[28px] font-bold" style={{ color: COLORS.text }}>
               Welcome back.

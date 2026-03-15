@@ -2,6 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { useTheme } from "next-themes";
 import {
   motion,
   useInView,
@@ -282,6 +284,8 @@ export default function LandingPage() {
   const reducedMotion = useReducedMotion();
   const { scrollY } = useScroll();
   const [navSolid, setNavSolid] = React.useState(false);
+  const { resolvedTheme } = useTheme();
+  const isLightMode = resolvedTheme === 'light';
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     setNavSolid(latest > 60);
@@ -449,8 +453,17 @@ export default function LandingPage() {
       >
         <div className="flex h-full w-full items-center justify-between px-12">
           <div className="flex items-center gap-3">
-            <LogoMark size={32} />
-            <div className="text-sm font-bold tracking-[0.16em]">EMAIL FLOW</div>
+            <Link href="/">
+              <div className={isLightMode ? "rounded-lg p-1.5 bg-white" : ""}>
+                <Image 
+                  src="/email_flow_logo.png" 
+                  alt="Email Flow" 
+                  height={40} 
+                  width={120}
+                  style={{ width: 'auto', height: 40 }}
+                />
+              </div>
+            </Link>
           </div>
 
           <div className="hidden md:flex items-center gap-8 text-sm" style={{ color: COLORS.muted }}>
@@ -1134,7 +1147,15 @@ export default function LandingPage() {
         <div className="mx-auto w-full max-w-6xl px-12">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
             <div className="flex items-center gap-3" style={{ color: COLORS.muted }}>
-              <LogoMark size={28} />
+              <div className={isLightMode ? "rounded-lg p-1 bg-white" : ""}>
+                <Image 
+                  src="/email_flow_logo.png" 
+                  alt="Email Flow" 
+                  height={32} 
+                  width={96}
+                  style={{ width: 'auto', height: 32, opacity: 0.8 }}
+                />
+              </div>
               <div className="text-sm">© 2025 EmailFlow</div>
             </div>
             <div className="flex items-center gap-6 text-sm" style={{ color: COLORS.muted }}>

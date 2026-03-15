@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
     LayoutDashboard,
@@ -16,6 +17,7 @@ import {
     FileText,
 } from "lucide-react";
 import { useAuth } from "@insforge/nextjs";
+import { useTheme } from "next-themes";
 
 const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -36,6 +38,8 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
     const pathname = usePathname();
     const [showLogout, setShowLogout] = useState(false);
     const { signOut } = useAuth();
+    const { theme, resolvedTheme } = useTheme();
+    const isLightMode = resolvedTheme === 'light';
 
     const handleSignOut = async () => {
         await signOut();
@@ -63,17 +67,22 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
                     display: none;
                 }
             `}</style>
-            {/* Brand + Toggle */}
+{/* Brand + Toggle */}
             <div className={`h-14 flex items-center border-b shrink-0 transition-all ${isExpanded ? "justify-between px-4" : "justify-center"}`} style={{ borderColor: "rgba(236, 91, 19, 0.05)" }}>
                 {isExpanded ? (
                     <>
                         <div className="flex items-center gap-2.5 overflow-hidden">
-                            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-[0_0_15px_rgba(236,91,19,0.3)] shrink-0">
-                                <Sparkles className="w-4 h-4 text-white" />
-                            </div>
-                            <span className="text-[15px] font-bold tracking-tight text-white whitespace-nowrap">
-                                Aur
-                            </span>
+                            <Link href="/">
+                                <div className={isLightMode ? "rounded-lg p-1.5 bg-white" : ""}>
+                                    <Image 
+                                        src="/email_flow_logo.png" 
+                                        alt="Email Flow" 
+                                        height={36} 
+                                        width={108}
+                                        style={{ width: 'auto', height: 36 }}
+                                    />
+                                </div>
+                            </Link>
                         </div>
                         <button
                             onClick={onToggle}
@@ -84,13 +93,17 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
                         </button>
                     </>
                 ) : (
-                    <button
-                        onClick={onToggle}
-                        className="w-8 h-8 flex items-center justify-center rounded-md text-neutral-500 hover:text-white hover:bg-white/[0.06] transition-colors shrink-0"
-                        title="Expand sidebar"
-                    >
-                        <ChevronRight className="w-5 h-5" />
-                    </button>
+                    <Link href="/">
+                        <div className={isLightMode ? "rounded-lg p-1.5 bg-white" : ""}>
+                            <Image 
+                                src="/email_flow_logo.png" 
+                                alt="Email Flow" 
+                                height={32} 
+                                width={96}
+                                style={{ width: 'auto', height: 32 }}
+                            />
+                        </div>
+                    </Link>
                 )}
             </div>
 
