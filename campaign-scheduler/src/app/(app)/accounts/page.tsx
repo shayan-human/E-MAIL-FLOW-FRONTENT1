@@ -362,10 +362,10 @@ export default function AccountsPage() {
             <SimpleConfirmModal
                 open={confirmModalOpen}
                 title="Disconnect Account"
-                message="Are you sure you want to disconnect this Gmail account? Your data including leads and send history will also be removed."
+                message="This will remove the account from the app."
                 confirmText="Disconnect"
                 cancelText="Cancel"
-                variant="danger"
+                variant="warning"
                 onConfirm={() => selectedAccountId && handleDisconnect(selectedAccountId)}
                 onCancel={() => { setConfirmModalOpen(false); setSelectedAccountId(null); }}
             />
