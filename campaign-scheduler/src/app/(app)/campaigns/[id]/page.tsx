@@ -327,6 +327,7 @@ export default function CampaignDetailPage() {
                         {(() => {
                             const sent = leads.filter(l => l.status === 'SENT' || l.status === 'REPLIED').length;
                             const failed = leads.filter(l => l.status === 'FAILED').length;
+                            const blocked = leads.filter(l => l.status === 'BLOCKED').length;
                             const pending = leads.filter(l => l.status === 'PENDING').length;
                             return (
                                 <div className="px-6 py-2 border-b border-[#1f1f1f] text-[11px]">
@@ -337,6 +338,9 @@ export default function CampaignDetailPage() {
                                         ) : (
                                             '0 failed'
                                         )}
+                                        {blocked > 0 ? (
+                                            <> · <span style={{ color: '#ff4444' }}>{blocked} blocked</span></>
+                                        ) : null}
                                         {' · '}{pending} pending
                                     </span>
                                 </div>
@@ -618,6 +622,7 @@ function LeadStatusBadge({ status }: { status: string }) {
         SENT: { bg: "bg-emerald-500/10", text: "text-emerald-500", label: "Sent" },
         REPLIED: { bg: "bg-amber-500/10", text: "text-amber-500", label: "Replied" },
         FAILED: { bg: "#2a1010", text: "#ff4444", label: "Failed" },
+        BLOCKED: { bg: "#2a1010", text: "#ff4444", label: "Blocked" },
     };
     const c = config[status || "PENDING"];
     return (
