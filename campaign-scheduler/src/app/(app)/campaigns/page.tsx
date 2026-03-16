@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { insforge } from "@/lib/insforge";
 import { useUser } from "@insforge/nextjs";
 import { toast } from "@/components/ui/toast-provider";
+import { SimpleConfirmModal } from "@/components/ui/simple-confirm-modal";
 import Link from "next/link";
 import {
     Plus,
@@ -152,6 +153,8 @@ export default function CampaignsPage() {
     const [campaigns, setCampaigns] = useState<CampaignRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<string>("All");
+    const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
 
     const fetchCampaigns = async () => {
         if (!isLoaded) return;
@@ -229,7 +232,7 @@ export default function CampaignsPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Delete this campaign? All leads and data will be lost.")) return;
+        setConfirmModalOpen(false);
         try {
             const { error } = await insforge.database.from("campaigns").delete().eq("id", id);
             if (error) throw error;
@@ -238,6 +241,11 @@ export default function CampaignsPage() {
         } catch {
             toast.error("Failed to delete campaign");
         }
+    };
+
+    const openDeleteModal = (id: string) => {
+        setSelectedCampaignId(id);
+        setConfirmModalOpen(true);
     };
 
     const filtered = filter === "All" ? campaigns : campaigns.filter(c => c.status === filter);
@@ -389,7 +397,7 @@ export default function CampaignsPage() {
                                             <ActionMenu
                                                 campaign={c}
                                                 onPause={handleStatusChange}
-                                                onDelete={handleDelete}
+                                                onDelete={openDeleteModal}
                                             />
                                         </td>
                                     </tr>
@@ -399,6 +407,17 @@ export default function CampaignsPage() {
                     </table>
                 </div>
             )}
+
+            <SimpleConfirmModal
+                open={confirmModalOpen}
+                title="Delete Campaign"
+                message="Are you sure you want to delete this campaign? Your leads and send history will also be permanently removed."
+                confirmText="Delete Campaign"
+                cancelText="Cancel"
+                variant="danger"
+                onConfirm={() => selectedCampaignId && handleDelete(selectedCampaignId)}
+                onCancel={() => { setConfirmModalOpen(false); setSelectedCampaignId(null); }}
+            />
         </div>
     );
 }

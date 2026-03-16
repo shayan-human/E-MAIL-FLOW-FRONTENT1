@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { insforge } from "@/lib/insforge";
 import { toast } from "@/components/ui/toast-provider";
+import { SimpleConfirmModal } from "@/components/ui/simple-confirm-modal";
 import Link from "next/link";
 import {
     ArrowLeft,
@@ -77,6 +78,7 @@ export default function CampaignDetailPage() {
     const [editedName, setEditedName] = useState("");
     const [showMessageModal, setShowMessageModal] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [confirmModalOpen, setConfirmModalOpen] = useState(false);
 
     const handleCopyId = () => {
         if (campaign?.id) {
@@ -133,7 +135,7 @@ export default function CampaignDetailPage() {
     };
 
     const handleDelete = async () => {
-        if (!confirm("Are you sure you want to delete this campaign? This action cannot be undone.")) return;
+        setConfirmModalOpen(false);
         try {
             const { error } = await insforge.database
                 .from("campaigns")
@@ -256,7 +258,7 @@ export default function CampaignDetailPage() {
                         )}
                     </button>
                     <button
-                        onClick={handleDelete}
+                        onClick={() => setConfirmModalOpen(true)}
                         className="btn-destructive h-9 px-4 text-xs flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all"
                     >
                         <Trash2 className="w-3.5 h-3.5" /> Delete
@@ -431,6 +433,17 @@ export default function CampaignDetailPage() {
                         No leads yet
                     </div>
                 )}
+
+                <SimpleConfirmModal
+                    open={confirmModalOpen}
+                    title="Delete Campaign"
+                    message="Are you sure you want to delete this campaign? Your leads and send history will also be permanently removed."
+                    confirmText="Delete Campaign"
+                    cancelText="Cancel"
+                    variant="danger"
+                    onConfirm={handleDelete}
+                    onCancel={() => setConfirmModalOpen(false)}
+                />
             </div>
         </div>
     );

@@ -7,6 +7,7 @@ import { useUser } from "@insforge/nextjs";
 
 import { Plus, Mail, Unplug, RefreshCw } from "lucide-react";
 import { toast } from "@/components/ui/toast-provider";
+import { SimpleConfirmModal } from "@/components/ui/simple-confirm-modal";
 
 interface Account {
     id: string;
@@ -60,6 +61,8 @@ export default function AccountsPage() {
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isConnecting, setIsConnecting] = useState(false);
+    const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
 
     const fetchAccounts = async () => {
         try {
@@ -124,7 +127,7 @@ export default function AccountsPage() {
     };
 
     const handleDisconnect = async (id: string) => {
-        if (!confirm("Disconnect this Gmail account? This cannot be undone.")) return;
+        setConfirmModalOpen(false);
         try {
             const { error } = await insforge.database.from("sender_accounts").delete().eq("id", id);
             if (error) throw error;
@@ -134,6 +137,11 @@ export default function AccountsPage() {
             console.error(err);
             toast.error("Failed to disconnect account");
         }
+    };
+
+    const openDisconnectModal = (id: string) => {
+        setSelectedAccountId(id);
+        setConfirmModalOpen(true);
     };
 
     // Determine account status
@@ -338,7 +346,7 @@ export default function AccountsPage() {
                                         </button>
                                     )}
                                     <button
-                                        onClick={() => handleDisconnect(acc.id)}
+                                        onClick={() => openDisconnectModal(acc.id)}
                                         className="btn-destructive flex items-center gap-1.5 text-[12px] opacity-0 group-hover:opacity-100"
                                     >
                                         <Unplug className="w-3.5 h-3.5" />
@@ -350,6 +358,17 @@ export default function AccountsPage() {
                     );
                 })}
             </div>
+
+            <SimpleConfirmModal
+                open={confirmModalOpen}
+                title="Disconnect Account"
+                message="Are you sure you want to disconnect this Gmail account? Your data including leads and send history will also be removed."
+                confirmText="Disconnect"
+                cancelText="Cancel"
+                variant="danger"
+                onConfirm={() => selectedAccountId && handleDisconnect(selectedAccountId)}
+                onCancel={() => { setConfirmModalOpen(false); setSelectedAccountId(null); }}
+            />
         </div>
     );
 }
