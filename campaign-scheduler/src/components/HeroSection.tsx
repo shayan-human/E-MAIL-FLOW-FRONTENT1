@@ -50,7 +50,6 @@ export function PageBackground() {
           background: 'radial-gradient(ellipse at 30% 20%, rgba(245,158,11,0.15) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(245,158,11,0.1) 0%, transparent 50%)',
         }}
       />
-      <div className="fixed inset-0" style={{ background: 'rgba(10,10,15,0.75)' }} />
       <div 
         className="fixed inset-0 pointer-events-none opacity-[0.06]"
         style={{
