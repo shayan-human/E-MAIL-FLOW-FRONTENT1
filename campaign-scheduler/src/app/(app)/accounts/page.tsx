@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { insforge } from "@/lib/insforge";
 import { useUser } from "@insforge/nextjs";
 
 import { Plus, Mail, Unplug, RefreshCw } from "lucide-react";
 import { toast } from "@/components/ui/toast-provider";
-import { ConfirmModal } from "@/components/ui/confirm-modal";
 
 interface Account {
     id: string;
@@ -61,11 +60,6 @@ export default function AccountsPage() {
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isConnecting, setIsConnecting] = useState(false);
-    const [confirmModal, setConfirmModal] = useState<{
-        open: boolean;
-        accountId: string | null;
-        accountEmail: string;
-    }>({ open: false, accountId: null, accountEmail: "" });
 
     const fetchAccounts = async () => {
         try {
@@ -129,22 +123,17 @@ export default function AccountsPage() {
         window.location.href = "/api/auth/google?redirect=/accounts";
     };
 
-    const handleDisconnect = async () => {
-        if (!confirmModal.accountId) return;
+    const handleDisconnect = async (id: string) => {
+        if (!confirm("Disconnect this Gmail account? This cannot be undone.")) return;
         try {
-            const { error } = await insforge.database.from("sender_accounts").delete().eq("id", confirmModal.accountId);
+            const { error } = await insforge.database.from("sender_accounts").delete().eq("id", id);
             if (error) throw error;
             toast.info("Account removed");
-            setAccounts(accounts.filter(acc => acc.id !== confirmModal.accountId));
-            setConfirmModal({ open: false, accountId: null, accountEmail: "" });
+            setAccounts(accounts.filter(acc => acc.id !== id));
         } catch (err: unknown) {
             console.error(err);
             toast.error("Failed to disconnect account");
         }
-    };
-
-    const openDisconnectModal = (id: string, email: string) => {
-        setConfirmModal({ open: true, accountId: id, accountEmail: email });
     };
 
     // Determine account status
@@ -349,7 +338,11 @@ export default function AccountsPage() {
                                         </button>
                                     )}
                                     <button
-                                        onClick={() => openDisconnectModal(acc.id, acc.email)}
+                                        onClick={() => {
+                                            if (confirm(`Disconnect ${acc.email}? This cannot be undone.`)) {
+                                                handleDisconnect(acc.id);
+                                            }
+                                        }}
                                         className="btn-destructive flex items-center gap-1.5 text-[12px] opacity-0 group-hover:opacity-100"
                                     >
                                         <Unplug className="w-3.5 h-3.5" />
@@ -362,16 +355,5 @@ export default function AccountsPage() {
                 })}
             </div>
         </div>
-
-        <ConfirmModal
-            isOpen={confirmModal.open}
-            title="Disconnect Account"
-            message={`Are you sure you want to disconnect ${confirmModal.accountEmail}? This cannot be undone and will stop all active campaigns using this account.`}
-            confirmText="Disconnect"
-            cancelText="Keep Connected"
-            variant="danger"
-            onConfirm={handleDisconnect}
-            onCancel={() => setConfirmModal({ open: false, accountId: null, accountEmail: "" })}
-        />
     );
 }
