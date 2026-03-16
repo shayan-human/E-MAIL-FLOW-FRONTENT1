@@ -18,7 +18,9 @@ import {
     CheckCircle2,
     ChevronRight,
     ExternalLink,
-    Eye
+    Eye,
+    Copy,
+    Check
 } from "lucide-react";
 import {
     ResponsiveContainer,
@@ -73,6 +75,16 @@ export default function CampaignDetailPage() {
     const [isEditingName, setIsEditingName] = useState(false);
     const [editedName, setEditedName] = useState("");
     const [showMessageModal, setShowMessageModal] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    const handleCopyId = () => {
+        if (campaign?.id) {
+            navigator.clipboard.writeText(campaign.id);
+            setCopied(true);
+            toast.success("Campaign ID copied!");
+            setTimeout(() => setCopied(false), 2000);
+        }
+    };
 
     const fetchData = async () => {
         try {
@@ -212,7 +224,13 @@ export default function CampaignDetailPage() {
                             Created on {new Date(campaign.created_at).toLocaleDateString()}
                         </span>
                         <span>•</span>
-                        <span>ID: {campaign.id.slice(0, 8)}...</span>
+                        <button 
+                            onClick={handleCopyId}
+                            className="flex items-center gap-1 hover:text-amber-500 transition-colors"
+                        >
+                            <span className="font-mono">ID: {campaign.id.slice(0, 8)}...</span>
+                            {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                        </button>
                     </div>
                 </div>
 
