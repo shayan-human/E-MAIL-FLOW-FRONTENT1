@@ -87,7 +87,7 @@ export async function POST(req: Request) {
         const validatedData = validationResult.data;
 
         // 4. Idempotency Check
-        const { idempotencyKey, subject, body: emailBody, mappedLeads, selectedAccountIds, senderDisplayName, ...campaignConfig } = validatedData;
+        const { idempotencyKey, subject, body: emailBody, mappedLeads, selectedAccountIds, senderDisplayName, selectedDraftIds, copyMode, ...campaignConfig } = validatedData;
         if (processedIdempotencyKeys.has(idempotencyKey)) {
             return NextResponse.json(
                 { message: "Campaign already processing.", data: { idempotencyKey } },
@@ -138,7 +138,22 @@ export async function POST(req: Request) {
             console.error("[Campaign Account Link Error]:", linkError);
         }
 
-        // 7. Insert leads
+        // 7. Handle rotation mode - fetch drafts if rotating
+        let drafts: { id: string; subject: string; body: string }[] = [];
+        if (copyMode === "rotate" && selectedDraftIds && selectedDraftIds.length > 0) {
+            const { data: draftData, error: draftError } = await insforge.database
+                .from("drafts")
+                .select("id, subject, body")
+                .in("id", selectedDraftIds);
+
+            if (draftError) {
+                console.error("[Drafts Fetch Error]:", draftError);
+            } else {
+                drafts = draftData || [];
+            }
+        }
+
+        // 8. Insert leads
         const { data: senderAccounts } = await insforge.database
             .from("sender_accounts")
             .select("id, email")
@@ -174,8 +189,17 @@ export async function POST(req: Request) {
                 accId = selectedAccountIds[i % verifiedAccountsCount];
             }
 
-            const personalizedSubject = replacePlaceholders(subject, lead);
-            const personalizedBody = replacePlaceholders(emailBody, lead);
+            // Handle draft rotation
+            let leadSubject = subject;
+            let leadBody = emailBody;
+            if (copyMode === "rotate" && drafts.length > 0) {
+                const draftIndex = i % drafts.length;
+                leadSubject = drafts[draftIndex].subject || "";
+                leadBody = drafts[draftIndex].body || "";
+            }
+
+            const personalizedSubject = replacePlaceholders(leadSubject, lead);
+            const personalizedBody = replacePlaceholders(leadBody, lead);
 
             return {
                 campaign_id: campaignId,

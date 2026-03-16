@@ -81,10 +81,12 @@ interface Step4Props {
     body: string;
     selectedAccountIds: string[];
     senderDisplayName?: string;
+    selectedDraftIds?: string[];
+    copyMode?: "single" | "rotate";
     onBack: () => void;
 }
 
-export function CampaignScheduler({ leads, subject, body, selectedAccountIds, senderDisplayName, onBack }: Step4Props) {
+export function CampaignScheduler({ leads, subject, body, selectedAccountIds, senderDisplayName, selectedDraftIds, copyMode, onBack }: Step4Props) {
     const [isInstantSubmitting, setIsInstantSubmitting] = useState(false);
     const [isScheduleSubmitting, setIsScheduleSubmitting] = useState(false);
     const router = useRouter();
@@ -229,6 +231,8 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, se
             selectedAccountIds,
             mappedLeads: leads,
             senderDisplayName,
+            selectedDraftIds: selectedDraftIds || [],
+            copyMode: copyMode || "single",
         } as unknown as CampaignPayload;
 
         try {
@@ -286,6 +290,8 @@ export function CampaignScheduler({ leads, subject, body, selectedAccountIds, se
             selectedAccountIds,
             mappedLeads: leads,
             senderDisplayName,
+            selectedDraftIds: selectedDraftIds || [],
+            copyMode: copyMode || "single",
         } as CampaignPayload;
 
         try {

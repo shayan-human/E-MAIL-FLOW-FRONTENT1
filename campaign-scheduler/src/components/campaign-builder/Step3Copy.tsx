@@ -16,7 +16,7 @@ import { useUser } from "@insforge/nextjs";
 import { RotateDraftsSelector } from "@/components/campaign-builder/RotateDraftsSelector";
 
 interface Step3Props {
-    onNext: (subject: string, body: string, selectedAccountIds: string[], senderDisplayName?: string) => void;
+    onNext: (subject: string, body: string, selectedAccountIds: string[], senderDisplayName?: string, selectedDraftIds?: string[], copyMode?: "single" | "rotate") => void;
     onBack: () => void;
 }
 
@@ -132,7 +132,7 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
         if (copyMode === "single") {
             onNext(subject, body, selectedAccountIds, sendNameMode === 'custom' ? customSenderName.trim() : undefined);
         } else {
-            onNext("", "", selectedAccountIds, sendNameMode === 'custom' ? customSenderName.trim() : undefined);
+            onNext("", "", selectedAccountIds, sendNameMode === 'custom' ? customSenderName.trim() : undefined, selectedDraftIds, copyMode);
         }
     };
 

@@ -28,6 +28,8 @@ export default function NewCampaignPage() {
     const [body, setBody] = useState("");
     const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
     const [senderDisplayName, setSenderDisplayName] = useState<string | undefined>(undefined);
+    const [selectedDraftIds, setSelectedDraftIds] = useState<string[]>([]);
+    const [copyMode, setCopyMode] = useState<"single" | "rotate">("single");
 
     const handleNextStep1 = () => setCurrentStep(2);
 
@@ -36,11 +38,13 @@ export default function NewCampaignPage() {
         setCurrentStep(3);
     };
 
-    const handleNextStep3 = (subj: string, msg: string, acctIds: string[], displayName?: string) => {
+    const handleNextStep3 = (subj: string, msg: string, acctIds: string[], displayName?: string, draftIds?: string[], mode?: "single" | "rotate") => {
         setSubject(subj);
         setBody(msg);
         setSelectedAccountIds(acctIds);
         setSenderDisplayName(displayName);
+        setSelectedDraftIds(draftIds || []);
+        setCopyMode(mode || "single");
         setCurrentStep(4);
     };
 
@@ -125,6 +129,8 @@ export default function NewCampaignPage() {
                         body={body}
                         selectedAccountIds={selectedAccountIds}
                         senderDisplayName={senderDisplayName}
+                        selectedDraftIds={selectedDraftIds}
+                        copyMode={copyMode}
                         onBack={() => setCurrentStep(3)}
                     />
                 )}

@@ -34,17 +34,19 @@ export type CampaignSettings = z.infer<typeof CampaignSettingsSchema>;
 
 export const CampaignPayloadSchema = CampaignSettingsSchema.extend({
     idempotencyKey: z.string().uuid("Invalid idempotency key"),
-    subject: z.string().min(1, "Subject is required"),
-    body: z.string().min(1, "Body is required"),
+    subject: z.string().optional().default(""),
+    body: z.string().optional().default(""),
     selectedAccountIds: z.array(z.string().uuid()).min(1, "At least one account must be selected"),
     mappedLeads: z.array(z.object({
-        email: z.string().min(1, "Email is required"), // Not using .email() to be resilient to one bad format
+        email: z.string().min(1, "Email is required"),
         firstName: z.string().optional().nullish(),
         lastName: z.string().optional().nullish(),
         fullName: z.string().optional().nullish(),
         businessName: z.string().optional().nullish(),
         website: z.string().optional().nullish(),
-    })).min(1, "At least one valid lead is required")
+    })).min(1, "At least one valid lead is required"),
+    selectedDraftIds: z.array(z.string().uuid()).optional().default([]),
+    copyMode: z.enum(["single", "rotate"]).optional().default("single"),
 });
 
 export type CampaignPayload = z.infer<typeof CampaignPayloadSchema>;
