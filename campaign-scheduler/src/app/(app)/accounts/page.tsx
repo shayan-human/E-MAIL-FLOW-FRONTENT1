@@ -7,6 +7,7 @@ import { useUser } from "@insforge/nextjs";
 
 import { Plus, Mail, Unplug, RefreshCw } from "lucide-react";
 import { toast } from "@/components/ui/toast-provider";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 
 interface Account {
     id: string;
@@ -60,6 +61,8 @@ export default function AccountsPage() {
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isConnecting, setIsConnecting] = useState(false);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [accountToDisconnect, setAccountToDisconnect] = useState<Account | null>(null);
 
     const fetchAccounts = async () => {
         try {
@@ -124,7 +127,6 @@ export default function AccountsPage() {
     };
 
     const handleDisconnect = async (id: string) => {
-        if (!confirm("Disconnect this Gmail account? This cannot be undone.")) return;
         try {
             const { error } = await insforge.database.from("sender_accounts").delete().eq("id", id);
             if (error) throw error;
@@ -134,6 +136,11 @@ export default function AccountsPage() {
             console.error(err);
             toast.error("Failed to disconnect account");
         }
+    };
+
+    const confirmDisconnect = (acc: Account) => {
+        setAccountToDisconnect(acc);
+        setConfirmOpen(true);
     };
 
     // Determine account status
@@ -338,11 +345,7 @@ export default function AccountsPage() {
                                         </button>
                                     )}
                                     <button
-                                        onClick={() => {
-                                            if (confirm(`Disconnect ${acc.email}? This cannot be undone.`)) {
-                                                handleDisconnect(acc.id);
-                                            }
-                                        }}
+                                        onClick={() => confirmDisconnect(acc)}
                                         className="btn-destructive flex items-center gap-1.5 text-[12px] opacity-0 group-hover:opacity-100"
                                     >
                                         <Unplug className="w-3.5 h-3.5" />
@@ -355,5 +358,25 @@ export default function AccountsPage() {
                 })}
             </div>
         </div>
+
+        <ConfirmModal
+            isOpen={confirmOpen}
+            title="Disconnect Account"
+            message={accountToDisconnect ? `Are you sure you want to disconnect ${accountToDisconnect.email}? This cannot be undone and will stop all active campaigns using this account.` : "Are you sure you want to disconnect this account?"}
+            confirmText="Disconnect"
+            cancelText="Keep Connected"
+            variant="danger"
+            onConfirm={() => {
+                if (accountToDisconnect) {
+                    handleDisconnect(accountToDisconnect.id);
+                }
+                setConfirmOpen(false);
+                setAccountToDisconnect(null);
+            }}
+            onCancel={() => {
+                setConfirmOpen(false);
+                setAccountToDisconnect(null);
+            }}
+        />
     );
 }
