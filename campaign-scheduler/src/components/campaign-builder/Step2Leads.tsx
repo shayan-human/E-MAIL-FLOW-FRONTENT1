@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Papa from "papaparse";
-import { UploadCloud, FileSpreadsheet, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
+import { UploadCloud, FileSpreadsheet, CheckCircle2, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/toast-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,9 +28,14 @@ export function Step2Leads({ onNext, onBack }: Step2Props) {
     const [headers, setHeaders] = useState<string[]>([]);
     const [previewData, setPreviewData] = useState<any[]>([]);
     const [isParsing, setIsParsing] = useState(false);
+    const [isLoadingExisting, setIsLoadingExisting] = useState(true);
     const [totalRows, setTotalRows] = useState(0);
-    const [stats, setStats] = useState({ fake: 0, personal: 0, business: 0 });
+    const [stats, setStats] = useState({ duplicate: 0, fake: 0, personal: 0, business: 0 });
     const [businessOnly, setBusinessOnly] = useState(false);
+    
+    // Existing emails from user's past campaigns and blocklist
+    const [existingEmails, setExistingEmails] = useState<Set<string>>(new Set());
+    const [blockedEmails, setBlockedEmails] = useState<Set<string>>(new Set());
 
     // Column Mapping State
     const [emailCol, setEmailCol] = useState<string>("");
@@ -41,6 +46,25 @@ export function Step2Leads({ onNext, onBack }: Step2Props) {
     const [websiteCol, setWebsiteCol] = useState<string>("");
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Fetch existing emails from past campaigns and blocklist on mount
+    useEffect(() => {
+        async function fetchExistingEmails() {
+            try {
+                const response = await fetch('/api/leads');
+                if (response.ok) {
+                    const data = await response.json();
+                    setExistingEmails(new Set(data.existingEmails || []));
+                    setBlockedEmails(new Set(data.blockedEmails || []));
+                }
+            } catch (error) {
+                console.error('Failed to fetch existing emails:', error);
+            } finally {
+                setIsLoadingExisting(false);
+            }
+        }
+        fetchExistingEmails();
+    }, []);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
@@ -81,9 +105,13 @@ export function Step2Leads({ onNext, onBack }: Step2Props) {
                     const PUBLIC_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com'];
                     const DISPOSABLE_DOMAINS = ['mailinator.com', '10minutemail.com', 'temp-mail.org'];
                     
+                    let duplicate = 0;
                     let fake = 0;
                     let personal = 0;
                     let business = 0;
+
+                    // Track emails in current CSV for duplicate detection within CSV
+                    const csvEmails = new Set<string>();
 
                     resultsData.forEach(row => {
                         const e = row[bestEmailCol]?.trim().toLowerCase();
@@ -91,12 +119,27 @@ export function Step2Leads({ onNext, onBack }: Step2Props) {
                             fake++;
                             return;
                         }
+                        
+                        // Check for duplicate (from past campaigns or blocked)
+                        if (existingEmails.has(e) || blockedEmails.has(e)) {
+                            duplicate++;
+                            csvEmails.add(e);
+                            return;
+                        }
+                        
+                        // Check for duplicate within current CSV
+                        if (csvEmails.has(e)) {
+                            duplicate++;
+                            return;
+                        }
+                        csvEmails.add(e);
+                        
                         const domain = e.split('@')[1];
                         if (DISPOSABLE_DOMAINS.includes(domain)) fake++;
                         else if (PUBLIC_DOMAINS.includes(domain)) personal++;
                         else business++;
                     });
-                    setStats({ fake, personal, business });
+                    setStats({ duplicate, fake, personal, business });
                 }
 
                 // Auto-detect columns ...
@@ -139,6 +182,10 @@ export function Step2Leads({ onNext, onBack }: Step2Props) {
         const finalLeads: MappedLead[] = [];
         let validCount = 0;
         let skippedPersonalCount = 0;
+        let skippedDuplicateCount = 0;
+
+        // Track emails in current CSV to detect duplicates within CSV
+        const processedCsvEmails = new Set<string>();
 
         Papa.parse(file, {
             header: true,
@@ -151,6 +198,19 @@ export function Step2Leads({ onNext, onBack }: Step2Props) {
                 const isValidFormat = e && emailRegex.test(e);
                 
                 if (isValidFormat) {
+                    // Check for duplicate (from past campaigns or blocked)
+                    if (existingEmails.has(e) || blockedEmails.has(e)) {
+                        skippedDuplicateCount++;
+                        return;
+                    }
+                    
+                    // Check for duplicate within current CSV
+                    if (processedCsvEmails.has(e)) {
+                        skippedDuplicateCount++;
+                        return;
+                    }
+                    processedCsvEmails.add(e);
+                    
                     const domain = e.split('@')[1];
                     const isDisposable = DISPOSABLE_DOMAINS.includes(domain);
                     const isPersonal = PUBLIC_DOMAINS.includes(domain);
@@ -175,6 +235,9 @@ export function Step2Leads({ onNext, onBack }: Step2Props) {
             },
             complete: () => {
                 setIsParsing(false);
+                if (skippedDuplicateCount > 0) {
+                    toast.info(`Skipped ${skippedDuplicateCount} duplicate emails (from past campaigns or blocklist)`);
+                }
                 if (skippedPersonalCount > 0) {
                     toast.info(`Skipped ${skippedPersonalCount} personal emails (Business Only enabled)`);
                 }
@@ -243,20 +306,38 @@ export function Step2Leads({ onNext, onBack }: Step2Props) {
                         <div className="space-y-4">
                             <Label className="text-base font-semibold">Column Mapping</Label>
                             
-                            <div className="grid grid-cols-3 gap-2 py-2">
-                                <div className="bg-green-500/10 border border-green-500/20 rounded-md p-2 text-center">
-                                    <div className="text-xs text-green-500 font-medium">Business</div>
-                                    <div className="text-lg font-bold text-green-500">{stats.business}</div>
+                            {isLoadingExisting ? (
+                                <div className="flex items-center justify-center py-4">
+                                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                    <span className="ml-2 text-sm text-muted-foreground">Checking for duplicates...</span>
                                 </div>
-                                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-md p-2 text-center">
-                                    <div className="text-xs text-yellow-500 font-medium">Personal</div>
-                                    <div className="text-lg font-bold text-yellow-500">{stats.personal}</div>
-                                </div>
-                                <div className="bg-red-500/10 border border-red-500/20 rounded-md p-2 text-center">
-                                    <div className="text-xs text-red-500 font-medium">Fake/Bad</div>
-                                    <div className="text-lg font-bold text-red-500">{stats.fake}</div>
-                                </div>
-                            </div>
+                            ) : (
+                                <>
+                                    <div className="grid grid-cols-4 gap-2 py-2">
+                                        <div className="bg-green-500/10 border border-green-500/20 rounded-md p-2 text-center">
+                                            <div className="text-xs text-green-500 font-medium">Business</div>
+                                            <div className="text-lg font-bold text-green-500">{stats.business}</div>
+                                        </div>
+                                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-md p-2 text-center">
+                                            <div className="text-xs text-yellow-500 font-medium">Personal</div>
+                                            <div className="text-lg font-bold text-yellow-500">{stats.personal}</div>
+                                        </div>
+                                        <div className="bg-orange-500/10 border border-orange-500/20 rounded-md p-2 text-center">
+                                            <div className="text-xs text-orange-500 font-medium">Duplicate</div>
+                                            <div className="text-lg font-bold text-orange-500">{stats.duplicate}</div>
+                                        </div>
+                                        <div className="bg-red-500/10 border border-red-500/20 rounded-md p-2 text-center">
+                                            <div className="text-xs text-red-500 font-medium">Fake/Bad</div>
+                                            <div className="text-lg font-bold text-red-500">{stats.fake}</div>
+                                        </div>
+                                    </div>
+                                    {stats.duplicate > 0 && (
+                                        <p className="text-xs text-muted-foreground text-center">
+                                            Duplicates: from past campaigns or previously bounced emails
+                                        </p>
+                                    )}
+                                </>
+                            )}
 
                             <div className="flex items-center justify-between p-3 bg-primary/5 border border-primary/20 rounded-lg">
                                 <div className="space-y-0.5">
