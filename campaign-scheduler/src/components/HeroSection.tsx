@@ -72,6 +72,100 @@ export function PageBackground() {
   );
 }
 
+export function FullPageParticles() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const updateCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    updateCanvas();
+    window.addEventListener('resize', updateCanvas);
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    ctx.scale(dpr, dpr);
+
+    const particles: Array<{
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      radius: number;
+      opacity: number;
+    }> = [];
+
+    const particleCount = 25;
+
+    for (let i = 0; i < particleCount; i++) {
+      particles.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        vx: 0.2 + Math.random() * 0.4,
+        vy: -0.1 + Math.random() * 0.3,
+        radius: 1 + Math.random() * 1.5,
+        opacity: 0.2 + Math.random() * 0.3,
+      });
+    }
+
+    let animationId: number;
+
+    const animate = () => {
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+      particles.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x > window.innerWidth + 20) {
+          p.x = -10;
+          p.y = Math.random() * window.innerHeight;
+        }
+        if (p.y < -20) {
+          p.y = window.innerHeight + 10;
+          p.x = Math.random() * window.innerWidth;
+        }
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        
+        const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 2);
+        gradient.addColorStop(0, `rgba(245, 158, 11, ${p.opacity})`);
+        gradient.addColorStop(1, 'rgba(245, 158, 11, 0)');
+        
+        ctx.fillStyle = gradient;
+        ctx.fill();
+      });
+
+      animationId = requestAnimationFrame(animate);
+    };
+
+    animationId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(animationId);
+      window.removeEventListener('resize', updateCanvas);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 pointer-events-none z-[5]"
+    />
+  );
+}
+
 function ParticleCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
