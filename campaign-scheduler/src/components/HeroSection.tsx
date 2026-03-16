@@ -41,6 +41,38 @@ function AnimatedGrid() {
   );
 }
 
+export function PageBackground() {
+  return (
+    <>
+      <div 
+        className="fixed inset-0 pointer-events-none opacity-40"
+        style={{
+          background: 'radial-gradient(ellipse at 30% 20%, rgba(245,158,11,0.15) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(245,158,11,0.1) 0%, transparent 50%)',
+        }}
+      />
+      <div className="fixed inset-0" style={{ background: 'rgba(10,10,15,0.75)' }} />
+      <div 
+        className="fixed inset-0 pointer-events-none opacity-[0.06]"
+        style={{
+          backgroundImage: `
+            linear-gradient(${COLORS.primary} 1px, transparent 1px),
+            linear-gradient(90deg, ${COLORS.primary} 1px, transparent 1px)
+          `,
+          backgroundSize: '60px 60px',
+          animation: 'gridDrift 20s linear infinite',
+        }}
+      >
+        <style jsx>{`
+          @keyframes gridDrift {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(60px); }
+          }
+        `}</style>
+      </div>
+    </>
+  );
+}
+
 function ParticleCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -287,22 +319,8 @@ export default function HeroSection() {
   return (
     <section 
       className="relative min-h-screen overflow-hidden"
-      style={{ backgroundColor: COLORS.page }}
+      style={{ backgroundColor: 'transparent' }}
     >
-      <div 
-        className="absolute inset-0 pointer-events-none animate-pulse opacity-40"
-        style={{
-          background: 'radial-gradient(ellipse at 30% 20%, rgba(245,158,11,0.15) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(245,158,11,0.1) 0%, transparent 50%)',
-        }}
-      />
-      
-      <div 
-        className="absolute inset-0"
-        style={{ zIndex: 1, background: 'rgba(10,10,15,0.75)' }}
-      />
-
-      <AnimatedGrid />
-
       <ParticleCanvas />
 
       <div className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-6 pt-16 md:flex-row md:items-center md:gap-8 md:px-12 md:pt-0">
