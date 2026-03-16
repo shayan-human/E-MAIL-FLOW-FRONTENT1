@@ -8,10 +8,9 @@ import { Check, ChevronRight, Play } from "lucide-react";
 const COLORS = {
   page: "#0a0a0f",
   glassBg: "rgba(255,255,255,0.04)",
-  glassBorder: "rgba(99,179,255,0.15)",
-  primary: "#3B82F6",
-  secondary: "#60A5FA",
-  cyan: "#67E8F9",
+  glassBorder: "rgba(245,158,11,0.15)",
+  primary: "#F59E0B",
+  secondary: "#FBBF24",
   text: "#F8FAFC",
   muted: "#94A3B8",
   green: "#22C55E",
@@ -139,7 +138,7 @@ function ParticleCanvas() {
           const trailOpacity = t.opacity * (1 - i / p.trail.length) * 0.3;
           ctx.beginPath();
           ctx.arc(t.x, t.y, p.radius * (1 - i / p.trail.length * 0.5), 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(59, 130, 246, ${trailOpacity})`;
+          ctx.fillStyle = `rgba(245, 158, 11, ${trailOpacity})`;
           ctx.fill();
         });
 
@@ -147,9 +146,9 @@ function ParticleCanvas() {
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         
         const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 3);
-        gradient.addColorStop(0, `rgba(59, 130, 246, ${p.opacity})`);
-        gradient.addColorStop(0.5, `rgba(59, 130, 246, ${p.opacity * 0.5})`);
-        gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+        gradient.addColorStop(0, `rgba(245, 158, 11, ${p.opacity})`);
+        gradient.addColorStop(0.5, `rgba(245, 158, 11, ${p.opacity * 0.5})`);
+        gradient.addColorStop(1, 'rgba(245, 158, 11, 0)');
         
         ctx.fillStyle = gradient;
         ctx.fill();
@@ -184,7 +183,7 @@ function GlassDashboardCard() {
       transition={{ duration: 0.6, ease: easeOut, delay: 0.2 }}
       className="relative z-10"
     >
-      <div className="absolute -inset-8 rounded-3xl bg-gradient-to-br from-blue-500/20 to-cyan-500/10 blur-2xl" />
+      <div className="absolute -inset-8 rounded-3xl bg-gradient-to-br from-amber-500/20 to-yellow-500/10 blur-2xl" />
       
       <motion.div
         animate={{ y: [0, -8, 0] }}
@@ -194,7 +193,7 @@ function GlassDashboardCard() {
           backgroundColor: COLORS.glassBg,
           borderColor: COLORS.glassBorder,
           backdropFilter: 'blur(20px)',
-          boxShadow: `0 0 60px rgba(59, 130, 246, 0.15), 0 25px 50px rgba(0, 0, 0, 0.5)`,
+          boxShadow: `0 0 60px rgba(245, 158, 11, 0.15), 0 25px 50px rgba(0, 0, 0, 0.5)`,
         }}
       >
         <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: COLORS.glassBorder }}>
@@ -214,7 +213,7 @@ function GlassDashboardCard() {
           <button
             type="button"
             className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-all hover:scale-105"
-            style={{ backgroundColor: COLORS.primary, color: '#fff' }}
+            style={{ backgroundColor: COLORS.primary, color: '#000' }}
           >
             + New
           </button>
@@ -223,7 +222,7 @@ function GlassDashboardCard() {
         <div className="grid grid-cols-3 gap-3 p-4">
           {[
             { label: "Sent", value: "24,892", color: COLORS.primary },
-            { label: "Replies", value: "4,612", color: COLORS.cyan },
+            { label: "Replies", value: "4,612", color: COLORS.secondary },
             { label: "Active", value: "7", color: COLORS.green },
           ].map((stat) => (
             <div
@@ -290,19 +289,15 @@ export default function HeroSection() {
       className="relative min-h-screen overflow-hidden"
       style={{ backgroundColor: COLORS.page }}
     >
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="absolute inset-0 hidden h-full w-full object-cover md:block"
-        style={{ opacity: 0.35, zIndex: 0 }}
-      >
-        <source src="/hero-bg.mp4" type="video/mp4" />
-      </video>
+      <div 
+        className="absolute inset-0 pointer-events-none animate-pulse opacity-40"
+        style={{
+          background: 'radial-gradient(ellipse at 30% 20%, rgba(245,158,11,0.15) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(245,158,11,0.1) 0%, transparent 50%)',
+        }}
+      />
       
       <div 
-        className="absolute inset-0 md:bg-gradient-to-b md:from-[rgba(10,10,15,0.6)] md:to-[rgba(10,10,15,0.85)]"
+        className="absolute inset-0"
         style={{ zIndex: 1, background: 'rgba(10,10,15,0.75)' }}
       />
 
@@ -310,18 +305,18 @@ export default function HeroSection() {
 
       <ParticleCanvas />
 
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col justify-center px-6 pt-20 md:flex-row md:items-center md:gap-12 md:px-12 md:pt-0">
-        <div className="w-full md:w-1/2">
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-6 pt-16 md:flex-row md:items-center md:gap-8 md:px-12 md:pt-0">
+        <div className="w-full md:w-[46%]">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: easeOut }}
-            className="mb-6 inline-flex items-center rounded-full border px-4 py-2 text-xs font-semibold"
+            className="mb-5 inline-flex items-center rounded-full border px-3.5 py-1.5 text-xs font-semibold"
             style={{ 
               borderColor: COLORS.primary, 
               color: COLORS.primary,
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              boxShadow: `0 0 20px rgba(59, 130, 246, 0.2)`,
+              backgroundColor: 'rgba(245, 158, 11, 0.1)',
+              boxShadow: `0 0 20px rgba(245, 158, 11, 0.2)`,
             }}
           >
             <span className="mr-2 flex h-2 w-2">
@@ -335,14 +330,14 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: easeOut, delay: 0.1 }}
-            className="text-[2.8rem] font-extrabold leading-[1.05] md:text-[3.5rem] lg:text-[4.5rem]"
+            className="text-[2.2rem] font-extrabold leading-[1.15] md:text-[2.8rem] lg:text-[3.5rem]"
             style={{ color: COLORS.text }}
           >
             <span className="block">Run Every Client</span>
             <span className="block">Campaign.</span>
             <span 
-              className="block bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent"
-              style={{ backgroundImage: `linear-gradient(90deg, ${COLORS.primary}, ${COLORS.cyan})` }}
+              className="block bg-gradient-to-r from-amber-500 to-yellow-400 bg-clip-text text-transparent"
+              style={{ backgroundImage: `linear-gradient(90deg, ${COLORS.primary}, ${COLORS.secondary})` }}
             >
               One Dashboard.
             </span>
@@ -353,7 +348,7 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: easeOut, delay: 0.3 }}
-            className="mt-6 max-w-md text-base md:text-lg"
+            className="mt-5 max-w-sm text-base md:text-base"
             style={{ color: COLORS.muted, lineHeight: 1.6 }}
           >
             EmailFlow connects all your client Gmail accounts in one place — launch campaigns, track replies, report results. No tab-switching. Ever.
@@ -363,20 +358,21 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: easeOut, delay: 0.4 }}
-            className="mt-8 flex flex-col gap-4 sm:flex-row"
+            className="mt-7 flex flex-col gap-3 sm:flex-row"
           >
             <Link
               href="/auth/signin"
-              className="group relative inline-flex items-center justify-center rounded-[10px] px-8 py-4 text-base font-bold text-white transition-all hover:scale-[1.03]"
+              className="group relative inline-flex items-center justify-center rounded-[10px] px-7 py-3.5 text-sm font-bold transition-all hover:scale-[1.03]"
               style={{ 
                 backgroundColor: COLORS.primary,
-                boxShadow: '0 0 24px rgba(59, 130, 246, 0.5)',
+                color: '#000',
+                boxShadow: '0 0 24px rgba(245, 158, 11, 0.5)',
               }}
             >
               <span 
                 className="absolute inset-0 rounded-[10px] opacity-0 transition-opacity duration-500 group-hover:opacity-100"
                 style={{ 
-                  boxShadow: '0 0 40px rgba(59, 130, 246, 0.75)',
+                  boxShadow: '0 0 40px rgba(245, 158, 11, 0.75)',
                   animation: 'pulse-glow 2s ease-in-out infinite',
                 }}
               />
@@ -386,15 +382,15 @@ export default function HeroSection() {
               </span>
               <style jsx>{`
                 @keyframes pulse-glow {
-                  0%, 100% { box-shadow: 0 0 24px rgba(59, 130, 246, 0.5); }
-                  50% { box-shadow: 0 0 36px rgba(59, 130, 246, 0.7); }
+                  0%, 100% { box-shadow: 0 0 24px rgba(245, 158, 11, 0.5); }
+                  50% { box-shadow: 0 0 36px rgba(245, 158, 11, 0.7); }
                 }
               `}</style>
             </Link>
             
             <Link
               href="/auth/signin"
-              className="inline-flex items-center justify-center rounded-[10px] border px-8 py-4 text-base font-semibold transition-all hover:bg-white/5"
+              className="inline-flex items-center justify-center rounded-[10px] border px-6 py-3.5 text-sm font-semibold transition-all hover:bg-white/5"
               style={{ 
                 borderColor: COLORS.glassBorder, 
                 color: COLORS.text 
@@ -409,7 +405,7 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: easeOut, delay: 0.5 }}
-            className="mt-8 flex flex-wrap items-center gap-4 gap-y-2 text-xs"
+            className="mt-6 flex flex-wrap items-center gap-3 gap-y-2 text-xs"
             style={{ color: COLORS.muted }}
           >
             <TrustBadge 
@@ -427,7 +423,7 @@ export default function HeroSection() {
           </motion.div>
         </div>
 
-        <div className="mt-12 w-full md:mt-0 md:w-1/2">
+        <div className="mt-10 w-full md:mt-0 md:w-[54%]">
           <GlassDashboardCard />
         </div>
       </div>
