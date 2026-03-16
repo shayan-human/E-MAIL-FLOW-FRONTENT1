@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { SimpleConfirmModal } from "@/components/ui/simple-confirm-modal";
 import { useSlashCommand } from "@/hooks/useSlashCommand";
 
 const PERSONALIZATION_OPTIONS = [
@@ -711,8 +711,8 @@ export default function DraftsPage() {
         )}
       </AnimatePresence>
 
-      <ConfirmModal
-        isOpen={confirmModal.open}
+      <SimpleConfirmModal
+        open={confirmModal.open}
         title={confirmModal.type === "folder" ? "Delete Folder" : "Delete Draft"}
         message={
           confirmModal.type === "folder"

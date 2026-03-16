@@ -6,7 +6,7 @@ import { Settings as SettingsIcon, Sun, Moon, Monitor, Bell, BellOff, LogOut, Sa
 import { insforge } from "@/lib/insforge";
 import { useUser, useAuth } from "@insforge/nextjs";
 import { toast } from "@/components/ui/toast-provider";
-import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { SimpleConfirmModal } from "@/components/ui/simple-confirm-modal";
 import { formatInTimezone, getBrowserTimezone } from "@/lib/utils";
 
 const TIMEZONES = [
@@ -548,8 +548,8 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      <ConfirmModal
-        isOpen={confirmModalOpen}
+      <SimpleConfirmModal
+        open={confirmModalOpen}
         title="Sign Out"
         message="Are you sure you want to sign out of EmailFlow?"
         confirmText="Sign Out"

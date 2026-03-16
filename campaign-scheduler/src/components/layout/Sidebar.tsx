@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@insforge/nextjs";
 import { useTheme } from "next-themes";
-import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { SimpleConfirmModal } from "@/components/ui/simple-confirm-modal";
 
 const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -198,8 +198,8 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
                 </div>
             </div>
 
-            <ConfirmModal
-                isOpen={confirmModalOpen}
+            <SimpleConfirmModal
+                open={confirmModalOpen}
                 title="Sign Out"
                 message="Are you sure you want to sign out of EmailFlow?"
                 confirmText="Sign Out"
