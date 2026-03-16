@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { insforge } from "@/lib/insforge";
 import { toast } from "@/components/ui/toast-provider";
-import { SimpleConfirmModal } from "@/components/ui/simple-confirm-modal";
 import Link from "next/link";
 import {
     ArrowLeft,
@@ -29,24 +28,10 @@ import {
     Line,
     XAxis,
     YAxis,
+    CartesianGrid,
     Tooltip,
 } from "recharts";
-
-interface CampaignDetail {
-    id: string;
-    name: string;
-    status: string;
-    subject: string;
-    body: string;
-    total_leads: number;
-    created_at: string;
-    user_id: string;
-    sender_accounts: {
-        sender_account: {
-            email: string;
-        };
-    }[];
-}
+import { motion } from "framer-motion";
 
 interface Lead {
     id: string;
@@ -54,6 +39,19 @@ interface Lead {
     status: string;
     sent_at: string | null;
     replied_at: string | null;
+}
+
+interface CampaignDetail {
+    id: string;
+    name: string;
+    status: string;
+    subject: string;
+    body: string | null;
+    total_leads: number;
+    created_at: string;
+    daily_limit: number;
+    user_id: string;
+    sender_accounts: any[];
 }
 
 export default function CampaignDetailPage() {
@@ -78,7 +76,6 @@ export default function CampaignDetailPage() {
     const [editedName, setEditedName] = useState("");
     const [showMessageModal, setShowMessageModal] = useState(false);
     const [copied, setCopied] = useState(false);
-    const [confirmModalOpen, setConfirmModalOpen] = useState(false);
 
     const handleCopyId = () => {
         if (campaign?.id) {
@@ -110,13 +107,12 @@ export default function CampaignDetailPage() {
     };
 
     useEffect(() => {
-        fetchData();
+        if (campaignId) fetchData();
     }, [campaignId]);
 
     const handleStatusToggle = async () => {
         if (!campaign) return;
         const newStatus = campaign.status === "RUNNING" ? "PAUSED" : "RUNNING";
-
         setSyncing(true);
         try {
             const { error } = await insforge.database
@@ -135,7 +131,7 @@ export default function CampaignDetailPage() {
     };
 
     const handleDelete = async () => {
-        setConfirmModalOpen(false);
+        if (!confirm("Are you sure you want to delete this campaign? This action cannot be undone.")) return;
         try {
             const { error } = await insforge.database
                 .from("campaigns")
@@ -163,34 +159,27 @@ export default function CampaignDetailPage() {
 
             if (error) throw error;
             setCampaign({ ...campaign, name: editedName });
-            setIsEditingName(false);
-            toast.success("Campaign name updated");
+            toast.success("Name updated");
         } catch {
             toast.error("Failed to update name");
+            setEditedName(campaign.name);
+        } finally {
+            setIsEditingName(false);
         }
     };
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-pulse text-muted-foreground">Loading campaign...</div>
-            </div>
-        );
-    }
+    if (loading) return <div className="p-8"><div className="animate-pulse space-y-4">
+        <div className="h-4 w-32 bg-zinc-800 rounded"></div>
+        <div className="h-8 w-64 bg-zinc-800 rounded"></div>
+        <div className="grid grid-cols-5 gap-4 h-24">
+            {[1, 2, 3, 4, 5].map(i => <div key={i} className="bg-zinc-800 rounded-lg"></div>)}
+        </div>
+    </div></div>;
 
-    if (!campaign) {
-        return (
-            <div className="flex flex-col items-center justify-center h-64 gap-4">
-                <p className="text-muted-foreground">Campaign not found</p>
-                <Link href="/campaigns" className="text-amber-500 hover:underline">
-                    Back to Campaigns
-                </Link>
-            </div>
-        );
-    }
+    if (!campaign) return <div className="p-8 text-center text-muted-foreground">Campaign not found.</div>;
 
-    const tooltipData = [
-        { label: "Sent", value: stats.sent },
+    const statCards = [
+        { label: "Emails Sent", value: stats.sent },
         { label: "Delivered", value: stats.delivered },
         { label: "Replies Received", value: stats.replied },
         { label: "Reply Rate", value: `${stats.replyRate}%` },
@@ -217,14 +206,14 @@ export default function CampaignDetailPage() {
                                 onChange={(e) => setEditedName(e.target.value)}
                                 onBlur={handleNameUpdate}
                                 onKeyDown={(e) => e.key === "Enter" && handleNameUpdate()}
-                                className="text-2xl font-bold bg-transparent border-b border-amber-500 outline-none text-white"
+                                className="text-2xl font-semibold bg-transparent border-b border-amber-500 outline-none text-white px-0"
                             />
                         ) : (
                             <h1
                                 onClick={() => setIsEditingName(true)}
-                                className="text-2xl font-bold text-white cursor-pointer hover:text-amber-500 transition-colors"
+                                className="text-2xl font-semibold tracking-tight text-white cursor-pointer hover:text-amber-500 transition-colors"
                             >
-                                {campaign.name}
+                                {campaign.name || "Untitled Campaign"}
                             </h1>
                         )}
                         <StatusBadge status={campaign.status} />
@@ -258,7 +247,7 @@ export default function CampaignDetailPage() {
                         )}
                     </button>
                     <button
-                        onClick={() => setConfirmModalOpen(true)}
+                        onClick={handleDelete}
                         className="btn-destructive h-9 px-4 text-xs flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all"
                     >
                         <Trash2 className="w-3.5 h-3.5" /> Delete
@@ -267,106 +256,92 @@ export default function CampaignDetailPage() {
                         onClick={() => { setLoading(true); fetchData(); }}
                         className="p-2 rounded-md border border-[#222] bg-[#141414] hover:border-amber-500 transition-colors"
                     >
-                        <RefreshCw className={`w-4 h-4 text-muted-foreground ${syncing ? "animate-spin" : ""}`} />
+                        <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
                     </button>
                 </div>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="rounded-[12px] p-4" style={{ backgroundColor: "#141414", border: "1px solid #222" }}>
-                    <p className="text-xs text-muted-foreground mb-1">Total Leads</p>
-                    <p className="text-2xl font-bold text-white">{campaign.total_leads}</p>
-                </div>
-                <div className="rounded-[12px] p-4" style={{ backgroundColor: "#141414", border: "1px solid #222" }}>
-                    <p className="text-xs text-muted-foreground mb-1">Sent</p>
-                    <p className="text-2xl font-bold text-emerald-500">{stats.sent}</p>
-                </div>
-                <div className="rounded-[12px] p-4" style={{ backgroundColor: "#141414", border: "1px solid #222" }}>
-                    <p className="text-xs text-muted-foreground mb-1">Replies</p>
-                    <p className="text-2xl font-bold text-amber-500">{stats.replied}</p>
-                </div>
-                <div className="rounded-[12px] p-4" style={{ backgroundColor: "#141414", border: "1px solid #222" }}>
-                    <p className="text-xs text-muted-foreground mb-1">Reply Rate</p>
-                    <p className="text-2xl font-bold text-amber-500">{stats.replyRate}%</p>
-                </div>
-            </div>
-
-            {/* Chart */}
-            <div className="rounded-[12px] p-6" style={{ backgroundColor: "#141414", border: "1px solid #222" }}>
-                <h2 className="text-sm font-semibold text-white mb-4">Email Sent Over Time</h2>
-                <div className="h-[200px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData}>
-                            <XAxis 
-                                dataKey="date" 
-                                stroke="#666" 
-                                fontSize={11}
-                                tickLine={false}
-                                axisLine={false}
-                            />
-                            <YAxis 
-                                stroke="#666" 
-                                fontSize={11}
-                                tickLine={false}
-                                axisLine={false}
-                            />
-                            <Tooltip 
-                                content={({ active, payload, label }) => {
-                                    if (active && payload && payload.length) {
-                                        return (
-                                            <div className="rounded-lg bg-[#1f1f1f] border border-[#333] px-3 py-2 text-xs shadow-xl">
-                                                <p className="font-medium text-white mb-1">{label}</p>
-                                                <p className="text-amber-500 font-semibold">{payload[0].value} emails sent</p>
-                                            </div>
-                                        );
-                                    }
-                                    return null;
-                                }}
-                            />
-                            <Line
-                                type="monotone"
-                                dataKey="sent"
-                                stroke="#F59E0B"
-                                strokeWidth={2}
-                                dot={{ r: 0 }}
-                                activeDot={{ r: 4, fill: "#F59E0B" }}
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </div>
-            </div>
-
-            {/* Recent Replies */}
-            {recentReplies.length > 0 && (
-                <div className="rounded-[12px] p-6" style={{ backgroundColor: "#141414", border: "1px solid #222" }}>
-                    <h2 className="text-sm font-semibold text-white mb-4">Recent Replies</h2>
-                    <div className="space-y-3">
-                        {recentReplies.map((reply: any) => (
-                            <div 
-                                key={reply.id}
-                                className="flex items-center gap-3 p-3 rounded-lg bg-[#1a1a1a]"
-                            >
-                                <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
-                                    <Mail className="w-4 h-4 text-amber-500" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-white truncate">{reply.email}</p>
-                                    <p className="text-xs text-muted-foreground">{new Date(reply.replied_at).toLocaleDateString()}</p>
-                                </div>
-                            </div>
-                        ))}
+            {/* Stat Cards Row */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                {statCards.map((stat) => (
+                    <div
+                        key={stat.label}
+                        className="rounded-[10px] transition-all duration-200 cursor-default group"
+                        style={{
+                            backgroundColor: "#141414",
+                            border: "1px solid #222222",
+                            padding: 24,
+                        }}
+                    >
+                        <p className="text-[12px] font-medium text-muted-foreground group-hover:text-amber-500 transition-colors">
+                            {stat.label}
+                        </p>
+                        <p className="text-2xl font-semibold text-white mt-1">
+                            {stat.value}
+                        </p>
                     </div>
-                </div>
-            )}
+                ))}
+            </div>
 
-            {/* Leads Table */}
-            <div className="rounded-[12px] overflow-hidden" style={{ backgroundColor: "#141414", border: "1px solid #222" }}>
-                <div className="px-6 py-4 border-b border-[#1f1f1f]">
-                    <h2 className="text-sm font-semibold text-white">Leads</h2>
-                </div>
-                {leads.length > 0 && (
-                    <>
+            {/* Two Column Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
+                {/* Left Column: Activity & Leads Table */}
+                <div className="lg:col-span-6 space-y-6">
+                    {/* Activity Chart */}
+                    <div className="rounded-[10px] bg-[#141414] border border-[#222222] overflow-hidden">
+                        <div className="px-6 py-5 border-b border-[#222222]">
+                            <h3 className="text-sm font-medium text-white">Email Activity</h3>
+                        </div>
+                        <div className="p-6">
+                            <div className="h-[240px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="0" stroke="#1f1f1f" vertical={false} />
+                                        <XAxis
+                                            dataKey="date"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fill: "#6b7280", fontSize: 11 }}
+                                            dy={10}
+                                        />
+                                        <YAxis
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fill: "#6b7280", fontSize: 11 }}
+                                        />
+                                        <Tooltip
+                                            content={({ active, payload, label }) => {
+                                                if (active && payload && payload.length) {
+                                                    return (
+                                                        <div className="rounded-lg bg-[#1f1f1f] border border-[#333] px-3 py-2 text-xs shadow-xl">
+                                                            <p className="font-medium text-white mb-1">{label}</p>
+                                                            <p className="text-amber-500 font-semibold">{payload[0].value} emails sent</p>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            }}
+                                        />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="sent"
+                                            stroke="#F59E0B"
+                                            strokeWidth={2}
+                                            dot={{ r: 0 }}
+                                            activeDot={{ r: 4, fill: "#F59E0B", stroke: "#141414", strokeWidth: 2 }}
+                                        />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Leads Table */}
+                    <div className="rounded-[10px] bg-[#141414] border border-[#222222] overflow-hidden">
+                        <div className="px-6 py-5 border-b border-[#222222] flex items-center justify-between">
+                            <h3 className="text-sm font-medium text-white">Target Leads</h3>
+                            <span className="text-[11px] text-muted-foreground">{leads.length} leads total</span>
+                        </div>
                         {(() => {
                             const sent = leads.filter(l => l.status === 'SENT' || l.status === 'REPLIED').length;
                             const failed = leads.filter(l => l.status === 'FAILED').length;
@@ -400,51 +375,246 @@ export default function CampaignDetailPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {leads.slice(0, 50).map((lead) => (
-                                        <tr key={lead.id} className="border-b border-[#1f1f1f] hover:bg-[#1a1a1a] transition-colors">
-                                            <td className="py-3 px-6 text-white">{lead.email}</td>
+                                    {leads.length > 0 ? leads.map((lead) => (
+                                        <tr
+                                            key={lead.id}
+                                            className="hover:bg-white/[0.02] transition-colors border-b border-[#1a1a1a] last:border-0"
+                                        >
+                                            <td className="py-3 px-6 text-white text-[13px]">{lead.email}</td>
                                             <td className="py-3 px-6">
                                                 <LeadStatusBadge status={lead.status} />
                                             </td>
-                                            <td className="py-3 px-6 text-muted-foreground">
-                                                {lead.sent_at ? new Date(lead.sent_at).toLocaleString() : '-'}
+                                            <td className="py-3 px-6 text-muted-foreground text-[12px]">
+                                                {lead.sent_at ? new Date(lead.sent_at).toLocaleString() : "—"}
                                             </td>
                                             <td className="py-3 px-6 text-right">
-                                                {lead.status === 'REPLIED' ? (
-                                                    <span className="text-amber-500">✓</span>
+                                                {lead.status === "REPLIED" ? (
+                                                    <span className="inline-flex items-center gap-1 text-amber-500 font-medium text-[12px]">
+                                                        Yes
+                                                    </span>
                                                 ) : (
-                                                    <span className="text-muted-foreground">-</span>
+                                                    <span className="text-muted-foreground text-[12px]">No</span>
                                                 )}
                                             </td>
                                         </tr>
-                                    ))}
+                                    )) : (
+                                        <tr>
+                                            <td colSpan={4} className="py-12 text-center text-muted-foreground text-xs italic">
+                                                No leads found for this campaign.
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
-                        {leads.length > 50 && (
-                            <div className="px-6 py-3 text-xs text-muted-foreground">
-                                Showing 50 of {leads.length} leads
-                            </div>
-                        )}
-                    </>
-                )}
-                {leads.length === 0 && (
-                    <div className="px-6 py-12 text-center text-muted-foreground">
-                        No leads yet
                     </div>
-                )}
+                </div>
 
-                <SimpleConfirmModal
-                    open={confirmModalOpen}
-                    title="Delete Campaign"
-                    message="Are you sure you want to delete this campaign? Your leads and send history will also be permanently removed."
-                    confirmText="Delete Campaign"
-                    cancelText="Cancel"
-                    variant="danger"
-                    onConfirm={handleDelete}
-                    onCancel={() => setConfirmModalOpen(false)}
-                />
+                {/* Right Column: Settings & Mini Inbox */}
+                <div className="lg:col-span-4 space-y-6">
+                    {/* Settings Card */}
+                    <div className="rounded-[10px] bg-[#141414] border border-[#222222] overflow-hidden">
+                        <div className="px-6 py-5 border-b border-[#222222] flex items-center justify-between">
+                            <h3 className="text-sm font-medium text-white uppercase tracking-wider">Campaign Settings</h3>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-bold tracking-tighter uppercase">Locked</span>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            <div className="space-y-3">
+                                <label className="text-[11px] font-medium text-muted-foreground uppercase flex items-center gap-2">
+                                    <User className="w-3 h-3" /> Sending Accounts
+                                </label>
+                                <div className="space-y-1.5">
+                                    {(campaign.sender_accounts || []).map((acc: any) => (
+                                        <div key={acc.sender_account.id} className="flex items-center gap-2 p-2 rounded bg-white/[0.03] border border-white/[0.05]">
+                                            <div className="relative">
+                                                <div className="w-6 h-6 rounded bg-amber-500/20 flex items-center justify-center text-amber-500 font-bold text-[10px]">
+                                                    {acc.sender_account.email.charAt(0).toUpperCase()}
+                                                </div>
+                                                {acc.sender_account.status === 'REAUTH_REQUIRED' && (
+                                                    <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border border-[#141414] animate-pulse" />
+                                                )}
+                                            </div>
+                                            <span className={`text-[11px] truncate ${acc.sender_account.status === 'REAUTH_REQUIRED' ? 'text-red-400 font-medium' : 'text-white/90'}`}>
+                                                {acc.sender_account.email}
+                                                {acc.sender_account.status === 'REAUTH_REQUIRED' && " (Needs Re-auth)"}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 pt-2">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase">Daily Limit</label>
+                                    <div className="flex items-center gap-2 text-white">
+                                        <Clock className="w-3.5 h-3.5 text-amber-500" />
+                                        <span className="text-sm font-medium">{campaign.daily_limit} / account</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase">Subject Line</label>
+                                    <div className="flex items-center gap-2 text-white truncate">
+                                        <Mail className="w-3.5 h-3.5 text-amber-500" />
+                                        <span className="text-sm font-medium truncate italic">"{campaign.subject}"</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* View Message Button */}
+                            <div className="pt-4 mt-2 border-t border-[#222222]">
+                                <button
+                                    onClick={() => setShowMessageModal(true)}
+                                    className="w-full flex items-center justify-between px-3 py-2 rounded-[8px] border border-transparent hover:border-amber-500/30 transition-all group"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Eye className="w-4 h-4 text-amber-500" />
+                                        <span className="text-[13px] text-white">View Message</span>
+                                    </div>
+                                    <span className="text-[12px] px-2 py-1 rounded-[8px] h-7 flex items-center border transition-all cursor-pointer"
+                                        style={{ borderColor: "#222222", color: "#888888" }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.borderColor = "#F59E0B";
+                                            e.currentTarget.style.color = "#FFFFFF";
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.borderColor = "#222222";
+                                            e.currentTarget.style.color = "#888888";
+                                        }}
+                                    >
+                                        Preview
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Replies Mini List */}
+                    <div className="rounded-[10px] bg-[#141414] border border-[#222222] overflow-hidden">
+                        <div className="px-6 py-5 border-b border-[#222222] flex items-center justify-between">
+                            <h3 className="text-sm font-medium text-white flex items-center gap-2">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Recent Replies
+                            </h3>
+                            <Link href="/inbox" className="text-[11px] text-amber-500 font-medium hover:underline flex items-center gap-0.5 group">
+                                Open Inbox <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                            </Link>
+                        </div>
+                        <div className="divide-y divide-[#1a1a1a]">
+                            {recentReplies.length > 0 ? recentReplies.map((reply: any) => (
+                                <Link
+                                    key={reply.id}
+                                    href={`/inbox?threadId=${reply.gmail_thread_id}`}
+                                    className="block p-4 hover:bg-white/[0.02] transition-all group"
+                                >
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="text-[12px] font-medium text-white/90 group-hover:text-amber-500 transition-colors">{reply.email}</span>
+                                        <span className="text-[10px] text-muted-foreground">
+                                            {new Date(reply.replied_at).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                        <span className="truncate">Replied to {campaign.name.slice(0, 15)}...</span>
+                                        <ExternalLink className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                </Link>
+                            )) : (
+                                <div className="p-10 text-center text-muted-foreground text-xs italic">
+                                    No replies received yet.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            {/* Message Modal */}
+            {showMessageModal && (
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) setShowMessageModal(false);
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === "Escape") setShowMessageModal(false);
+                    }}
+                    tabIndex={0}
+                >
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                        className="w-full max-w-[560px] rounded-[12px] overflow-hidden"
+                        style={{ backgroundColor: "#141414", border: "1px solid #222222" }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex items-start justify-between p-6 pb-4">
+                            <div>
+                                <h2 className="text-[18px] font-bold text-white">Campaign Message</h2>
+                                <p className="text-[13px] mt-1" style={{ color: "#888888" }}>{campaign.name}</p>
+                            </div>
+                            <button
+                                onClick={() => setShowMessageModal(false)}
+                                className="p-1 transition-colors"
+                                style={{ color: "#888888" }}
+                                onMouseEnter={(e) => (e.currentTarget.style.color = "#FFFFFF")}
+                                onMouseLeave={(e) => (e.currentTarget.style.color = "#888888")}
+                            >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M18 6L6 18M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Divider */}
+                        <div style={{ borderTop: "1px solid #222222" }} />
+
+                        {/* Subject */}
+                        <div className="px-6 py-4">
+                            <label className="text-[11px] uppercase tracking-wider" style={{ color: "#888888" }}>Subject</label>
+                            <p className="text-[15px] font-bold text-white mt-1">{campaign.subject}</p>
+                        </div>
+
+                        {/* Divider */}
+                        <div style={{ borderTop: "1px solid #222222" }} />
+
+                        {/* Body */}
+                        <div className="px-6 py-4">
+                            <label className="text-[11px] uppercase tracking-wider" style={{ color: "#888888" }}>Message Body</label>
+                            {campaign.body ? (
+                                <div 
+                                    className="mt-2 text-[14px] text-white overflow-y-auto"
+                                    style={{ 
+                                        lineHeight: 1.8, 
+                                        whiteSpace: "pre-wrap", 
+                                        maxHeight: 360,
+                                        scrollbarColor: "#222222 #141414"
+                                    }}
+                                >
+                                    {campaign.body}
+                                </div>
+                            ) : (
+                                <p className="mt-2 text-[14px] italic" style={{ color: "#888888" }}>
+                                    No message body was saved for this campaign.
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="px-6 py-4 pb-6 flex justify-center">
+                            <button
+                                onClick={() => setShowMessageModal(false)}
+                                className="px-6 py-2 rounded-[8px] text-white text-[14px] transition-all"
+                                style={{ border: "1px solid #222222" }}
+                                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#F59E0B")}
+                                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#222222")}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </div>
     );
 }
