@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@insforge/nextjs";
 import { useTheme } from "next-themes";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 
 const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -37,11 +38,13 @@ interface SidebarProps {
 export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
     const pathname = usePathname();
     const [showLogout, setShowLogout] = useState(false);
+    const [confirmModalOpen, setConfirmModalOpen] = useState(false);
     const { signOut } = useAuth();
     const { theme, resolvedTheme } = useTheme();
     const isLightMode = resolvedTheme === 'light';
 
     const handleSignOut = async () => {
+        setConfirmModalOpen(false);
         await signOut();
         window.location.href = "/";
     };
@@ -176,7 +179,7 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
                                 {user.email}
                             </p>
                             <button
-                                onClick={handleSignOut}
+                                onClick={() => setConfirmModalOpen(true)}
                                 className={`p-1 rounded-md text-[#6b7280] hover:text-red-400 hover:bg-white/[0.06] transition-all shrink-0 ${showLogout ? "opacity-100" : "opacity-0"}`}
                                 title="Sign out"
                             >
@@ -194,6 +197,17 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
                     )}
                 </div>
             </div>
+
+            <ConfirmModal
+                isOpen={confirmModalOpen}
+                title="Sign Out"
+                message="Are you sure you want to sign out of EmailFlow?"
+                confirmText="Sign Out"
+                cancelText="Stay"
+                variant="warning"
+                onConfirm={handleSignOut}
+                onCancel={() => setConfirmModalOpen(false)}
+            />
         </aside>
     );
 }

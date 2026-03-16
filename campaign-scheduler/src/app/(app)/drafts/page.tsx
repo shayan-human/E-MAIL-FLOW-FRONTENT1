@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { useSlashCommand } from "@/hooks/useSlashCommand";
 
 const PERSONALIZATION_OPTIONS = [
@@ -72,6 +73,12 @@ export default function DraftsPage() {
   const [moveMenuOpenDraftId, setMoveMenuOpenDraftId] = useState<string | null>(null);
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
   const [draftForm, setDraftForm] = useState({ name: "", subject: "", body: "" });
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    type: "folder" | "draft" | null;
+    id: string | null;
+    name: string;
+  }>({ open: false, type: null, id: null, name: "" });
 
   const subjectInputRef = useRef<HTMLInputElement>(null);
   const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -166,17 +173,22 @@ export default function DraftsPage() {
     setEditingFolderId(null);
   };
 
-  const handleDeleteFolder = async (id: string) => {
-    if (!confirm("Delete folder? Drafts inside will move to Uncategorized.")) return;
+  const handleDeleteFolder = async () => {
+    if (!confirmModal.id) return;
     try {
-      await fetch(`/api/folders/${id}`, { method: "DELETE" });
-      setFolders(prev => prev.filter(f => f.id !== id));
-      if (location.type === "folder" && location.folder.id === id) {
+      await fetch(`/api/folders/${confirmModal.id}`, { method: "DELETE" });
+      setFolders(prev => prev.filter(f => f.id !== confirmModal.id));
+      if (location.type === "folder" && location.folder.id === confirmModal.id) {
         setLocation({ type: "uncategorized" });
       }
+      setConfirmModal({ open: false, type: null, id: null, name: "" });
     } catch (err) {
       console.error("Failed to delete folder:", err);
     }
+  };
+
+  const openDeleteFolderModal = (id: string, name: string) => {
+    setConfirmModal({ open: true, type: "folder", id, name });
   };
 
   const handleMoveDraft = async (draftId: string, folderId: string | null) => {
@@ -196,14 +208,19 @@ export default function DraftsPage() {
     setMoveMenuOpenDraftId(null);
   };
 
-  const handleDeleteDraft = async (id: string) => {
-    if (!confirm("Delete this draft?")) return;
+  const handleDeleteDraft = async () => {
+    if (!confirmModal.id) return;
     try {
-      await fetch(`/api/drafts/${id}`, { method: "DELETE" });
-      setDrafts(prev => prev.filter(d => d.id !== id));
+      await fetch(`/api/drafts/${confirmModal.id}`, { method: "DELETE" });
+      setDrafts(prev => prev.filter(d => d.id !== confirmModal.id));
+      setConfirmModal({ open: false, type: null, id: null, name: "" });
     } catch (err) {
       console.error("Failed to delete draft:", err);
     }
+  };
+
+  const openDeleteDraftModal = (id: string, name: string) => {
+    setConfirmModal({ open: true, type: "draft", id, name });
   };
 
   const handleCreateDraft = async () => {
@@ -387,7 +404,7 @@ export default function DraftsPage() {
                         <Folder className="w-3.5 h-3.5" /> Change Color
                       </button>
                       <button
-                        onClick={() => handleDeleteFolder(folder.id)}
+                        onClick={() => openDeleteFolderModal(folder.id, folder.name)}
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10"
                       >
                         <Trash2 className="w-3.5 h-3.5" /> Delete
@@ -552,7 +569,7 @@ export default function DraftsPage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleDeleteDraft(draft.id);
+                                openDeleteDraftModal(draft.id, draft.name);
                               }}
                               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10"
                             >
@@ -693,6 +710,21 @@ export default function DraftsPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ConfirmModal
+        isOpen={confirmModal.open}
+        title={confirmModal.type === "folder" ? "Delete Folder" : "Delete Draft"}
+        message={
+          confirmModal.type === "folder"
+            ? "Deleting this folder will move all drafts inside to Uncategorized."
+            : `This draft "${confirmModal.name}" will be permanently deleted.`
+        }
+        confirmText={confirmModal.type === "folder" ? "Delete Folder" : "Delete Draft"}
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={confirmModal.type === "folder" ? handleDeleteFolder : handleDeleteDraft}
+        onCancel={() => setConfirmModal({ open: false, type: null, id: null, name: "" })}
+      />
     </div>
   );
 }

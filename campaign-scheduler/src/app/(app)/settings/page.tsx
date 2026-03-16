@@ -6,6 +6,7 @@ import { Settings as SettingsIcon, Sun, Moon, Monitor, Bell, BellOff, LogOut, Sa
 import { insforge } from "@/lib/insforge";
 import { useUser, useAuth } from "@insforge/nextjs";
 import { toast } from "@/components/ui/toast-provider";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { formatInTimezone, getBrowserTimezone } from "@/lib/utils";
 
 const TIMEZONES = [
@@ -55,6 +56,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [displayNameChanged, setDisplayNameChanged] = useState(false);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -160,6 +162,7 @@ export default function SettingsPage() {
   };
 
   const handleSignOut = async () => {
+    setConfirmModalOpen(false);
     await signOut();
     window.location.href = "/";
   };
@@ -529,7 +532,7 @@ export default function SettingsPage() {
           {/* Sign Out */}
           <div className="px-6 py-4">
             <button
-              onClick={handleSignOut}
+              onClick={() => setConfirmModalOpen(true)}
               className="w-full py-2 rounded-[8px] text-sm font-medium transition-all flex items-center justify-center gap-2"
               style={{ 
                 border: "1px solid #222222", 
@@ -544,6 +547,17 @@ export default function SettingsPage() {
           </div>
         </div>
       </section>
+
+      <ConfirmModal
+        isOpen={confirmModalOpen}
+        title="Sign Out"
+        message="Are you sure you want to sign out of EmailFlow?"
+        confirmText="Sign Out"
+        cancelText="Stay"
+        variant="warning"
+        onConfirm={handleSignOut}
+        onCancel={() => setConfirmModalOpen(false)}
+      />
     </div>
   );
 }

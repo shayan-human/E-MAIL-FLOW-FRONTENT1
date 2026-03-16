@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { insforge } from "@/lib/insforge";
 import { useUser } from "@insforge/nextjs";
 import { toast } from "@/components/ui/toast-provider";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import {
     Card,
     CardHeader,
@@ -36,6 +37,11 @@ export function Step1Accounts({ onNext }: Step1Props) {
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isConnecting, setIsConnecting] = useState(false);
+    const [confirmModal, setConfirmModal] = useState<{
+        open: boolean;
+        accountId: string | null;
+        accountEmail: string;
+    }>({ open: false, accountId: null, accountEmail: "" });
     const hasSavedTokens = useRef(false);
 
     const fetchAccounts = async () => {
@@ -157,23 +163,28 @@ export function Step1Accounts({ onNext }: Step1Props) {
         setAccounts(refreshed);
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to remove this sender account?")) return;
+    const handleDelete = async () => {
+        if (!confirmModal.accountId) return;
 
         try {
             const { error } = await insforge.database
                 .from("sender_accounts")
                 .delete()
-                .eq("id", id);
+                .eq("id", confirmModal.accountId);
 
             if (error) throw error;
 
             toast.success("Account removed");
-            setAccounts(accounts.filter(acc => acc.id !== id));
+            setAccounts(accounts.filter(acc => acc.id !== confirmModal.accountId));
+            setConfirmModal({ open: false, accountId: null, accountEmail: "" });
         } catch (err: unknown) {
             console.error(err);
             toast.error("Failed to remove account");
         }
+    };
+
+    const openDeleteModal = (id: string, email: string) => {
+        setConfirmModal({ open: true, accountId: id, accountEmail: email });
     };
 
     return (
@@ -245,7 +256,7 @@ export function Step1Accounts({ onNext }: Step1Props) {
                                         variant="ghost"
                                         size="icon"
                                         className="text-muted-foreground hover:text-destructive shrink-0"
-                                        onClick={() => handleDelete(acc.id)}
+                                        onClick={() => openDeleteModal(acc.id, acc.email)}
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -316,6 +327,17 @@ export function Step1Accounts({ onNext }: Step1Props) {
                             : "Setup Leads \u2192"}
                 </Button>
             </div>
+
+            <ConfirmModal
+                isOpen={confirmModal.open}
+                title="Remove Account"
+                message={`Are you sure you want to remove ${confirmModal.accountEmail}? This cannot be undone.`}
+                confirmText="Remove"
+                cancelText="Cancel"
+                variant="danger"
+                onConfirm={handleDelete}
+                onCancel={() => setConfirmModal({ open: false, accountId: null, accountEmail: "" })}
+            />
         </div>
     );
 }
