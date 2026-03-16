@@ -608,7 +608,7 @@ function StatusBadge({ status }: { status: string }) {
         PAUSED: { bg: "bg-zinc-800/50", text: "text-zinc-400", label: "Paused" },
         COMPLETED: { bg: "bg-emerald-500/10", text: "text-emerald-500", label: "Completed" },
     };
-    const c = config[status || "DRAFT"];
+    const c = config[status] || config.DRAFT;
     return (
         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${c.bg} ${c.text} border border-white/[0.03]`}>
             {c.label}
@@ -624,7 +624,7 @@ function LeadStatusBadge({ status }: { status: string }) {
         FAILED: { bg: "#2a1010", text: "#ff4444", label: "Failed" },
         BLOCKED: { bg: "#2a1010", text: "#ff4444", label: "Blocked" },
     };
-    const c = config[status || "PENDING"];
+    const c = config[status] || config.PENDING;
     return (
         <span 
             className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium leading-none"
