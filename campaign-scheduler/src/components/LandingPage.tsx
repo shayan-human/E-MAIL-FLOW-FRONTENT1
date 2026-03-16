@@ -15,7 +15,7 @@ import {
 import { Calendar, Code, FileText, User, Clock } from "lucide-react";
 import { TestimonialsColumn, type Testimonial } from "@/components/ui/testimonials-column";
 import RadialOrbitalTimeline from "@/components/ui/radial-orbital-timeline";
-import HeroSection, { PageBackground } from "@/components/HeroSection";
+import HeroSection from "@/components/HeroSection";
 
 const COLORS = {
   page: "#0f0f0f",
@@ -440,8 +440,7 @@ export default function LandingPage() {
   const compliant = useCountUp({ value: 100, enabled: socialInView, durationMs: 2000, decimals: 0 });
 
   return (
-    <div className="min-h-screen font-sans relative" style={{ backgroundColor: COLORS.page, color: COLORS.text }}>
-      <PageBackground />
+    <div className="min-h-screen font-sans" style={{ backgroundColor: COLORS.page, color: COLORS.text }}>
       {/* SECTION 1: NAVBAR */}
       <motion.nav
         initial={false}
