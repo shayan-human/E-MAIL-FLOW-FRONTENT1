@@ -76,13 +76,13 @@ export default function WarmupClient({
             const data = await response.json();
 
             if (data.success) {
-                const warmupMap = new Map(
+                const warmupMap = new Map<string, WarmupAccount>(
                     (data.data || []).map((wa: WarmupAccount) => [wa.gmail_account_id, wa])
                 );
 
                 const combined: CombinedAccount[] = (senderAccounts || []).map(
                     (sa: SenderAccount) => {
-                        const wa = warmupMap.get(sa.id);
+                        const wa = warmupMap.get(sa.id) || null;
                         return {
                             id: wa?.id || "",
                             gmail_account_id: wa?.gmail_account_id || sa.id,
