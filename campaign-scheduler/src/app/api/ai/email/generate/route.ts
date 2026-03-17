@@ -48,8 +48,8 @@ export async function POST(req: Request) {
             headers: {
                 "Authorization": `Bearer ${apiKey}`,
                 "Content-Type": "application/json",
-                "HTTP-Referer": "https://campaign-scheduler.vercel.app",
-                "X-Title": "Campaign Scheduler",
+                "HTTP-Referer": "https://emailflow.demgrow.space",
+                "X-Title": "EmailFlow",
             },
             body: JSON.stringify({
                 model: MODEL,
@@ -60,16 +60,21 @@ export async function POST(req: Request) {
             }),
         });
 
+        const responseText = await response.text();
+        
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error("[OpenRouter API Error]:", errorData);
+            console.error("[OpenRouter API Error]:", {
+                status: response.status,
+                body: responseText
+            });
+            const errorData = JSON.parse(responseText || "{}");
             return NextResponse.json(
-                { error: errorData.error?.message || "Failed to call AI service" },
+                { error: errorData.error?.message || `API error: ${response.status}` },
                 { status: response.status }
             );
         }
 
-        const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+        const data = JSON.parse(responseText) as { choices?: Array<{ message?: { content?: string } }> };
         const content = data.choices?.[0]?.message?.content || "";
 
         let subject = "";
