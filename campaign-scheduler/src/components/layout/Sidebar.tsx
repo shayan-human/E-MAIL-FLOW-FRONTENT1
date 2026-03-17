@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -15,18 +15,20 @@ import {
     ChevronRight,
     Settings,
     FileText,
-    TrendingUp,
+    Flame,
 } from "lucide-react";
 import { useAuth } from "@insforge/nextjs";
 import { useTheme } from "next-themes";
 import { SimpleConfirmModal } from "@/components/ui/simple-confirm-modal";
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_CAMPAIGN_BACKEND_URL || process.env.CAMPAIGN_BACKEND_URL || "https://your-backend.onrender.com";
+
 const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/campaigns", label: "Campaigns", icon: Megaphone },
+    { href: "/warmup", label: "Warmup", icon: Flame, showBadge: true },
     { href: "/inbox", label: "Inbox", icon: MessageSquareText },
     { href: "/drafts", label: "Drafts", icon: FileText },
-    { href: "/warmup", label: "Warmup", icon: TrendingUp },
     { href: "/accounts", label: "Gmail Accounts", icon: Mail },
     { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -41,9 +43,22 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
     const pathname = usePathname();
     const [showLogout, setShowLogout] = useState(false);
     const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [hasWarmingAccount, setHasWarmingAccount] = useState(false);
     const { signOut } = useAuth();
     const { theme, resolvedTheme } = useTheme();
     const isLightMode = resolvedTheme === 'light';
+
+    useEffect(() => {
+        if (user?.id) {
+            fetch(`${BACKEND_URL}/warmup/accounts?user_id=${user.id}`)
+                .then(res => res.json())
+                .then(data => {
+                    const hasWarming = data.data?.some((a: any) => a.status === 'warming');
+                    setHasWarmingAccount(hasWarming);
+                })
+                .catch(() => {});
+        }
+    }, [user?.id]);
 
     const handleSignOut = async () => {
         setConfirmModalOpen(false);
@@ -143,6 +158,21 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
                                 className={`shrink-0 transition-colors ${isActive ? "text-primary" : "text-[#6b7280] group-hover:text-primary"}`}
                                 style={{ width: 18, height: 18 }}
                             />
+                            {/* Warmup status badge */}
+                            {item.showBadge && hasWarmingAccount && (
+                                <span 
+                                    className="absolute rounded-full"
+                                    style={{
+                                        width: 8,
+                                        height: 8,
+                                        backgroundColor: "#F59E0B",
+                                        top: isExpanded ? '50%' : 8,
+                                        right: isExpanded ? undefined : -2,
+                                        transform: isExpanded ? 'translateY(-50%)' : 'none',
+                                        marginLeft: isExpanded ? 4 : 0,
+                                    }}
+                                />
+                            )}
                             {isExpanded && (
                                 <span className="whitespace-nowrap font-medium">
                                     {item.label}
