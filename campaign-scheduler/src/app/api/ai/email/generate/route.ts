@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { chat } from "ollama";
+import { Ollama } from "ollama";
 
 const MODEL = "kimi-k2.5:cloud";
 
@@ -44,18 +44,19 @@ export async function POST(req: Request) {
                 );
         }
 
-        const response = await chat(
-            {
-                model: MODEL,
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: userMessage }
-                ],
-            },
-            {
-                apiKey: apiKey,
+        const ollama = new Ollama({
+            headers: {
+                "Authorization": `Bearer ${apiKey}`
             }
-        );
+        });
+
+        const response = await ollama.chat({
+            model: MODEL,
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userMessage }
+            ],
+        });
 
         const content = response.message?.content || "";
 
