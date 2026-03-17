@@ -45,6 +45,7 @@ export async function POST(req: Request) {
         }
 
         const ollama = new Ollama({
+            host: "https://ollama.com",
             headers: {
                 "Authorization": `Bearer ${apiKey}`
             }
