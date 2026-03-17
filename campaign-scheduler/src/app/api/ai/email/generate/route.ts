@@ -3,6 +3,27 @@ import { Ollama } from "ollama";
 
 const MODEL = "kimi-k2.5:cloud";
 
+const SPAM_WARNING = `IMPORTANT: Avoid ALL email spam trigger words. Do NOT use:
+
+URGENCY/PRESSURE: Act now, Limited time, Expires today, Don't delay, Urgent, Last chance
+MONEY/OFFERS: Free, No cost, Guarantee, Cash, Earn money, Extra income, Make money fast, No fees, Prize, Winner, Congratulations
+CLICKBAIT: Click here, Visit our website, Call now, Order now, Buy direct
+SHADY PHRASING: No catch, No obligation, No hidden fees, Risk free, 100% satisfied, As seen on
+CAPS/PUNCTUATION: FREE!!!, ACT NOW!!!, YOU WON!!!
+
+AI WRITING PATTERNS TO AVOID:
+- Do NOT use dashes (--) as separators or in sentences
+- Do NOT use formal/soulless phrases like "I hope this email finds you well"
+- Do NOT use robotic transitions like "Furthermore", "Moreover", "Additionally"
+- Avoid starting sentences with "It's important to note" or "Please don't hesitate"
+- Avoid overly perfect grammar without natural variation
+
+WRITE NATURALLY:
+- Use conversational, human-like language
+- Vary sentence length - mix short punchy with longer flowing sentences
+- Include slight imperfections that humans naturally have
+- Sound like a real person would write, not an AI`;
+
 export async function POST(req: Request) {
     try {
         const apiKey = process.env.OLLAMA_API_KEY;
@@ -29,13 +50,24 @@ export async function POST(req: Request) {
 
         switch (type) {
             case "subject":
-                systemPrompt = "You are an expert copywriter. Generate a compelling, personalized email subject line. Keep it short, curiosity-inducing, and relevant. Only output the subject line, nothing else.";
+                systemPrompt = `You are an expert copywriter. Generate a compelling, personalized email subject line. Keep it short, curiosity-inducing, and relevant. Only output the subject line, nothing else.
+
+${SPAM_WARNING}`;
                 break;
             case "body":
-                systemPrompt = "You are an expert cold email copywriter. Write a concise, personalized email body that feels natural and not spammy. Use the personalization tags provided: {{firstName}}, {{lastName}}, {{fullName}}, {{businessName}}, {{email}}, {{website}}. Keep it under 200 words. Only output the email body, no subject.";
+                systemPrompt = `You are an expert cold email copywriter. Write a concise, personalized email body that feels natural and not spammy. Use the personalization tags provided: {{firstName}}, {{lastName}}, {{fullName}}, {{businessName}}, {{email}}, {{website}}. Keep it under 200 words. Only output the email body, no subject.
+
+${SPAM_WARNING}`;
                 break;
             case "both":
-                systemPrompt = "You are an expert cold email copywriter. Generate both a subject line and email body. The subject should be short and curiosity-inducing. The body should be concise, personalized, and under 200 words. Use personalization tags: {{firstName}}, {{lastName}}, {{fullName}}, {{businessName}}, {{email}}, {{website}}. Format your response as:\n\nSUBJECT: <subject line>\n\nBODY:\n<email body>";
+                systemPrompt = `You are an expert cold email copywriter. Generate both a subject line and email body. The subject should be short and curiosity-inducing. The body should be concise, personalized, and under 200 words. Use personalization tags: {{firstName}}, {{lastName}}, {{fullName}}, {{businessName}}, {{email}}, {{website}}. Format your response as:
+
+SUBJECT: <subject line>
+
+BODY:
+<email body>
+
+${SPAM_WARNING}`;
                 break;
             default:
                 return NextResponse.json(
