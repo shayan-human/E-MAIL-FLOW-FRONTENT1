@@ -17,12 +17,12 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_CAMPAIGN_BACKEND_URL || process.env.
 
 interface WarmupAccount {
     id?: string;
-    gmail_account_id: string;
-    gmail_email: string;
-    status: "inactive" | "warming" | "warmed" | "paused";
-    mode: "own_only" | "network";
-    day_number: number;
-    daily_target: number;
+    gmail_account_id?: string;
+    gmail_email?: string;
+    status?: "inactive" | "warming" | "warmed" | "paused";
+    mode?: "own_only" | "network";
+    day_number?: number;
+    daily_target?: number;
 }
 
 interface SenderAccount {
