@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const MODEL = "meta-llama/llama-3.3-70b-instruct:free";
+const MODEL = "google/gemma-3-27b-it:free";
 
 export async function POST(req: Request) {
     try {
