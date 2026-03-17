@@ -51,8 +51,13 @@ export default async function WarmupPage() {
             (w: any) => w.gmail_account_id === sa.id
         );
         return {
-            ...wa,
+            id: wa?.id || "",
+            gmail_account_id: sa.id,
             gmail_email: sa.email,
+            status: wa?.status || "inactive",
+            mode: wa?.mode || "own_only",
+            day_number: wa?.day_number || 0,
+            daily_target: wa?.daily_target || 0,
         };
     });
 
