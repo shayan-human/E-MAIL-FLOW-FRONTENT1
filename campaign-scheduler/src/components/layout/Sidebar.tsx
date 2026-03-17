@@ -15,6 +15,7 @@ import {
     ChevronRight,
     Settings,
     FileText,
+    TrendingUp,
 } from "lucide-react";
 import { useAuth } from "@insforge/nextjs";
 import { useTheme } from "next-themes";
@@ -25,6 +26,7 @@ const navItems = [
     { href: "/campaigns", label: "Campaigns", icon: Megaphone },
     { href: "/inbox", label: "Inbox", icon: MessageSquareText },
     { href: "/drafts", label: "Drafts", icon: FileText },
+    { href: "/warmup", label: "Warmup", icon: TrendingUp },
     { href: "/accounts", label: "Gmail Accounts", icon: Mail },
     { href: "/settings", label: "Settings", icon: Settings },
 ];
