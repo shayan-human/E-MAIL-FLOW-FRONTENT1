@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PenTool, KeySquare, HelpCircle, ArrowLeft, ArrowRight, UserCircle2, User } from "lucide-react";
+import { PenTool, KeySquare, HelpCircle, ArrowLeft, ArrowRight, UserCircle2, User, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import { Account } from "./Step1Accounts";
 import { insforge } from "@/lib/insforge";
 import { useUser } from "@insforge/nextjs";
 import { RotateDraftsSelector } from "@/components/campaign-builder/RotateDraftsSelector";
+import { generateEmailContent } from "@/lib/openrouter";
 
 interface Step3Props {
     onNext: (subject: string, body: string, selectedAccountIds: string[], senderDisplayName?: string, selectedDraftIds?: string[], copyMode?: "single" | "rotate") => void;
@@ -49,6 +50,12 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
     const [sendNameMode, setSendNameMode] = useState<'account' | 'custom'>('account');
     const [customSenderName, setCustomSenderName] = useState('');
     const { user, isLoaded } = useUser();
+
+    // AI Assist state
+    const [showAIPanel, setShowAIPanel] = useState(false);
+    const [aiPrompt, setAiPrompt] = useState("");
+    const [aiType, setAiType] = useState<"subject" | "body" | "both">("both");
+    const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
         if (isLoaded && user) {
@@ -100,6 +107,38 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
             setSelectedAccountIds(prev => [...prev, id]);
         } else {
             setSelectedAccountIds(prev => prev.filter(accId => accId !== id));
+        }
+    };
+
+    const handleAIGenerate = async () => {
+        if (!aiPrompt.trim()) return;
+        
+        setIsGenerating(true);
+        try {
+            const result = await generateEmailContent({
+                prompt: aiPrompt,
+                type: aiType
+            });
+
+            if (result.error) {
+                toast.error(result.error);
+                return;
+            }
+
+            if (result.subject && aiType !== "body") {
+                setSubject(result.subject);
+            }
+            if (result.body && aiType !== "subject") {
+                setBody(result.body);
+            }
+            
+            setShowAIPanel(false);
+            setAiPrompt("");
+            toast.success("Content generated!");
+        } catch {
+            toast.error("Failed to generate content");
+        } finally {
+            setIsGenerating(false);
         }
     };
 
@@ -261,7 +300,19 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
                                     className="space-y-6"
                                 >
                                     <div className="space-y-2">
-                                        <Label htmlFor="subject" className="text-base font-semibold">Subject Line</Label>
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="subject" className="text-base font-semibold">Subject Line</Label>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setShowAIPanel(true)}
+                                                className="text-xs gap-1.5 h-7 px-2 text-muted-foreground hover:text-foreground"
+                                            >
+                                                <Sparkles className="w-3.5 h-3.5" />
+                                                AI Assist
+                                            </Button>
+                                        </div>
                                         <div className="relative" ref={subjectContainerRef}>
                                             <Input
                                                 id="subject"
@@ -295,7 +346,19 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
                                     </div>
 
                                     <div className="space-y-2 flex-1 flex flex-col">
-                                        <Label htmlFor="body" className="text-base font-semibold">Email Body</Label>
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="body" className="text-base font-semibold">Email Body</Label>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setShowAIPanel(true)}
+                                                className="text-xs gap-1.5 h-7 px-2 text-muted-foreground hover:text-foreground"
+                                            >
+                                                <Sparkles className="w-3.5 h-3.5" />
+                                                AI Assist
+                                            </Button>
+                                        </div>
                                         <div className="relative flex-1 flex flex-col" ref={bodyContainerRef}>
                                             <Textarea
                                                 id="body"
@@ -490,6 +553,108 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
                     Finalize Schedule <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
             </div>
+
+            {/* AI Assist Panel */}
+            <AnimatePresence>
+                {showAIPanel && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+                        onClick={() => setShowAIPanel(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-background rounded-xl border shadow-2xl w-full max-w-lg overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between p-4 border-b bg-muted/20">
+                                <div className="flex items-center gap-2">
+                                    <Sparkles className="w-5 h-5 text-primary" />
+                                    <h3 className="font-semibold">AI Email Assistant</h3>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => setShowAIPanel(false)}
+                                >
+                                    <X className="w-4 h-4" />
+                                </Button>
+                            </div>
+                            <div className="p-4 space-y-4">
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium">What do you want to write about?</Label>
+                                    <Textarea
+                                        placeholder="e.g. Write a cold email about scheduling a demo call for our marketing software. Target marketing managers at small businesses."
+                                        value={aiPrompt}
+                                        onChange={(e) => setAiPrompt(e.target.value)}
+                                        className="min-h-[100px] text-sm"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium">Generate</Label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setAiType("subject")}
+                                            className={`p-3 rounded-lg border text-sm font-medium transition-all ${
+                                                aiType === "subject"
+                                                    ? "border-primary bg-primary/10 text-primary"
+                                                    : "border-border hover:bg-muted"
+                                            }`}
+                                        >
+                                            Subject Only
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAiType("body")}
+                                            className={`p-3 rounded-lg border text-sm font-medium transition-all ${
+                                                aiType === "body"
+                                                    ? "border-primary bg-primary/10 text-primary"
+                                                    : "border-border hover:bg-muted"
+                                            }`}
+                                        >
+                                            Body Only
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAiType("both")}
+                                            className={`p-3 rounded-lg border text-sm font-medium transition-all ${
+                                                aiType === "both"
+                                                    ? "border-primary bg-primary/10 text-primary"
+                                                    : "border-border hover:bg-muted"
+                                            }`}
+                                        >
+                                            Both
+                                        </button>
+                                    </div>
+                                </div>
+                                <Button
+                                    className="w-full"
+                                    onClick={handleAIGenerate}
+                                    disabled={!aiPrompt.trim() || isGenerating}
+                                >
+                                    {isGenerating ? (
+                                        <>
+                                            <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
+                                            Generating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="w-4 h-4 mr-2" />
+                                            Generate Content
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

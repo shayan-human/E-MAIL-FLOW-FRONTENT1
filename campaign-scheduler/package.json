@@ -13,6 +13,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@insforge/nextjs": "^1.1.7",
     "@insforge/sdk": "^1.1.6-dev.0",
+    "@openrouter/sdk": "^0.9.11",
     "@remotion/cli": "^4.0.435",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
