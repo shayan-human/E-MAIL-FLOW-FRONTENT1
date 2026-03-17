@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const MODEL = "nousresearch/hermes-3-llama-3.1-405b:free";
+const MODEL = "meta-llama/llama-3.3-70b-instruct:free";
 
 export async function POST(req: Request) {
     try {
