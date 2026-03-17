@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
+import { chat } from "ollama";
 
-const MODEL = "google/gemma-3-27b-it:free";
+const MODEL = "kimi-k2.5:cloud";
 
 export async function POST(req: Request) {
     try {
-        const apiKey = process.env.OPENROUTER_API_KEY;
+        const apiKey = process.env.OLLAMA_API_KEY;
         
         if (!apiKey) {
             return NextResponse.json(
-                { error: "OpenRouter API key not configured" },
+                { error: "Ollama API key not configured" },
                 { status: 500 }
             );
         }
@@ -43,39 +44,20 @@ export async function POST(req: Request) {
                 );
         }
 
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${apiKey}`,
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://emailflow.demgrow.space",
-                "X-Title": "EmailFlow",
-            },
-            body: JSON.stringify({
+        const response = await chat(
+            {
                 model: MODEL,
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: userMessage }
                 ],
-            }),
-        });
+            },
+            {
+                apiKey: apiKey,
+            }
+        );
 
-        const responseText = await response.text();
-        
-        if (!response.ok) {
-            console.error("[OpenRouter API Error]:", {
-                status: response.status,
-                body: responseText
-            });
-            const errorData = JSON.parse(responseText || "{}");
-            return NextResponse.json(
-                { error: errorData.error?.message || `API error: ${response.status}` },
-                { status: response.status }
-            );
-        }
-
-        const data = JSON.parse(responseText) as { choices?: Array<{ message?: { content?: string } }> };
-        const content = data.choices?.[0]?.message?.content || "";
+        const content = response.message?.content || "";
 
         let subject = "";
         let emailBody = "";
@@ -102,7 +84,7 @@ export async function POST(req: Request) {
         });
 
     } catch (error) {
-        console.error("[AI Email Generate Error]:", error);
+        console.error("[Ollama API Error]:", error);
         return NextResponse.json(
             { error: "Failed to generate email content" },
             { status: 500 }
