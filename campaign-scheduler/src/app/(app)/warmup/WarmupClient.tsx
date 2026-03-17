@@ -16,7 +16,7 @@ import styles from "./warmup.module.css";
 const BACKEND_URL = process.env.NEXT_PUBLIC_CAMPAIGN_BACKEND_URL || process.env.CAMPAIGN_BACKEND_URL || "https://your-backend.onrender.com";
 
 interface WarmupAccount {
-    id: string;
+    id?: string;
     gmail_account_id: string;
     gmail_email: string;
     status: "inactive" | "warming" | "warmed" | "paused";
@@ -82,7 +82,7 @@ export default function WarmupClient({
 
                 const combined: CombinedAccount[] = (senderAccounts || []).map(
                     (sa: SenderAccount) => {
-                        const wa = warmupMap.get(sa.id) || null;
+                        const wa = warmupMap.get(sa.id);
                         return {
                             id: wa?.id || "",
                             gmail_account_id: wa?.gmail_account_id || sa.id,
