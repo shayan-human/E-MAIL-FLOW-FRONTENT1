@@ -24,6 +24,10 @@ interface WarmupAccount {
     day_number: number;
     daily_target: number;
     warmup_duration?: number;
+    today_sent?: number;
+    today_received?: number;
+    today_replies?: number;
+    today_spam_rescues?: number;
 }
 
 interface SenderAccount {
