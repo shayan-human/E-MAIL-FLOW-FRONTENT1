@@ -316,8 +316,8 @@ export default function WarmupClient({
         return email?.charAt(0).toUpperCase() || "?";
     };
 
-    const getProgressPercent = (day: number) => {
-        return Math.min((day / 40) * 100, 100);
+    const getProgressPercent = (day: number, duration: number) => {
+        return Math.min((day / duration) * 100, 100);
     };
 
     const chartData = drawerStats.map((stat) => ({
@@ -375,12 +375,12 @@ export default function WarmupClient({
 
                             <div className={styles.progressSection}>
                                 <div className={styles.progressLabel}>
-                                    Day {account.day_number} / 40
+                                    Day {account.day_number} / {account.warmup_duration || 30}
                                 </div>
                                 <div className={styles.progressBar}>
                                     <div
                                         className={styles.progressFill}
-                                        style={{ width: `${getProgressPercent(account.day_number)}%` }}
+                                        style={{ width: `${getProgressPercent(account.day_number, account.warmup_duration || 30)}%` }}
                                     ></div>
                                 </div>
                             </div>
