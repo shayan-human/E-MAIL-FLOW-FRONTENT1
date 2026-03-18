@@ -410,6 +410,7 @@ export default function WarmupClient({
                                         title={!account.id ? "Start warmup to select mode" : ""}
                                     >
                                         Own Accounts
+                                        <span className={styles.infoIcon} title="Warmup emails are only exchanged between your own connected Gmail accounts.">ℹ</span>
                                     </button>
                                     <button
                                         className={`${styles.modePill} ${account.mode === "network" ? styles.selected : ""} ${!account.id ? styles.disabled : ""}`}
@@ -421,6 +422,7 @@ export default function WarmupClient({
                                         title={!account.id ? "Start warmup to select mode" : ""}
                                     >
                                         DemGrow Network
+                                        <span className={styles.infoIcon} title="Your accounts are paired with other DemGrow users' accounts for a larger, more realistic warmup network. Your email address may be used as a warmup partner.">ℹ</span>
                                     </button>
                                 </div>
                             </div>
