@@ -23,6 +23,7 @@ interface WarmupAccount {
     mode: "own_only" | "network";
     day_number: number;
     daily_target: number;
+    warmup_duration?: number;
 }
 
 interface SenderAccount {
@@ -44,6 +45,8 @@ interface CombinedAccount extends WarmupAccount {
     todayStats: WarmupStats | null;
 }
 
+const DURATION_OPTIONS = [5, 10, 20, 30, 40];
+
 interface WarmupClientProps {
     user: { id: string; email?: string };
     initialAccounts: WarmupAccount[];
@@ -64,6 +67,7 @@ export default function WarmupClient({
     const [drawerStats, setDrawerStats] = useState<WarmupStats[]>([]);
     const [loadingStats, setLoadingStats] = useState(false);
     const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
+    const [selectedDurations, setSelectedDurations] = useState<Record<string, number>>({});
 
     useEffect(() => {
         fetchAccounts();
@@ -84,6 +88,7 @@ export default function WarmupClient({
                 const combined: CombinedAccount[] = (senderAccounts || []).map(
                     (sa: SenderAccount) => {
                         const wa = warmupMap.get(sa.id);
+                        const duration = wa?.warmup_duration || 30;
                         return {
                             id: wa?.id || "",
                             gmail_account_id: wa?.gmail_account_id || sa.id,
@@ -92,6 +97,7 @@ export default function WarmupClient({
                             mode: wa?.mode || "own_only",
                             day_number: wa?.day_number || 0,
                             daily_target: wa?.daily_target || 0,
+                            warmup_duration: duration,
                             senderAccount: sa,
                             todayStats: null,
                         };
@@ -99,6 +105,13 @@ export default function WarmupClient({
                 );
 
                 setAccounts(combined);
+                
+                const defaultDurations: Record<string, number> = {};
+                (senderAccounts || []).forEach((sa: SenderAccount) => {
+                    const wa = warmupMap.get(sa.id);
+                    defaultDurations[sa.id] = wa?.warmup_duration || 30;
+                });
+                setSelectedDurations(defaultDurations);
             }
         } catch (error) {
             console.error("Error fetching accounts:", error);
@@ -106,6 +119,10 @@ export default function WarmupClient({
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleDurationChange = (accountId: string, duration: number) => {
+        setSelectedDurations(prev => ({ ...prev, [accountId]: duration }));
     };
 
     const handleNetworkToggle = async () => {
@@ -139,6 +156,7 @@ export default function WarmupClient({
     };
 
     const handleStartWarmup = async (account: CombinedAccount) => {
+        const duration = selectedDurations[account.senderAccount.id] || 30;
         try {
             const response = await fetch(`${BACKEND_URL}/warmup/start`, {
                 method: "POST",
@@ -147,6 +165,7 @@ export default function WarmupClient({
                     gmail_account_id: account.senderAccount.id,
                     mode: networkOptIn ? "network" : "own_only",
                     user_id: user.id,
+                    duration: duration,
                 }),
             });
 
@@ -365,6 +384,31 @@ export default function WarmupClient({
                                     ></div>
                                 </div>
                             </div>
+
+                            {account.status === "inactive" && (
+                                <div className={styles.durationSection}>
+                                    <div className={styles.durationLabel}>
+                                        Warmup Duration
+                                        {selectedDurations[account.senderAccount.id] === 30 && (
+                                            <span className={styles.recommendedBadge}>Recommended</span>
+                                        )}
+                                    </div>
+                                    <div className={styles.durationPills}>
+                                        {DURATION_OPTIONS.map((duration) => (
+                                            <button
+                                                key={duration}
+                                                className={`${styles.durationPill} ${selectedDurations[account.senderAccount.id] === duration ? styles.selected : ""}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDurationChange(account.senderAccount.id, duration);
+                                                }}
+                                            >
+                                                {duration} Days
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             <div className={styles.statsRow}>
                                 <div className={styles.statItem}>

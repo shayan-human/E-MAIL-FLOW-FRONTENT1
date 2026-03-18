@@ -245,6 +245,59 @@
     transition: width 0.3s ease;
 }
 
+.durationSection {
+    margin-bottom: 16px;
+}
+
+.durationLabel {
+    font-size: 11px;
+    color: #666666;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.recommendedBadge {
+    font-size: 9px;
+    font-weight: 600;
+    color: #F59E0B;
+    background-color: rgba(245, 158, 11, 0.15);
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.durationPills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.durationPill {
+    padding: 6px 10px;
+    border-radius: 16px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid #333333;
+    background-color: transparent;
+    color: #888888;
+    transition: all 0.2s ease;
+}
+
+.durationPill:hover {
+    border-color: #444444;
+    color: #aaaaaa;
+}
+
+.durationPill.selected {
+    border-color: #F59E0B;
+    color: #F59E0B;
+    background-color: rgba(245, 158, 11, 0.1);
+}
+
 .statsRow {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
