@@ -375,12 +375,12 @@ export default function WarmupClient({
 
                             <div className={styles.progressSection}>
                                 <div className={styles.progressLabel}>
-                                    Day {account.day_number} / {account.warmup_duration || 30}
+                                    Day {account.day_number} / {account.status === "inactive" ? (selectedDurations[account.senderAccount.id] || 30) : (account.warmup_duration || 30)}
                                 </div>
                                 <div className={styles.progressBar}>
                                     <div
                                         className={styles.progressFill}
-                                        style={{ width: `${getProgressPercent(account.day_number, account.warmup_duration || 30)}%` }}
+                                        style={{ width: `${getProgressPercent(account.day_number, account.status === "inactive" ? (selectedDurations[account.senderAccount.id] || 30) : (account.warmup_duration || 30))}%` }}
                                     ></div>
                                 </div>
                             </div>
