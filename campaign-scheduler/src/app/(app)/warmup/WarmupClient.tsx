@@ -100,11 +100,12 @@ export default function WarmupClient({
                             warmup_duration: duration,
                             senderAccount: sa,
                             todayStats: wa ? {
-                                sent: wa.today_sent || 0,
-                                received: wa.today_received || 0,
-                                replies: wa.today_replies || 0,
-                                spam_rescues: wa.today_spam_rescues || 0,
-                            } : null,
+                            date: new Date().toISOString().split('T')[0],
+                            sent: wa.today_sent || 0,
+                            received: wa.today_received || 0,
+                            replies: wa.today_replies || 0,
+                            spam_rescues: wa.today_spam_rescues || 0,
+                        } : null,
                         };
                     }
                 );
