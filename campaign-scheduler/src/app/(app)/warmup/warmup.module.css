@@ -2,6 +2,11 @@
     min-height: 100vh;
     background-color: #0f0f0f;
     padding: 32px;
+    padding-left: 24px;
+    padding-right: 24px;
+    width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
     font-family: 'DM Sans', 'Plus Jakarta Sans', sans-serif;
 }
 
@@ -82,8 +87,11 @@
 
 .grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 20px;
+    width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 @media (max-width: 1024px) {
@@ -118,6 +126,8 @@
     padding: 20px;
     cursor: pointer;
     transition: border-color 0.2s ease, transform 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .card:hover {
