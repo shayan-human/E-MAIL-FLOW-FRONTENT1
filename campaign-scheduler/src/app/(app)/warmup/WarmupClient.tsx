@@ -358,11 +358,11 @@ export default function WarmupClient({
                             onClick={() => openDrawer(account)}
                         >
                             <div className={styles.cardTop}>
-                                <div style={{ display: "flex", alignItems: "center" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
                                     <div className={styles.avatar}>
                                         {getInitial(account.senderAccount.email)}
                                     </div>
-                                    <span className={styles.email}>{account.senderAccount.email}</span>
+                                    <span className={styles.email} title={account.senderAccount.email}>{account.senderAccount.email}</span>
                                 </div>
                                 {getStatusBadge(account.status)}
                             </div>
