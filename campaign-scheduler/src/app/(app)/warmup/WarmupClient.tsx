@@ -99,7 +99,12 @@ export default function WarmupClient({
                             daily_target: wa?.daily_target || 0,
                             warmup_duration: duration,
                             senderAccount: sa,
-                            todayStats: null,
+                            todayStats: wa ? {
+                                sent: wa.today_sent || 0,
+                                received: wa.today_received || 0,
+                                replies: wa.today_replies || 0,
+                                spam_rescues: wa.today_spam_rescues || 0,
+                            } : null,
                         };
                     }
                 );
