@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     LineChart,
     Line,
@@ -9,7 +9,7 @@ import {
     ResponsiveContainer,
     Tooltip,
 } from "recharts";
-import { X, Mail, ArrowRight } from "lucide-react";
+import { X, Mail, ArrowRight, Info } from "lucide-react";
 import { toast } from "@/components/ui/toast-provider";
 import styles from "./warmup.module.css";
 
@@ -63,6 +63,7 @@ export default function WarmupClient({
     const [selectedAccount, setSelectedAccount] = useState<CombinedAccount | null>(null);
     const [drawerStats, setDrawerStats] = useState<WarmupStats[]>([]);
     const [loadingStats, setLoadingStats] = useState(false);
+    const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
 
     useEffect(() => {
         fetchAccounts();
@@ -324,20 +325,6 @@ export default function WarmupClient({
                     <h1>Email Warmup</h1>
                     <p>Build sender reputation automatically across your Gmail accounts.</p>
                 </div>
-                <div className={styles.headerRight}>
-                    <div className={styles.toggleContainer}>
-                        <span className={styles.toggleLabel}>Join DemGrow Network</span>
-                        <div
-                            className={`${styles.toggle} ${networkOptIn ? styles.active : ""}`}
-                            onClick={handleNetworkToggle}
-                        >
-                            <div className={styles.toggleKnob}></div>
-                        </div>
-                    </div>
-                    <span className={styles.toggleHelper}>
-                        Let your accounts warm up other users&apos; inboxes too.
-                    </span>
-                </div>
             </div>
 
             {/* PART B: Account Cards Grid */}
@@ -407,10 +394,21 @@ export default function WarmupClient({
                                             handleModeChange(account, "own_only");
                                         }}
                                         disabled={!account.id}
-                                        title={!account.id ? "Start warmup to select mode" : ""}
                                     >
                                         Own Accounts
-                                        <span className={styles.infoIcon} title="Warmup emails are only exchanged between your own connected Gmail accounts.">ℹ</span>
+                                        <Info 
+                                            size={13} 
+                                            className={styles.infoIcon} 
+                                            onMouseEnter={(e) => {
+                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                setTooltip({ 
+                                                    text: "Warmup emails are only exchanged between your own connected Gmail accounts.", 
+                                                    x: rect.left + rect.width / 2, 
+                                                    y: rect.top 
+                                                });
+                                            }}
+                                            onMouseLeave={() => setTooltip(null)}
+                                        />
                                     </button>
                                     <button
                                         className={`${styles.modePill} ${account.mode === "network" ? styles.selected : ""} ${!account.id ? styles.disabled : ""}`}
@@ -419,10 +417,21 @@ export default function WarmupClient({
                                             handleModeChange(account, "network");
                                         }}
                                         disabled={!account.id}
-                                        title={!account.id ? "Start warmup to select mode" : ""}
                                     >
                                         DemGrow Network
-                                        <span className={styles.infoIcon} title="Your accounts are paired with other DemGrow users' accounts for a larger, more realistic warmup network. Your email address may be used as a warmup partner.">ℹ</span>
+                                        <Info 
+                                            size={13} 
+                                            className={styles.infoIcon}
+                                            onMouseEnter={(e) => {
+                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                setTooltip({ 
+                                                    text: "Your accounts are paired with other DemGrow users' accounts for a larger, more realistic warmup network. Your email address may be used as a warmup partner.", 
+                                                    x: rect.left + rect.width / 2, 
+                                                    y: rect.top 
+                                                });
+                                            }}
+                                            onMouseLeave={() => setTooltip(null)}
+                                        />
                                     </button>
                                 </div>
                             </div>
@@ -558,6 +567,16 @@ export default function WarmupClient({
                         </div>
                     </div>
                 </>
+            )}
+
+            {tooltip && (
+                <div 
+                    className={styles.tooltip} 
+                    style={{ left: tooltip.x, top: tooltip.y }}
+                >
+                    {tooltip.text}
+                    <div className={styles.tooltipArrow} />
+                </div>
             )}
         </div>
     );
