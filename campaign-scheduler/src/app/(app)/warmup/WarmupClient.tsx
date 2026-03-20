@@ -115,6 +115,13 @@ export default function WarmupClient({
                 );
 
                 setAccounts(combined);
+
+                // Sort accounts: WARMING first, NOT_STARTED (inactive) second, others last
+                const sortOrder: Record<string, number> = { 'warming': 0, 'inactive': 1 };
+                const sorted = combined.sort((a, b) => 
+                    (sortOrder[a.status] ?? 2) - (sortOrder[b.status] ?? 2)
+                );
+                setAccounts(sorted);
                 
                 const defaultDurations: Record<string, number> = {};
                 (senderAccounts || []).forEach((sa: SenderAccount) => {
