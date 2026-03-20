@@ -19,36 +19,38 @@ export async function POST() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // 1. Fetch campaigns, sent leads, and sender accounts in parallel
+        // 1. Fetch user's campaigns and accounts
         const insforge = await getInsforgeClient();
-        const [campaignsRes, allAccountsRes] = await Promise.all([
-            insforge.database
-                .from("campaigns")
-                .select("id, subject"),
-            insforge.database
-                .from("sender_accounts")
-                .select("id, email, google_access_token, google_refresh_token")
-                .eq("is_active", true),
-        ]);
 
-        const campaigns = campaignsRes.data;
+        const { data: userCampaigns, error: campaignsError } = await insforge.database
+            .from("campaigns")
+            .select("id, subject")
+            .eq("user_id", user.id);
+
+        if (campaignsError) {
+            console.error("[Sync Replies Error]:", campaignsError);
+            return NextResponse.json({ error: "Failed to fetch campaigns" }, { status: 500 });
+        }
+
+        const campaigns = userCampaigns;
         if (!campaigns || campaigns.length === 0) {
             return NextResponse.json({ message: "No campaigns found", synced: 0, repliesFound: 0 });
         }
 
         const campaignIds = campaigns.map(c => c.id);
 
-        // Fetch leads and campaign_accounts in parallel
-        const [leadsRes, caRes] = await Promise.all([
+        // Fetch user's accounts and leads in parallel
+        const [accountsRes, leadsRes] = await Promise.all([
+            insforge.database
+                .from("sender_accounts")
+                .select("id, email, google_access_token, google_refresh_token")
+                .eq("user_id", user.id)
+                .eq("is_active", true),
             insforge.database
                 .from("leads")
                 .select("id, campaign_id, email, gmail_thread_id, sent_at, sender_account_id")
                 .in("campaign_id", campaignIds)
                 .in("status", ["SENT", "REPLIED"]),
-            insforge.database
-                .from("campaign_accounts")
-                .select("campaign_id, sender_account_id")
-                .in("campaign_id", campaignIds),
         ]);
 
         const sentLeads = leadsRes.data;
@@ -57,7 +59,7 @@ export async function POST() {
         }
 
         // Build sender account map for quick token lookup
-        const senderAccounts = allAccountsRes.data || [];
+        const senderAccounts = accountsRes.data || [];
         const senderTokenMap: Record<string, { accessToken: string; refreshToken: string | null }> = {};
         for (const sa of senderAccounts) {
             senderTokenMap[sa.id] = {

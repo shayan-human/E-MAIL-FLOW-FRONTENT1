@@ -197,9 +197,12 @@ function InboxContent() {
         setSyncing(true);
         toast.info("Syncing new messages...");
         try {
-            const res = await fetch("/api/campaign/sync-replies", { method: "POST" });
+            const backendUrl = process.env.NEXT_PUBLIC_CAMPAIGN_BACKEND_URL || "https://e-mail-flow-backend.onrender.com";
+            const res = await fetch(`${backendUrl}/trigger`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+            });
             if (!res.ok) throw new Error("Sync failed");
-            await fetchInbox();
             toast.success("Inbox updated");
         } catch (error) {
             console.error("Error syncing inbox:", error);

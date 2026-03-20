@@ -11,58 +11,56 @@ export async function GET() {
 
         const insforge = await getInsforgeClient();
 
-        // Step 1: Fetch replies with lead data (flat, no nested relationships)
-        const { data: repliesData, error: repliesError } = await insforge.database
-            .from("replies")
-            .select(`
-                *,
-                lead:leads(
-                    id,
-                    email,
-                    first_name,
-                    last_name,
-                    business_name,
-                    website,
-                    phone,
-                    custom_fields,
-                    gmail_thread_id,
-                    sender_account_id,
-                    sender_account_email,
-                    campaign_id
-                )
-            `)
-            .order("timestamp", { ascending: true });
+        // Step 1: Fetch user's campaign IDs first
+        const { data: userCampaigns, error: campaignsError } = await insforge.database
+            .from("campaigns")
+            .select("id")
+            .eq("user_id", user.id);
 
-        if (repliesError) {
-            console.error("[Fetch Inbox Error - Replies]:", repliesError);
-            return NextResponse.json({ error: repliesError.message }, { status: 500 });
+        if (campaignsError) {
+            console.error("[Fetch Inbox Error - Campaigns]:", campaignsError);
+            return NextResponse.json({ error: campaignsError.message }, { status: 500 });
         }
 
-        // Step 2: Collect unique campaign IDs from the leads
-        const campaignIds = new Set<string>();
-        (repliesData || []).forEach((r: any) => {
-            if (r.lead?.campaign_id) {
-                campaignIds.add(r.lead.campaign_id);
-            }
-        });
+        const campaignIds = new Set((userCampaigns || []).map(c => c.id));
 
-        // Step 3: Fetch campaigns separately
-        let campaignMap: Record<string, any> = {};
+        // Step 2: Fetch replies only for user's campaigns via leads join
+        let repliesData: any[] = [];
         if (campaignIds.size > 0) {
-            const { data: campaignsData, error: campaignsError } = await insforge.database
-                .from("campaigns")
-                .select("id, name, user_id")
-                .in("id", Array.from(campaignIds));
+            const { data, error: repliesError } = await insforge.database
+                .from("replies")
+                .select(`
+                    *,
+                    lead:leads(
+                        id,
+                        email,
+                        first_name,
+                        last_name,
+                        business_name,
+                        website,
+                        phone,
+                        custom_fields,
+                        gmail_thread_id,
+                        sender_account_id,
+                        sender_account_email,
+                        campaign_id
+                    )
+                `)
+                .in("lead.campaign_id", Array.from(campaignIds))
+                .order("timestamp", { ascending: true });
 
-            if (campaignsError) {
-                console.error("[Fetch Inbox Error - Campaigns]:", campaignsError);
-                // Non-fatal: continue without campaign names
-            } else {
-                (campaignsData || []).forEach((c: any) => {
-                    campaignMap[c.id] = c;
-                });
+            if (repliesError) {
+                console.error("[Fetch Inbox Error - Replies]:", repliesError);
+                return NextResponse.json({ error: repliesError.message }, { status: 500 });
             }
+            repliesData = data || [];
         }
+
+        // Step 3: Build campaign map from user's campaigns (already fetched)
+        const campaignMap: Record<string, any> = {};
+        (userCampaigns || []).forEach((c: any) => {
+            campaignMap[c.id] = c;
+        });
 
         // Step 4: Group messages by contact email (unified thread)
         const threadMap: Record<string, any> = {};
