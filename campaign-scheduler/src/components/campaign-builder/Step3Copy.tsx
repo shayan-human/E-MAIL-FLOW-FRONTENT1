@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PenTool, KeySquare, HelpCircle, ArrowLeft, ArrowRight, UserCircle2, User, Sparkles, X } from "lucide-react";
+import { PenTool, KeySquare, HelpCircle, ArrowLeft, ArrowRight, UserCircle2, User, Sparkles, X, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -91,9 +91,32 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
                 .order("created_at", { ascending: false });
 
             if (error) throw error;
-            setAccounts(data || []);
-            if (data && data.length > 0) {
-                setSelectedAccountIds(data.map((a: Account) => a.id));
+
+            const accountIds = (data || []).map((a: Account) => a.id);
+            const { data: warmupData } = accountIds.length > 0
+                ? await insforge.database
+                    .from("warmup_accounts")
+                    .select("gmail_account_id, status")
+                    .in("gmail_account_id", accountIds)
+                : { data: null };
+
+            const warmupStatusMap: Record<string, string> = {};
+            (warmupData || []).forEach((row: { gmail_account_id: string; status: string }) => {
+                warmupStatusMap[row.gmail_account_id] = row.status;
+            });
+
+            const accountsWithWarmup = (data || []).map((a: Account) => ({
+                ...a,
+                warmup_status: warmupStatusMap[a.id] || null,
+            }));
+
+            setAccounts(accountsWithWarmup);
+
+            const selectable = accountsWithWarmup.filter((a: Account) => a.warmup_status !== "warming");
+            if (selectable.length > 0) {
+                setSelectedAccountIds(selectable.map((a: Account) => a.id));
+            } else {
+                setSelectedAccountIds([]);
             }
         } catch {
             toast.error("Failed to fetch accounts");
@@ -435,6 +458,11 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
                             <div className="bg-destructive/10 text-destructive p-3 rounded-md border border-destructive/20 text-sm flex gap-2">
                                 <HelpCircle className="h-4 w-4 shrink-0 mt-0.5" />
                                 <span>No sender accounts found. Please go back to Step 1 and connect an account.</span>
+                            </div>
+                        ) : accounts.every((a: Account) => a.warmup_status === "warming") ? (
+                            <div className="bg-amber-500/10 text-amber-600 dark:text-amber-400 p-3 rounded-md border border-amber-500/20 text-sm flex gap-2">
+                                <Flame className="h-4 w-4 shrink-0 mt-0.5" />
+                                <span>All connected accounts are currently warming up. They will be available for campaigns once warmup completes.</span>
                             </div>
                         ) : (
                             <div className="space-y-2">

@@ -97,9 +97,27 @@ export async function POST(req: Request) {
         processedIdempotencyKeys.add(idempotencyKey);
         setTimeout(() => processedIdempotencyKeys.delete(idempotencyKey), 5 * 60 * 1000);
 
-        // 5. Save Campaign to InsForge
-        const campaignName = `Campaign-${idempotencyKey.slice(0, 8)}`;
+        // 5. Warmup Guard — block accounts that are actively warming up
         const insforge = await getInsforgeClient();
+        const { data: warmupAccounts } = await insforge.database
+            .from("warmup_accounts")
+            .select("gmail_account_id, status")
+            .in("gmail_account_id", selectedAccountIds)
+            .eq("status", "warming");
+
+        if (warmupAccounts && warmupAccounts.length > 0) {
+            processedIdempotencyKeys.delete(idempotencyKey);
+            return NextResponse.json(
+                {
+                    error: "Account on warmup",
+                    message: "One or more selected accounts are currently warming up and cannot be used for campaigns until warmup completes.",
+                },
+                { status: 400 }
+            );
+        }
+
+        // 6. Save Campaign to InsForge
+        const campaignName = `Campaign-${idempotencyKey.slice(0, 8)}`;
 
         const { data: newCampaign, error: campaignError } = await insforge.database
             .from("campaigns")

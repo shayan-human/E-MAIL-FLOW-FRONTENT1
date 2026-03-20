@@ -14,7 +14,7 @@ import {
     CardDescription
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Mail, CheckCircle, Trash2, RefreshCw } from "lucide-react";
+import { Plus, Mail, CheckCircle, Trash2, RefreshCw, Flame } from "lucide-react";
 
 export interface Account {
     id: string;
@@ -24,6 +24,7 @@ export interface Account {
     created_at: string;
     google_access_token: string | null;
     google_refresh_token: string | null;
+    warmup_status?: string | null;
 }
 
 interface Step1Props {
@@ -229,16 +230,25 @@ export function Step1Accounts({ onNext }: Step1Props) {
                                 </Button>
                             </div>
                         ) : (
-                            accounts.map((acc) => (
-                                <div key={acc.id} className="flex items-center justify-between p-3 rounded-md border bg-card shadow-sm hover:border-primary/30 transition-colors">
+                            accounts.map((acc) => {
+                                const isWarming = acc.warmup_status === "warming";
+                                return (
+                                <div
+                                    key={acc.id}
+                                    className={`flex items-center justify-between p-3 rounded-md border bg-card shadow-sm transition-colors ${isWarming ? "opacity-50 cursor-not-allowed border-amber-200 dark:border-amber-800" : "hover:border-primary/30"}`}
+                                >
                                     <div className="flex items-center gap-3 overflow-hidden">
-                                        <div className="flex-shrink-0 bg-primary/10 p-2 rounded-full">
-                                            <Mail className="h-4 w-4 text-primary" />
+                                        <div className={`flex-shrink-0 p-2 rounded-full ${isWarming ? "bg-amber-100 dark:bg-amber-900/30" : "bg-primary/10"}`}>
+                                            <Mail className={`h-4 w-4 ${isWarming ? "text-amber-600 dark:text-amber-400" : "text-primary"}`} />
                                         </div>
                                         <div className="overflow-hidden">
                                             <p className="font-medium text-sm truncate">{acc.email}</p>
                                             <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                                {acc.status === "REAUTH_REQUIRED" ? (
+                                                {isWarming ? (
+                                                    <span className="flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400">
+                                                        <Flame className="h-3 w-3" /> Warming Up
+                                                    </span>
+                                                ) : acc.status === "REAUTH_REQUIRED" ? (
                                                     <span className="flex items-center gap-1 font-bold text-red-600 animate-pulse">
                                                         <CheckCircle className="h-3 w-3" /> Re-auth Required
                                                     </span>
@@ -256,12 +266,14 @@ export function Step1Accounts({ onNext }: Step1Props) {
                                         variant="ghost"
                                         size="icon"
                                         className="text-muted-foreground hover:text-destructive shrink-0"
-                                        onClick={() => openDeleteModal(acc.id, acc.email)}
+                                        onClick={() => !isWarming && openDeleteModal(acc.id, acc.email)}
+                                        disabled={isWarming}
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </div>
-                            ))
+                                );
+                            })
                         )}
                     </CardContent>
                 </Card>

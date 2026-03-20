@@ -18,6 +18,20 @@ export async function GET() {
 
         if (error) throw error;
 
+        const accountIds = (accounts || []).map(a => a.id);
+
+        const { data: warmupData } = accountIds.length > 0
+            ? await insforge.database
+                .from("warmup_accounts")
+                .select("gmail_account_id, status")
+                .in("gmail_account_id", accountIds)
+            : { data: null };
+
+        const warmupStatusMap: Record<string, string> = {};
+        (warmupData || []).forEach(row => {
+            warmupStatusMap[row.gmail_account_id] = row.status;
+        });
+
         // Fetch emails sent today per account
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
@@ -41,6 +55,7 @@ export async function GET() {
             google_refresh_token: acc.google_refresh_token ? "••••••••" : null, // Sanitize
             sent_today: sentTodayMap[acc.id] || 0,
             last_synced_at: acc.created_at,
+            warmup_status: warmupStatusMap[acc.id] || null,
         }));
 
         return NextResponse.json({ data: accountsWithStats });
