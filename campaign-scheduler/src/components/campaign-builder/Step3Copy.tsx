@@ -112,9 +112,9 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
 
             setAccounts(accountsWithWarmup);
 
-            const selectable = accountsWithWarmup.filter((a: Account) => a.warmup_status !== "warming");
-            if (selectable.length > 0) {
-                setSelectedAccountIds(selectable.map((a: Account) => a.id));
+            const nonWarming = accountsWithWarmup.filter((a: Account) => a.warmup_status !== "warming");
+            if (nonWarming.length > 0) {
+                setSelectedAccountIds(nonWarming.map((a: Account) => a.id));
             } else {
                 setSelectedAccountIds([]);
             }
@@ -126,6 +126,8 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
     };
 
     const toggleAccount = (id: string, checked: boolean) => {
+        const acc = accounts.find(a => a.id === id);
+        if (acc && acc.warmup_status === "warming") return;
         if (checked) {
             setSelectedAccountIds(prev => [...prev, id]);
         } else {
@@ -459,45 +461,87 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
                                 <HelpCircle className="h-4 w-4 shrink-0 mt-0.5" />
                                 <span>No sender accounts found. Please go back to Step 1 and connect an account.</span>
                             </div>
-                        ) : accounts.every((a: Account) => a.warmup_status === "warming") ? (
-                            <div className="bg-amber-500/10 text-amber-600 dark:text-amber-400 p-3 rounded-md border border-amber-500/20 text-sm flex gap-2">
-                                <Flame className="h-4 w-4 shrink-0 mt-0.5" />
-                                <span>All connected accounts are currently warming up. They will be available for campaigns once warmup completes.</span>
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between pb-2 border-b">
-                                    <span className="text-sm font-medium text-muted-foreground">Select All</span>
-                                    <Checkbox
-                                        checked={selectedAccountIds.length === accounts.length}
-                                        onCheckedChange={(checked: boolean | 'indeterminate') => {
-                                            if (checked) setSelectedAccountIds(accounts.map(a => a.id));
-                                            else setSelectedAccountIds([]);
-                                        }}
-                                    />
-                                </div>
-                                {accounts.map(acc => (
-                                    <div
-                                        key={acc.id}
-                                        className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer ${selectedAccountIds.includes(acc.id) ? 'bg-primary/5 border-primary/30' : 'bg-card hover:bg-muted/50'}`}
-                                        onClick={() => toggleAccount(acc.id, !selectedAccountIds.includes(acc.id))}
-                                    >
-                                        <Checkbox
-                                            id={`acc-${acc.id}`}
-                                            checked={selectedAccountIds.includes(acc.id)}
-                                            onCheckedChange={(c: boolean | 'indeterminate') => toggleAccount(acc.id, c as boolean)}
-                                            onClick={(e: React.MouseEvent) => e.stopPropagation()} // prevent double toggle
-                                        />
-                                        <div className="grid gap-1.5 leading-none flex-1">
-                                            <label htmlFor={`acc-${acc.id}`} className="text-sm font-medium leading-none cursor-pointer truncate">
-                                                {acc.email}
-                                            </label>
+                        ) : (() => {
+                            const nonWarmingAccounts = accounts.filter((a: Account) => a.warmup_status !== "warming");
+                            const warmingAccounts = accounts.filter((a: Account) => a.warmup_status === "warming");
+                            const selectableCount = nonWarmingAccounts.length;
+
+                            return (
+                                <div className="space-y-3">
+                                    {nonWarmingAccounts.length > 0 && (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between pb-2 border-b">
+                                                <span className="text-sm font-medium text-muted-foreground">Available ({selectableCount})</span>
+                                                <Checkbox
+                                                    checked={selectedAccountIds.length === nonWarmingAccounts.length && nonWarmingAccounts.length > 0}
+                                                    onCheckedChange={(checked: boolean | 'indeterminate') => {
+                                                        if (checked) setSelectedAccountIds(nonWarmingAccounts.map(a => a.id));
+                                                        else setSelectedAccountIds([]);
+                                                    }}
+                                                />
+                                            </div>
+                                            {nonWarmingAccounts.map(acc => (
+                                                <div
+                                                    key={acc.id}
+                                                    className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer ${selectedAccountIds.includes(acc.id) ? 'bg-primary/5 border-primary/30' : 'bg-card hover:bg-muted/50'}`}
+                                                    onClick={() => toggleAccount(acc.id, !selectedAccountIds.includes(acc.id))}
+                                                >
+                                                    <Checkbox
+                                                        id={`acc-${acc.id}`}
+                                                        checked={selectedAccountIds.includes(acc.id)}
+                                                        onCheckedChange={(c: boolean | 'indeterminate') => toggleAccount(acc.id, c as boolean)}
+                                                        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                                    />
+                                                    <div className="grid gap-1.5 leading-none flex-1">
+                                                        <label htmlFor={`acc-${acc.id}`} className="text-sm font-medium leading-none cursor-pointer truncate">
+                                                            {acc.email}
+                                                        </label>
+                                                    </div>
+                                                    <UserCircle2 className="h-4 w-4 text-muted-foreground" />
+                                                </div>
+                                            ))}
                                         </div>
-                                        <UserCircle2 className="h-4 w-4 text-muted-foreground" />
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                                    )}
+
+                                    {warmingAccounts.length > 0 && (
+                                        <div className="space-y-2 pt-2 border-t">
+                                            <div className="flex items-center gap-2 pb-1">
+                                                <span className="text-sm font-medium text-muted-foreground">Warming Up ({warmingAccounts.length})</span>
+                                            </div>
+                                            {warmingAccounts.map(acc => (
+                                                <div
+                                                    key={acc.id}
+                                                    className="flex items-center space-x-3 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-900/10 opacity-60 cursor-not-allowed"
+                                                >
+                                                    <Checkbox
+                                                        id={`acc-${acc.id}`}
+                                                        checked={false}
+                                                        disabled
+                                                        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                                    />
+                                                    <div className="grid gap-1.5 leading-none flex-1">
+                                                        <label htmlFor={`acc-${acc.id}`} className="text-sm font-medium leading-none cursor-not-allowed truncate flex items-center gap-1.5">
+                                                            {acc.email}
+                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                                                                <Flame className="h-2.5 w-2.5" /> Warming
+                                                            </span>
+                                                        </label>
+                                                    </div>
+                                                    <UserCircle2 className="h-4 w-4 text-muted-foreground" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {nonWarmingAccounts.length === 0 && warmingAccounts.length > 0 && (
+                                        <div className="bg-amber-500/10 text-amber-600 dark:text-amber-400 p-3 rounded-md border border-amber-500/20 text-sm flex gap-2">
+                                            <Flame className="h-4 w-4 shrink-0 mt-0.5" />
+                                            <span>All accounts are warming up. They will be available for campaigns once warmup completes.</span>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
                     </CardContent>
                 </Card>
 

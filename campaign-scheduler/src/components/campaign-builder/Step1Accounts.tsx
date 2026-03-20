@@ -53,7 +53,29 @@ export function Step1Accounts({ onNext }: Step1Props) {
                 .order("created_at", { ascending: false });
 
             if (error) throw error;
-            return data || [];
+
+            const accountIds = (data || []).map(a => a.id);
+            const { data: warmupData } = accountIds.length > 0
+                ? await insforge.database
+                    .from("warmup_accounts")
+                    .select("gmail_account_id, status")
+                    .in("gmail_account_id", accountIds)
+                : { data: null };
+
+            const warmupStatusMap: Record<string, string> = {};
+            (warmupData || []).forEach((row: { gmail_account_id: string; status: string }) => {
+                warmupStatusMap[row.gmail_account_id] = row.status;
+            });
+
+            const accountsWithWarmup = (data || []).map(a => ({
+                ...a,
+                warmup_status: warmupStatusMap[a.id] || null,
+            }));
+
+            const nonWarming = accountsWithWarmup.filter(a => a.warmup_status !== "warming");
+            const warming = accountsWithWarmup.filter(a => a.warmup_status === "warming");
+
+            return [...nonWarming, ...warming];
         } catch (err: unknown) {
             console.error(err);
             toast.error("Failed to fetch accounts");
