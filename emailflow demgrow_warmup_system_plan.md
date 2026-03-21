@@ -1,494 +1,280 @@
 # DemGrow — Email Warmup System
-## Complete Planning Document: Findings, Problems, Solutions & Database Design
+## Complete Technical Specification
 
-> **Stack:** Next.js · Insforge (PostgreSQL) · Gmail API · Ollama (LLM)
+> **Stack:** Next.js · InsForge (PostgreSQL) · Gmail API · Ollama (LLM)
 > **Feature URL:** emailflow.demgrow.space/warmup
-> **Status:** UI complete · Backend logic, architecture, and DB — to be built
+> **Backend:** Express.js (Render) · node-cron
+> **Status:** Fully built and deployed
 
 ---
 
 ## 1. What the Warmup System Does
 
-Gmail accounts have a "sender reputation" score. Cold accounts (new or unused) get flagged as spam. Warmup fixes this by simulating organic email activity — sending, receiving, and replying to emails between a pool of trusted accounts — gradually training Gmail's algorithm to trust the sender.
-
-**The warmup loop:**
-```
-Account A (sender)
-  → LLM generates a human-like email
-  → Sends to Account B (from warmup pool)
-  → Account B receives it
-  → Waits a random calculated delay
-  → LLM generates a contextual reply
-  → Account B replies using correct thread headers
-  → Account A receives the reply
-  → Both accounts' stats update
-  → If email landed in spam → rescue it (move to inbox, mark important)
-```
+Gmail accounts have a sender reputation score. Cold accounts (new or unused) get flagged as spam. Warmup fixes this by simulating organic email activity — sending, receiving, and replying to emails between a pool of trusted accounts — gradually training Gmail's algorithm to trust the sender.
 
 ---
 
-## 2. Current State of the UI
-
-The frontend shell at `/warmup` is fully built. Each account card displays:
-- Email address + status badge (`WARMING` / `NOT STARTED` / `PAUSED`)
-- Day progress (e.g. Day 2/5)
-- Progress bar
-- Counters: **Sent · Received · Replies · Spam Rescues**
-- Warmup duration selector: 5 / 10 / 20 / 30 / 40 days
-- Mode toggle: **Own Accounts** vs **DemGrow Network**
-- Pause / Start Warmup button
-
-**Everything behind the UI is yet to be built.**
-
----
-
-## 3. Two Warmup Modes
+## 2. Warmup Modes
 
 | Mode | How it works |
-|---|---|
+|------|-------------|
 | **Own Accounts** | Warmup only between the user's own added Gmail accounts |
-| **DemGrow Network** | Warmup across all users' accounts in the shared platform pool — stronger reputation signal |
-
-DemGrow Network mode requires consent tracking and cross-user coordination logic.
+| **DemGrow Network** | Warmup across all users' accounts in the shared platform pool |
 
 ---
 
-## 4. Pain Points & Findings
+## 3. Sending Architecture
 
-### 🔴 P1 — Reply API Bug (Most Immediate Blocker)
+### 3.1 Ramp-Up Schedules
 
-**Current behaviour:** Emails send successfully. LLM generates the mail, subject is set, everything looks right. But replies are not working.
+Daily email counts are pre-defined per plan. All plans cap at **35 emails/day** max.
 
-**Root cause:** There is no separate "reply" endpoint in the Gmail API. The same `messages.send` endpoint is used for both composing and replying. The difference is entirely in what you include in the request body. The current implementation is treating reply like a fresh send — missing all threading data.
+| Day | 5-Day | 10-Day | 20-Day | 30-Day | 40-Day |
+|-----|-------|--------|--------|--------|--------|
+| 1 | 5 | 3 | 2 | 2 | 2 |
+| 2 | 8 | 5 | 3 | 3 | 2 |
+| 3 | 12 | 8 | 5 | 4 | 3 |
+| 4 | 18 | 12 | 7 | 5 | 3 |
+| 5 | 22 | 16 | 9 | 6 | 4 |
+| 6 | — | 20 | 12 | 7 | 5 |
+| 7 | — | 25 | 14 | 8 | 6 |
+| 8 | — | 28 | 16 | 9 | 7 |
+| 9 | — | 32 | 18 | 10 | 8 |
+| 10 | — | 35 | 20 | 11 | 9 |
+| 11–20 | — | 35 | 20–35 | 12–30 | 10–29 |
+| 21–40 | — | — | — | 30–33 | 29–34 |
+| **Total** | **~65** | **~184** | **~386** | **~702** | **~902** |
 
-**Three conditions Gmail requires for a message to land in an existing thread (all three must be met simultaneously):**
+Stored in `DAILY_TARGETS` constant (`warmup-service.js`).
 
-1. `threadId` must be passed in the request body
-2. `In-Reply-To` and `References` headers must be set in the MIME message (RFC 2822 standard)
-3. `Subject` header must match exactly
+### 3.2 Daily Scheduling Logic
 
-**Critical distinction — two IDs that must not be confused:**
+The send window starts at **12:00 PM IST** (6:30 AM UTC) + **0–30 minute random offset** per account (so accounts don't all fire simultaneously).
 
-| ID | What it is | Looks like |
-|---|---|---|
-| **Gmail Message ID** | Gmail's internal hex identifier | `18e4f2a3b1c` |
-| **RFC Message-ID** | Standard email header used for threading | `<abc123@mail.gmail.com>` (with angle brackets) |
+Each email is then scheduled with a **cascading gap of random(8, 20) minutes** between sends:
 
-`In-Reply-To` and `References` require the **RFC Message-ID** (with angle brackets), not the Gmail internal ID.
-
-**How to get the RFC Message-ID when receiving:**
-```js
-const msg = await gmail.users.messages.get({
-  userId: 'me',
-  id: messageId,
-  format: 'full'   // ← must be 'full', not 'minimal'
-});
-
-const rfcMessageId = msg.data.payload.headers
-  .find(h => h.name === 'Message-ID')?.value;
-// → "<CABxyz123@mail.gmail.com>"
-
-const threadId = msg.data.threadId;
+```
+Account A window start: 12:00 PM IST + 15 min = 12:15 PM IST
+Email 1:  12:15 PM
+Email 2:  12:15 + 12 min = 12:27 PM
+Email 3:  12:27 + 9 min  = 12:36 PM
+Email 4:  12:36 + 18 min = 12:54 PM
+...continues until all emails for the day are scheduled
 ```
 
-**Correct reply request structure:**
-```js
-async function sendReply({ auth, originalMessage, replyBody }) {
-  const headers      = originalMessage.payload.headers;
-  const getHeader    = (name) => headers.find(h => h.name === name)?.value;
+The window **expands dynamically** based on email count — no hardcoded end time. At 22 emails/day with 8–20 min gaps, the window naturally stretches to ~3 hours.
 
-  const rfcMessageId  = getHeader('Message-ID');
-  const originalRefs  = getHeader('References') || '';
-  const fromAddress   = getHeader('From');
-  const subject       = getHeader('Subject');
-  const threadId      = originalMessage.threadId;
+### 3.3 Per-Account Recipient Assignment
 
-  // Build References chain (ALL prior IDs, not just immediate parent)
-  const referencesChain = originalRefs
-    ? `${originalRefs} ${rfcMessageId}`
-    : rfcMessageId;
+Each account picks **one recipient per day**. All emails that day go to the same recipient. This mimics natural email behavior (focused conversation) and avoids scattering emails across too many accounts.
 
-  // Subject — add Re: only if not already there
-  const replySubject = subject.startsWith('Re:') ? subject : `Re: ${subject}`;
+Recipient selection:
+- Fetch all warming accounts in the same mode (own_only or network)
+- Sort by received count (ascending — least-received first)
+- Pick from top 3 with random selection
+- No filtering by "has reached target" (this caused pairing imbalance bug)
 
-  const rawEmail = [
-    `From: me@gmail.com`,
-    `To: ${fromAddress}`,
-    `Subject: ${replySubject}`,
-    `In-Reply-To: ${rfcMessageId}`,
-    `References: ${referencesChain}`,
-    `Content-Type: text/plain; charset=utf-8`,
-    ``,
-    replyBody
-  ].join('\r\n');
+### 3.4 Day 1 Immediate Sends
 
-  const encodedMessage = Buffer.from(rawEmail)
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+When warmup starts, day 1 jobs are created **immediately** (not waiting for next cron):
+- Window start: `now + random(30, 60) minutes` (spread from start time)
+- Same cascading gap: `random(8, 20)` between each email
+- Same recipient logic
 
-  return await gmail.users.messages.send({
-    userId: 'me',
-    requestBody: {
-      raw: encodedMessage,
-      threadId: threadId    // ← puts it in the right thread
-    }
-  });
-}
+### 3.5 Job Persistence
+
+Jobs are stored in `warmup_jobs` table with exact `scheduled_at` timestamps. The cron only **gap-fills** on subsequent runs — it does NOT recalculate existing schedules:
+
+```
+1. Delete pending jobs from previous days
+2. Count today's completed jobs
+3. remaining = daily_target - completed
+4. Insert only the remaining jobs with new cascading timestamps
 ```
 
-**Additional reply pitfalls discovered:**
-- `References` must chain ALL previous message IDs in order — not just the immediate parent
-- If original subject already has `Re:`, do not add another one (`Re: Re: Subject` breaks threading)
-- Recipient list must be preserved — changing To/CC makes Gmail treat it as a new conversation
-- Add a delay between receive and reply — rapid back-to-back calls can confuse Gmail's server-side threading processor
+This prevents timing drift if the cron fires late or restarts.
 
 ---
 
-### 🔴 P2 — OAuth Token Management
+## 4. Reply Architecture (Independent Loop)
 
-**The problem:** Access tokens expire after 1 hour. If the scheduler fires a warmup job and the token is expired, it will silently fail with a 401 and the warmup action will be skipped — no email sent, no error surfaced to the user.
+### 4.1 Key Principle
 
-**Additional edge cases:**
-- Token also invalidates if: user revokes access, refresh token unused for 6 months, or user changes their Gmail password
-- Hard limit of 100 refresh tokens per Google Account per OAuth client ID — excessive token generation during testing silently invalidates older ones
+Replies are **completely decoupled** from sends. There is no "send window" check before scheduling replies. The reply loop runs independently and reacts to what is in the inbox.
 
-**What to store per Gmail account:**
-```
-access_token          (encrypted)
-refresh_token         (encrypted)
-token_expires_at      (timestamp)
-token_scope           (string)
-token_status          ENUM: VALID | EXPIRED | REVOKED | NEEDS_REAUTH
-last_token_refresh_at (timestamp)
-reauth_required       (boolean, default false)
-```
+### 4.2 Reply Polling Loop
 
-**Handling strategy:**
-- Before every API call, check `token_expires_at`
-- If expiring in < 5 minutes, silently refresh using refresh_token
-- If refresh fails → set `reauth_required = true`, pause that account's warmup, notify user in UI
-- Never crash the scheduler — one bad token should not stop other accounts
+Runs every **5 minutes** via `/trigger` on Render.
 
----
+For each active warming account:
+1. Query `warmup_emails` for emails received today where `reply_scheduled_at IS NULL`
+2. Cap at **30 per account per poll** to prevent spam
+3. Apply **75% reply rate** (random roll)
+4. Mark `reply_scheduled_at = now` **immediately** in DB (prevents double-scheduling)
+5. Insert into `pending_replies` with `scheduled_at = now + random(10, 25) minutes`
 
-### 🟠 P3 — Volume Ramp-Up Logic
+### 4.3 Reply Sending
 
-**The problem:** The UI offers 5/10/20/30/40 day durations but there is no ramp-up logic behind them. Sending 30 emails per day from Day 1 looks automated and gets flagged.
+`processPendingReplies()` runs every 5 minutes:
+1. Fetch `pending_replies` where `scheduled_at <= now`
+2. Send reply using pre-generated `reply_content` from the warmup email
+3. Update `warmup_emails` status to `replied`
+4. Check off-hours (8–21 UTC) — if outside, defer to next active window
 
-**Warmup timeline decision:**
-- Target: complete warmup in **~1.5 weeks (10 days)**
-- Recommended industry standard is 2–4 weeks; we're compressing slightly with 10 days
+### 4.4 Reply Content
 
-**Ramp-up curve (10-day plan):**
+Pre-generated at send time by Ollama (stored in `warmup_emails.reply_content`). **No regeneration at reply time.** This ensures consistency and reduces API calls.
 
-| Day | Emails to Send |
-|-----|---------------|
-| 1   | 3 |
-| 2   | 5 |
-| 3   | 8 |
-| 4   | 10 |
-| 5   | 13 |
-| 6   | 16 |
-| 7   | 20 |
-| 8   | 25 |
-| 9   | 30 |
-| 10  | 35 |
+### 4.5 Double-Schedule Prevention
 
-The key rule: increase volume by 5–10 per day, not doubling overnight.
-
-**What to store:**
-```
-daily_send_limit   (integer) — recalculated each morning based on ramp curve
-daily_send_count   (integer) — incremented on each send, reset at midnight
-ramp_curve         ENUM: CONSERVATIVE | MODERATE | AGGRESSIVE
-current_day        (integer, incremented at midnight)
-```
+The `reply_scheduled_at` column on `warmup_emails` is set **before** inserting into `pending_replies`. The poll query filters on `IS NULL`, so even if the cron fires mid-poll, the same email won't be scheduled twice.
 
 ---
 
-### 🟠 P4 — Sending Time Randomisation
+## 5. Cron Schedule
 
-**The problem:** Sending all warmup emails at the same time each day (e.g. a cron job at 9am) is detectable. Gmail's spam filters look for unnatural patterns.
-
-**Decision:** Send at random times, calculated within a window — nighttime or off-hours distribution preferred.
-
-**What to store per account:**
-```
-account_timezone             (string, e.g. "Asia/Kolkata")
-preferred_send_window_start  (time, e.g. "22:00")
-preferred_send_window_end    (time, e.g. "06:00")
-```
-
-**Scheduler logic:**
-- When scheduling a warmup send for the day, pick a random timestamp within the send window
-- Space sends throughout the window — don't cluster them
+| Schedule | Function | Purpose |
+|---------|----------|---------|
+| Every 5 min (Render cron → `/trigger`) | `runCampaignAutomation()` | Campaign emails |
+| Every 5 min (Render cron → `/trigger`) | `processWarmupJobs()` | Send warmup emails from job queue |
+| Every 5 min (Render cron → `/trigger`) | `pollInboxForReplies()` | Detect unreplied emails, schedule replies |
+| Every 5 min (Render cron → `/trigger`) | `processPendingReplies()` | Send scheduled replies |
+| Every 5 min (Render cron → `/trigger`) | `processSpamRescue()` | Rescue warmup emails from spam |
+| Every 5 min (Render cron → `/trigger`) | `checkReplies()` | Campaign reply detection |
+| Daily at 6:00 AM UTC | `runDailyWarmupCycle()` | Create daily jobs for all warming accounts |
 
 ---
 
-### 🟠 P5 — Spam Rescue (Polling Required)
+## 6. Design Rules (Non-Negotiable)
 
-**The problem:** When the warmup system sends an email, it may land in the recipient account's spam folder. The system needs to detect this and rescue it (move to inbox + mark important) to signal to Gmail that the sender is trusted.
+These rules must NEVER be violated when modifying the warmup engine:
 
-**This cannot be event-driven — it requires active polling.**
+### Rule 1 — Per-Account Staggered Start
+Each account must have its own random start offset. Never fire all accounts at the same time from a single cron fire. Use `random(0, 30)` minute offset per account.
 
-**Polling job logic:**
-1. For each active warmup account, fetch recent messages from Gmail
-2. Check if any warmup-sent emails have the `SPAM` label
-3. If yes:
-   - Remove `SPAM` label
-   - Add `INBOX` label
-   - Mark as important
-   - Record `spam_rescued_at`
-   - Increment `spam_rescues` counter in daily stats
+### Rule 2 — Dynamic Window (No Hardcoded End)
+Never hardcode a send window end time (e.g. 4:30 PM IST). The window must expand dynamically based on `daily_target × avg_gap`. At 22 emails/day with 8–20 min gaps, the window naturally runs ~3–5 hours.
 
-**What to store:**
-```
-landed_in_spam      (boolean, default false)
-spam_detected_at    (timestamp, nullable)
-spam_rescued_at     (timestamp, nullable)
-marked_important_at (timestamp, nullable)
-```
+### Rule 3 — Replies Decoupled from Sends
+Replies must run on their own independent polling loop. Never check "is it within the send window before replying." Replies can and should happen outside the send window at any time.
 
----
+### Rule 4 — Mark Before Schedule
+Always mark `reply_scheduled_at = now` in the DB **before** inserting into `pending_replies`. If you mark it only after the reply sends, the next poll cycle will detect the same email again and double-schedule.
 
-### 🟡 P6 — Error Logging & Audit Trail *(Optional but recommended)*
+### Rule 5 — No Recalculation on Cron
+Once daily jobs are computed and stored with exact timestamps, do not regenerate them. Only gap-fill by counting completed jobs and inserting remaining. Recalculating causes timing drift and inconsistent behavior.
 
-Silent failures are the hardest bugs to find in production. An events log table makes debugging dramatically easier.
+### Rule 6 — Always Random Gaps
+Always use `random(8, 20)` minutes between emails. Never use a fixed gap. Fixed gaps are a spam signal.
 
-**What to log:**
-```
-TOKEN_REFRESHED | TOKEN_REVOKED | RATE_LIMITED
-SPAM_DETECTED   | SPAM_RESCUED  | WARMUP_PAUSED
-SEND_FAILED     | REPLY_FAILED  | REPLY_THREADED_SUCCESS
-```
+### Rule 7 — DB as Source of Truth, Not Gmail API
+Reply detection queries the `warmup_emails` table, not the Gmail API. The table is populated when emails are sent. This avoids reliance on Gmail API ordering or polling reliability.
 
 ---
 
-### 🟡 P7 — DemGrow Network Consent *(Optional)*
-
-When accounts interact across users in DemGrow Network mode, explicit consent should be recorded.
-
-```
-network_consent_given_at  (timestamp, nullable)
-network_opt_out_at        (timestamp, nullable)
-```
-
----
-
-## 5. LLM Integration Notes
-
-- **Model:** Kimi K2.5 via Ollama Cloud API (already integrated — `ollama-client.js`)
-- **Humanizer:** A prompt-based humanizer will be copy-pasted into the project (skill plugins not supported inside the project environment)
-- **Content:** Email content quality is handled by the LLM + humanizer — no content fingerprinting needed
-- **Gateway:** Ollama (`OLLAMA_API_KEY` env var) — already working and integrated, no changes needed
-
----
-
-## 6. Database Schema
+## 7. Database Schema
 
 ### Table: `warmup_accounts`
-Core table for every Gmail account enrolled in warmup.
 
-```sql
-CREATE TABLE warmup_accounts (
-  id                          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id                     UUID NOT NULL REFERENCES users(id),
-  email_address               TEXT NOT NULL,
-
-  -- Status
-  status                      TEXT NOT NULL DEFAULT 'NOT_STARTED',
-                              -- NOT_STARTED | WARMING | PAUSED | COMPLETED
-  warmup_mode                 TEXT NOT NULL DEFAULT 'OWN_ACCOUNTS',
-                              -- OWN_ACCOUNTS | DEMGROW_NETWORK
-
-  -- Warmup schedule
-  warmup_duration_days        INTEGER NOT NULL DEFAULT 10,
-  current_day                 INTEGER NOT NULL DEFAULT 0,
-  ramp_curve                  TEXT NOT NULL DEFAULT 'MODERATE',
-                              -- CONSERVATIVE | MODERATE | AGGRESSIVE
-  daily_send_limit            INTEGER NOT NULL DEFAULT 3,
-  daily_send_count            INTEGER NOT NULL DEFAULT 0,
-
-  -- Timing
-  account_timezone            TEXT NOT NULL DEFAULT 'Asia/Kolkata',
-  preferred_send_window_start TIME NOT NULL DEFAULT '22:00',
-  preferred_send_window_end   TIME NOT NULL DEFAULT '06:00',
-
-  -- OAuth tokens (store encrypted)
-  access_token                TEXT,
-  refresh_token               TEXT,
-  token_expires_at            TIMESTAMPTZ,
-  token_scope                 TEXT,
-  token_status                TEXT NOT NULL DEFAULT 'VALID',
-                              -- VALID | EXPIRED | REVOKED | NEEDS_REAUTH
-  last_token_refresh_at       TIMESTAMPTZ,
-  reauth_required             BOOLEAN NOT NULL DEFAULT false,
-
-  -- Rate limiting
-  last_api_call_at            TIMESTAMPTZ,
-  consecutive_rate_limit_errors INTEGER NOT NULL DEFAULT 0,
-  backoff_until               TIMESTAMPTZ,
-
-  -- DemGrow Network consent
-  network_consent_given_at    TIMESTAMPTZ,
-  network_opt_out_at          TIMESTAMPTZ,
-
-  -- Lifecycle
-  started_at                  TIMESTAMPTZ,
-  paused_at                   TIMESTAMPTZ,
-  completed_at                TIMESTAMPTZ,
-  created_at                  TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at                  TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-```
-
----
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| user_id | UUID | Owner |
+| gmail_account_id | UUID | FK to sender_accounts |
+| status | TEXT | `warming` \| `paused` \| `warmed` \| `stopped` |
+| mode | TEXT | `own_only` \| `network` |
+| warmup_duration | INTEGER | Target days (5/10/20/30/40) |
+| day_number | INTEGER | Current day in warmup |
+| daily_target | INTEGER | Emails to send today |
+| started_at | TIMESTAMPTZ | When warmup began |
+| persona | TEXT | `formal` \| `casual` \| `friendly` |
 
 ### Table: `warmup_emails`
-Every email sent or received as part of warmup. The most critical table — threading depends entirely on the IDs stored here.
 
-```sql
-CREATE TABLE warmup_emails (
-  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| from_account_id | UUID | FK to warmup_accounts (sender) |
+| to_account_id | UUID | FK to warmup_accounts (recipient) |
+| gmail_message_id | TEXT | Gmail API message ID |
+| thread_id | TEXT | Gmail API thread ID |
+| subject | TEXT | Email subject |
+| status | TEXT | `sent` \| `replied` \| `failed` |
+| rfc_message_id | TEXT | RFC 2822 Message-ID header |
+| reply_content | TEXT | Pre-generated reply content |
+| landed_in_spam | BOOLEAN | Whether email landed in spam |
+| spam_detected_at | TIMESTAMPTZ | When spam was detected |
+| spam_rescued_at | TIMESTAMPTZ | When rescued from spam |
+| marked_important_at | TIMESTAMPTZ | When marked important |
+| reply_detected_at | TIMESTAMPTZ | When reply was detected |
+| reply_scheduled_at | TIMESTAMPTZ | When reply was scheduled (prevents double-schedule) |
+| created_at | TIMESTAMPTZ | Auto (≈ receive time) |
 
-  -- Participants
-  sender_account_id     UUID NOT NULL REFERENCES warmup_accounts(id),
-  receiver_account_id   UUID NOT NULL REFERENCES warmup_accounts(id),
+### Table: `warmup_jobs`
 
-  -- Gmail IDs (BOTH required — do not confuse them)
-  gmail_message_id      TEXT NOT NULL,
-  -- Gmail's internal hex ID, e.g. "18e4f2a3b1c"
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| warmup_account_id | UUID | FK to warmup_accounts |
+| type | TEXT | `warmup` \| `engagement` |
+| to_account_id | UUID | FK to warmup_accounts (recipient) |
+| scheduled_at | TIMESTAMPTZ | Exact fire time |
+| status | TEXT | `pending` \| `completed` \| `failed` |
+| executed_at | TIMESTAMPTZ | When job ran |
+| day_number | INTEGER | Day number |
+| gmail_message_id | TEXT | Resulting message ID |
+| retry_count | INTEGER | Retry attempts |
+| last_attempted_at | TIMESTAMPTZ | Last attempt |
 
-  rfc_message_id        TEXT NOT NULL,
-  -- RFC 2822 Message-ID header, e.g. "<abc@mail.gmail.com>"
-  -- Used in In-Reply-To and References headers
+**Indexes:** `(scheduled_at, status)` for cron queries
 
-  gmail_thread_id       TEXT NOT NULL,
-  -- Gmail's threadId — used in reply request body
+### Table: `pending_replies`
 
-  -- Email content
-  subject               TEXT NOT NULL,
-  body_snippet          TEXT,
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| warmup_account_id | UUID | FK to warmup_accounts (reply sender) |
+| to_email | TEXT | Email address to reply to |
+| original_subject | TEXT | Subject of original email |
+| reply_content | TEXT | Pre-generated reply content |
+| status | TEXT | `pending` \| `sent` \| `failed` |
+| scheduled_at | TIMESTAMPTZ | When to send |
+| email_record_id | UUID | FK to warmup_emails |
+| gmail_thread_id | TEXT | Thread ID for threading |
+| rfc_message_id | TEXT | RFC Message-ID for In-Reply-To |
+| message_id | TEXT | Alias for rfc_message_id |
+| retry_count | INTEGER | Retry attempts |
+| last_attempted_at | TIMESTAMPTZ | Last attempt |
 
-  -- Direction and threading
-  direction             TEXT NOT NULL,
-                        -- SENT | RECEIVED
-  reply_to_email_id     UUID REFERENCES warmup_emails(id),
-                        -- Set when this email is a reply to another
+**Indexes:** `(scheduled_at, status)` for cron queries
 
-  references_chain      TEXT,
-  -- Space-separated list of ALL prior RFC Message-IDs in thread
-  -- e.g. "<id1@mail.com> <id2@mail.com> <id3@mail.com>"
-  -- Each reply appends the current rfc_message_id to this chain
+### Table: `warmup_stats`
 
-  -- Reply scheduling
-  reply_scheduled_at    TIMESTAMPTZ,
-  reply_sent_at         TIMESTAMPTZ,
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| account_id | UUID | FK to warmup_accounts |
+| date | DATE | Stats date |
+| sent | INTEGER | Emails sent today |
+| received | INTEGER | Emails received today |
+| replies | INTEGER | Replies sent today |
+| spam_rescues | INTEGER | Spam rescues today |
 
-  -- Spam tracking
-  landed_in_spam        BOOLEAN NOT NULL DEFAULT false,
-  spam_detected_at      TIMESTAMPTZ,
-  spam_rescued_at       TIMESTAMPTZ,
-  marked_important_at   TIMESTAMPTZ,
-
-  -- LLM metadata
-  llm_model_used        TEXT,
-
-  created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-```
-
----
-
-### Table: `warmup_daily_stats`
-Per-account per-day counters. Drives the UI stat display.
-
-```sql
-CREATE TABLE warmup_daily_stats (
-  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  warmup_account_id     UUID NOT NULL REFERENCES warmup_accounts(id),
-  date                  DATE NOT NULL,
-  emails_sent           INTEGER NOT NULL DEFAULT 0,
-  emails_received       INTEGER NOT NULL DEFAULT 0,
-  replies_sent          INTEGER NOT NULL DEFAULT 0,
-  spam_rescues          INTEGER NOT NULL DEFAULT 0,
-
-  UNIQUE (warmup_account_id, date)
-);
-
--- Always update using upsert:
--- INSERT INTO warmup_daily_stats (warmup_account_id, date, emails_sent)
--- VALUES ($1, CURRENT_DATE, 1)
--- ON CONFLICT (warmup_account_id, date)
--- DO UPDATE SET emails_sent = warmup_daily_stats.emails_sent + 1;
-```
+**Unique index:** `(account_id, date)` — upserted daily
 
 ---
 
-### Table: `warmup_events` *(Optional — Error Logging)*
+## 8. Key Files Reference
 
-```sql
-CREATE TABLE warmup_events (
-  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  warmup_account_id     UUID NOT NULL REFERENCES warmup_accounts(id),
-  warmup_email_id       UUID REFERENCES warmup_emails(id),
-  event_type            TEXT NOT NULL,
-  -- TOKEN_REFRESHED | TOKEN_REVOKED | RATE_LIMITED
-  -- SPAM_DETECTED | SPAM_RESCUED | WARMUP_PAUSED
-  -- SEND_FAILED | REPLY_FAILED | REPLY_THREADED_SUCCESS
-  error_message         TEXT,
-  metadata              JSONB,
-  created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-```
+| File | Purpose |
+|------|---------|
+| `lib/warmup-service.js` | Core engine — scheduling, jobs, replies, stats |
+| `lib/gmail-warmup.js` | Gmail API — send, reply, threading, labels |
+| `lib/ollama-client.js` | LLM — email generation, personas |
+| `lib/spam-rescue-service.js` | Spam rescue — polling, label manipulation |
+| `lib/encryption.js` | Token encryption/decryption |
+| `server.js` | Express routes, cron schedules |
 
 ---
 
-### Indexes
-
-```sql
--- Pending replies — scheduler queries this constantly
-CREATE INDEX idx_warmup_emails_pending_reply
-  ON warmup_emails (reply_scheduled_at)
-  WHERE reply_sent_at IS NULL;
-
--- Thread lookup when building References chain
-CREATE INDEX idx_warmup_emails_thread
-  ON warmup_emails (gmail_thread_id);
-
--- Daily stats queries for UI
-CREATE INDEX idx_warmup_daily_stats_account_date
-  ON warmup_daily_stats (warmup_account_id, date);
-
--- Spam rescue polling job
-CREATE INDEX idx_warmup_emails_spam
-  ON warmup_emails (landed_in_spam)
-  WHERE spam_rescued_at IS NULL;
-
--- Token check before API calls
-CREATE INDEX idx_warmup_accounts_token_status
-  ON warmup_accounts (token_status)
-  WHERE reauth_required = false;
-```
-
----
-
-## 7. What to Build Next (Ordered)
-
-| # | Task | Priority |
-|---|---|---|
-| 1 | Fix Reply API — save `rfc_message_id` + `gmail_thread_id` on receive, use correct MIME headers on reply | 🔴 Immediate |
-| 2 | Token management — refresh before every API call, handle revoked tokens gracefully | 🔴 Before scaling |
-| 3 | Volume ramp-up scheduler — calculate `daily_send_limit` per day, pick random send times within window | 🟠 Core logic |
-| 4 | Spam rescue polling job — check for SPAM label, move to inbox, increment counter | 🟠 Core feature |
-| 5 | Daily stats upsert — increment counters atomically on each warmup event | 🟠 Required for UI |
-| 6 | DemGrow Network mode — shared pool coordination, consent gate | 🟡 After Own Accounts works |
-| 7 | Error logging via `warmup_events` table | 🟡 Optional, recommended |
-| 8 | Ollama integration — already done via `ollama-client.js`, no changes needed | ✅ Done |
-
----
-
-*Document generated from research, conversation analysis, and Gmail API official documentation.*
 *Last updated: March 2026*

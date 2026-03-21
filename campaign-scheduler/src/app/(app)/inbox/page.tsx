@@ -197,8 +197,7 @@ function InboxContent() {
         setSyncing(true);
         toast.info("Syncing new messages...");
         try {
-            const backendUrl = process.env.NEXT_PUBLIC_CAMPAIGN_BACKEND_URL || "https://e-mail-flow-backend.onrender.com";
-            const res = await fetch(`${backendUrl}/trigger`, {
+            const res = await fetch("/api/trigger", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
             });

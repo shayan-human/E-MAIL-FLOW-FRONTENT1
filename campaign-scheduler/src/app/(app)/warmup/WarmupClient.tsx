@@ -13,7 +13,7 @@ import { X, Mail, ArrowRight, Info } from "lucide-react";
 import { toast } from "@/components/ui/toast-provider";
 import styles from "./warmup.module.css";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_CAMPAIGN_BACKEND_URL || process.env.CAMPAIGN_BACKEND_URL || "https://your-backend.onrender.com";
+const BACKEND_URL = "";
 
 interface WarmupAccount {
     id?: string;
@@ -79,9 +79,7 @@ export default function WarmupClient({
 
     const fetchAccounts = async () => {
         try {
-            const response = await fetch(
-                `${BACKEND_URL}/warmup/accounts?user_id=${user.id}`
-            );
+            const response = await fetch("/api/warmup/accounts");
             const data = await response.json();
 
             if (data.success) {
@@ -145,13 +143,11 @@ export default function WarmupClient({
     const handleNetworkToggle = async () => {
         try {
             const endpoint = networkOptIn
-                ? `${BACKEND_URL}/warmup/network-opt-out`
-                : `${BACKEND_URL}/warmup/network-opt-in`;
+                ? "/api/warmup/network-opt-out"
+                : "/api/warmup/network-opt-in";
 
             const response = await fetch(endpoint, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: user.id }),
             });
 
             const data = await response.json();
@@ -175,13 +171,12 @@ export default function WarmupClient({
     const handleStartWarmup = async (account: CombinedAccount) => {
         const duration = selectedDurations[account.senderAccount.id] || 30;
         try {
-            const response = await fetch(`${BACKEND_URL}/warmup/start`, {
+            const response = await fetch("/api/warmup/start", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     gmail_account_id: account.senderAccount.id,
                     mode: networkOptIn ? "network" : "own_only",
-                    user_id: user.id,
                     duration: duration,
                 }),
             });
@@ -202,7 +197,7 @@ export default function WarmupClient({
 
     const handlePauseWarmup = async (account: CombinedAccount) => {
         try {
-            const response = await fetch(`${BACKEND_URL}/warmup/pause`, {
+            const response = await fetch("/api/warmup/pause", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ warmup_account_id: account.id }),
@@ -224,7 +219,7 @@ export default function WarmupClient({
 
     const handleResumeWarmup = async (account: CombinedAccount) => {
         try {
-            const response = await fetch(`${BACKEND_URL}/warmup/resume`, {
+            const response = await fetch("/api/warmup/resume", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ warmup_account_id: account.id }),
@@ -251,7 +246,7 @@ export default function WarmupClient({
         }
 
         try {
-            const response = await fetch(`${BACKEND_URL}/warmup/mode`, {
+            const response = await fetch("/api/warmup/mode", {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ warmup_account_id: account.id, mode }),

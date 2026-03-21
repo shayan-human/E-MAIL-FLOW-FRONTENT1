@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { insforge } from "@/lib/insforge";
 import { useRouter } from "next/navigation";
 import {
@@ -123,7 +123,7 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const [campaignsRes, statsRes] = await Promise.all([
@@ -196,9 +196,9 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
         } finally {
             setLoading(false);
         }
-    };
+    }, [user.id]);
 
-    const fetchIntelligence = async (tf: "24H" | "7D" | "30D") => {
+    const fetchIntelligence = useCallback(async (tf: "24H" | "7D" | "30D") => {
         try {
             const res = await fetch(`/api/dashboard/stats?timeframe=${tf}`).then(res => res.json());
             if (res.sendIntelligence) {
@@ -207,15 +207,15 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
         } catch (err) {
             console.error("Error fetching intelligence data:", err);
         }
-    };
+    }, []);
 
     useEffect(() => {
         if (intelligenceTimeframe) {
             fetchIntelligence(intelligenceTimeframe);
         }
-    }, [intelligenceTimeframe]);
+    }, [intelligenceTimeframe, fetchIntelligence]);
 
-    const autoSync = async () => {
+    const autoSync = useCallback(async () => {
         try {
             const response = await fetch("/api/campaign/sync-replies", { method: "POST" });
             if (response.ok) {
@@ -223,17 +223,17 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
                 await fetchData();
             }
         } catch { }
-    };
+    }, [fetchData]);
 
     useEffect(() => {
         fetchData();
-        const pollInterval = setInterval(fetchData, 60 * 1000); // 1 minute live poll
-        const syncInterval = setInterval(autoSync, 5 * 60 * 1000); // 5 minute background sync
+        const pollInterval = setInterval(fetchData, 60 * 1000);
+        const syncInterval = setInterval(autoSync, 5 * 60 * 1000);
         return () => {
             clearInterval(pollInterval);
             clearInterval(syncInterval);
         };
-    }, []);
+    }, [fetchData, autoSync]);
 
     const handleSyncReplies = async () => {
         setSyncing(true);

@@ -244,11 +244,10 @@ export async function POST(req: Request) {
         }
 
         // 8. Trigger Backend for immediate processing
-        const backendUrl = process.env.CAMPAIGN_BACKEND_URL || 'http://localhost:3000';
         let triggered = false;
 
         try {
-            const triggerResponse = await fetch(`${backendUrl}/trigger`, {
+            const triggerResponse = await fetch("/api/trigger", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
             });

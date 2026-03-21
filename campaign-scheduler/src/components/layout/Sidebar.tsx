@@ -21,7 +21,7 @@ import { useAuth } from "@insforge/nextjs";
 import { useTheme } from "next-themes";
 import { SimpleConfirmModal } from "@/components/ui/simple-confirm-modal";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_CAMPAIGN_BACKEND_URL || process.env.CAMPAIGN_BACKEND_URL || "https://your-backend.onrender.com";
+const BACKEND_URL = "";
 
 const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -49,16 +49,14 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
     const isLightMode = resolvedTheme === 'light';
 
     useEffect(() => {
-        if (user?.id) {
-            fetch(`${BACKEND_URL}/warmup/accounts?user_id=${user.id}`)
-                .then(res => res.json())
-                .then(data => {
-                    const hasWarming = data.data?.some((a: any) => a.status === 'warming');
-                    setHasWarmingAccount(hasWarming);
-                })
-                .catch(() => {});
-        }
-    }, [user?.id]);
+        fetch("/api/warmup/accounts")
+            .then(res => res.json())
+            .then(data => {
+                const hasWarming = data.data?.some((a: any) => a.status === 'warming');
+                setHasWarmingAccount(hasWarming);
+            })
+            .catch(() => {});
+    }, []);
 
     const handleSignOut = async () => {
         setConfirmModalOpen(false);

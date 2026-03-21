@@ -88,13 +88,35 @@ export async function GET(req: Request) {
             console.log(`[OAuth Callback] No new refresh token received for ${email}. Preserving existing one.`);
         }
 
-        const { error: upsertError } = await insforge.database
+        const { data: existing } = await insforge.database
             .from("sender_accounts")
-            .upsert([payload], { onConflict: "user_id,email" });
+            .select("id")
+            .eq("email", payload.email)
+            .maybeSingle();
 
-        if (upsertError) {
-            console.error("[Upsert Sender Account Error]:", upsertError);
-            return NextResponse.redirect(new URL(`${redirectPath}?error=save_failed`, req.url));
+        if (existing) {
+            const { error: updateError } = await insforge.database
+                .from("sender_accounts")
+                .update({
+                    google_access_token: payload.google_access_token,
+                    google_refresh_token: payload.google_refresh_token,
+                    is_active: true,
+                })
+                .eq("id", existing.id);
+
+            if (updateError) {
+                console.error("[Update Sender Account Error]:", updateError);
+                return NextResponse.redirect(new URL(`${redirectPath}?error=save_failed`, req.url));
+            }
+        } else {
+            const { error: insertError } = await insforge.database
+                .from("sender_accounts")
+                .insert([payload]);
+
+            if (insertError) {
+                console.error("[Insert Sender Account Error]:", insertError);
+                return NextResponse.redirect(new URL(`${redirectPath}?error=save_failed`, req.url));
+            }
         }
 
         console.log(`[OAuth Callback] Successfully connected account: ${email}`);

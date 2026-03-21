@@ -99,10 +99,9 @@ export function Step1Accounts({ onNext }: Step1Props) {
             // 2. Check if we just returned from OAuth and need to save tokens
             if (!hasSavedTokens.current) {
                 hasSavedTokens.current = true;
-                // Mocking session for now
-                const session = { user: { id: "temp-user-id", email: "temp@example.com" }, provider_token: null };
-                if (session?.provider_token && session.user.email) {
-                    await saveTokens(session, existing);
+                const userAny = user as any;
+                if (userAny?.provider_token && user?.email && user?.id) {
+                    await saveTokens({ provider_token: userAny.provider_token, provider_refresh_token: userAny.provider_refresh_token, user: { id: user.id, email: user.email } }, existing);
                     if (cancelled) return;
                     // Re-fetch to show the updated/new account
                     const refreshed = await fetchAccounts();
@@ -171,17 +170,16 @@ export function Step1Accounts({ onNext }: Step1Props) {
     };
 
     const handleSaveTokens = async () => {
-        // Mocking session for now
-        const session = { user: { id: "temp-user-id", email: "temp@example.com" }, provider_token: "mock-token" };
-        if (!session) {
+        if (!user) {
             toast.error("No active session. Please sign in first.");
             return;
         }
-        if (!session.provider_token) {
+        const userAny = user as any;
+        if (!userAny.provider_token) {
             toast.error("No Gmail access token found. Please reconnect with Google.");
             return;
         }
-        await saveTokens(session, accounts);
+        await saveTokens({ provider_token: userAny.provider_token, provider_refresh_token: userAny.provider_refresh_token, user: { id: user.id, email: user.email || "" } }, accounts);
         const refreshed = await fetchAccounts();
         setAccounts(refreshed);
     };

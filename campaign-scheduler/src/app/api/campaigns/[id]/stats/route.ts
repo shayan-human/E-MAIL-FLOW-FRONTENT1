@@ -31,6 +31,10 @@ export async function GET(
             return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
         }
 
+        if (campaign.user_id !== user.id) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         // 2. Fetch stats and recent activity in parallel
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);

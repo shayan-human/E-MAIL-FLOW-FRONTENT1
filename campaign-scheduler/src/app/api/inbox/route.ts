@@ -71,8 +71,8 @@ export async function GET() {
 
             // Filter out system bounce messages from the replies table
             const isBounceMessage = 
-                r.sender_email.includes('mailer-daemon@googlemail.com') ||
-                r.subject.includes('Delivery Status Notification (Failure)');
+                (r.sender_email && r.sender_email.includes('mailer-daemon@googlemail.com')) ||
+                (r.subject && r.subject.includes('Delivery Status Notification (Failure)'));
             
             if (isBounceMessage) return;
 
