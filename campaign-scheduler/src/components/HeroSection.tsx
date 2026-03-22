@@ -84,17 +84,17 @@ export function FullPageParticles() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    let rafId: number;
+
     const updateCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      if (!canvas || !ctx) return;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      ctx.scale(dpr, dpr);
     };
     updateCanvas();
     window.addEventListener('resize', updateCanvas);
-
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
-    ctx.scale(dpr, dpr);
 
     const particles: Array<{
       x: number;
@@ -118,9 +118,8 @@ export function FullPageParticles() {
       });
     }
 
-    let animationId: number;
-
     const animate = () => {
+      if (!ctx || !canvas) return;
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
       particles.forEach((p) => {
@@ -147,13 +146,13 @@ export function FullPageParticles() {
         ctx.fill();
       });
 
-      animationId = requestAnimationFrame(animate);
+      rafId = requestAnimationFrame(animate);
     };
 
-    animationId = requestAnimationFrame(animate);
+    rafId = requestAnimationFrame(animate);
 
     return () => {
-      cancelAnimationFrame(animationId);
+      if (rafId) cancelAnimationFrame(rafId);
       window.removeEventListener('resize', updateCanvas);
     };
   }, []);
@@ -221,14 +220,15 @@ function ParticleCanvas() {
       });
     }
 
-    let animationId: number;
+    let rafId: number;
     const startTime = Date.now();
 
     const animate = () => {
+      if (!ctx || !canvas) return;
       const elapsed = Date.now() - startTime;
       
       if (elapsed < 400) {
-        animationId = requestAnimationFrame(animate);
+        rafId = requestAnimationFrame(animate);
         return;
       }
 
@@ -279,13 +279,13 @@ function ParticleCanvas() {
         ctx.fill();
       });
 
-      animationId = requestAnimationFrame(animate);
+      rafId = requestAnimationFrame(animate);
     };
 
-    animationId = requestAnimationFrame(animate);
+    rafId = requestAnimationFrame(animate);
 
     return () => {
-      cancelAnimationFrame(animationId);
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, [dimensions]);
 

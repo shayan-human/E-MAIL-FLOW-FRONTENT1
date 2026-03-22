@@ -2,13 +2,12 @@ import { InsforgeMiddleware } from '@insforge/nextjs/middleware';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+const SESSION_COOKIE = 'insforge-session';
+
 export default function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
-    // Use a standard session cookie check for fast redirect in middleware
-    const hasSession =
-        request.cookies.has('insforge_session') ||
-        request.cookies.has('__client_id'); // Some common session indicators
+    const hasSession = request.cookies.has(SESSION_COOKIE);
 
     if (pathname === '/' && hasSession) {
         return NextResponse.redirect(new URL('/dashboard', request.url));
@@ -16,9 +15,13 @@ export default function middleware(request: NextRequest) {
 
     return InsforgeMiddleware({
         baseUrl: process.env.NEXT_PUBLIC_INSFORGE_BASE_URL || 'https://4njfm5n4.us-east.insforge.app',
+        signInUrl: '/auth/signin',
+        signUpUrl: '/auth/signup',
+        useBuiltInAuth: false,
         publicRoutes: [
             '/',
             '/auth/signin',
+            '/auth/signup',
             '/auth/callback',
             '/api/auth',
             '/api/auth/(.*)',
