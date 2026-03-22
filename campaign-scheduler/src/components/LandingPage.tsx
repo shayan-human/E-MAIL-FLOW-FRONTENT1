@@ -623,7 +623,7 @@ export default function LandingPage() {
               </div>
             </Reveal>
             <Reveal delay={0.04}>
-              <div className="mt-4 text-[32px] md:text-[40px] font-semibold">Your agency's command center.</div>
+              <div className="mt-4 text-[32px] md:text-[40px] font-semibold">Your agency&apos;s command center.</div>
             </Reveal>
             <Reveal delay={0.08}>
               <div className="mx-auto mt-4 max-w-[720px] text-sm md:text-base" style={{ color: COLORS.muted }}>
@@ -905,7 +905,7 @@ export default function LandingPage() {
           <Container>
             <div className="mx-auto max-w-3xl text-center">
               <Reveal>
-                <div className="text-[36px] md:text-[48px] font-bold leading-tight">Ready to scale your agency's outreach?</div>
+                <div className="text-[36px] md:text-[48px] font-bold leading-tight">Ready to scale your agency&apos;s outreach?</div>
               </Reveal>
               <Reveal delay={0.04}>
                 <div className="mt-4 text-sm md:text-base" style={{ color: COLORS.muted }}>

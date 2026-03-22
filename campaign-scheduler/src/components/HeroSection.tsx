@@ -222,7 +222,7 @@ function ParticleCanvas() {
     }
 
     let animationId: number;
-    let startTime = Date.now();
+    const startTime = Date.now();
 
     const animate = () => {
       const elapsed = Date.now() - startTime;

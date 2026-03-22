@@ -1,4 +1,6 @@
-export function processChartData(activityData: any[]) {
+import type { LeadData, SendIntelligencePoint, BestSendDayPoint, ReplyQualityResult, ReplyData } from './types';
+
+export function processChartData(activityData: LeadData[]) {
     // 30D and 7D
     const dailyStats: Record<string, number> = {};
     for (let i = 0; i < 30; i++) {
@@ -19,7 +21,7 @@ export function processChartData(activityData: any[]) {
     const twentyFourHoursAgo = new Date();
     twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
-    activityData.forEach((lead: any) => {
+    activityData.forEach((lead: LeadData) => {
         if (!lead.sent_at) return;
 
         // Daily
@@ -60,7 +62,7 @@ export function processChartData(activityData: any[]) {
     return { "24H": chartData24H, "7D": chartData7D, "30D": chartData30D };
 }
 
-export function processSendIntelligence(leads: any[], timeframe: "24H" | "7D" | "30D" = "7D") {
+export function processSendIntelligence(leads: LeadData[], timeframe: "24H" | "7D" | "30D" = "7D"): SendIntelligencePoint[] {
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const buckets: Record<string, { label: string; sent: number; replies: number }> = {};
 
@@ -126,7 +128,7 @@ export function processSendIntelligence(leads: any[], timeframe: "24H" | "7D" | 
     }));
 }
 
-export function processBestSendDay(leads: any[]) {
+export function processBestSendDay(leads: LeadData[]): BestSendDayPoint[] {
     // Keep for backward compatibility if needed, but we'll likely use processSendIntelligence
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const counts: Record<string, number> = {
@@ -152,7 +154,7 @@ export function processBestSendDay(leads: any[]) {
     }));
 }
 
-export function processReplyQuality(replies: any[]) {
+export function processReplyQuality(replies: ReplyData[]): ReplyQualityResult {
     const positiveKeywords = ['interested', 'yes', 'tell me more', 'sounds good', "let's chat", 'when', 'how', 'love to', 'open to'];
     const negativeKeywords = ['unsubscribe', 'remove', 'not interested', 'stop', "don't contact", 'no thanks'];
 

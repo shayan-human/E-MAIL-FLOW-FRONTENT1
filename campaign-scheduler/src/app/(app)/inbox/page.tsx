@@ -49,8 +49,8 @@ function MessageBubble({ msg }: { msg: Message }) {
 
     // Logic to split the message
     const lines = msg.body.split('\n');
-    let visibleLines: string[] = [];
-    let quotedLines: string[] = [];
+    const visibleLines: string[] = [];
+    const quotedLines: string[] = [];
     let foundQuote = false;
 
     for (const line of lines) {

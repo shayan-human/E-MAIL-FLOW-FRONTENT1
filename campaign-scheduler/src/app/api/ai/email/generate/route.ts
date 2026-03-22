@@ -46,7 +46,7 @@ export async function POST(req: Request) {
         }
 
         let systemPrompt = "";
-        let userMessage = prompt;
+        const userMessage = prompt;
 
         switch (type) {
             case "subject":

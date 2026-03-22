@@ -3,6 +3,7 @@ import { getInsforgeClient } from "@/lib/insforge-server";
 import DashboardClient from "./DashboardClient";
 import { redirect } from "next/navigation";
 import { processChartData, processBestSendDay, processReplyQuality } from "@/lib/chart-utils";
+import type { LeadData, ReplyData } from "@/lib/types";
 
 export default async function DashboardPage() {
     const { user } = await auth();
@@ -120,16 +121,17 @@ export default async function DashboardPage() {
         });
 
         // Generate Chart Data
-        chartData = processChartData(activityRes.data || []);
-        bestSendDay = processBestSendDay(activityRes.data || []);
+        const activityData = (activityRes.data || []) as LeadData[];
+        chartData = processChartData(activityData);
+        bestSendDay = processBestSendDay(activityData);
 
         // Reply Quality Data
         const { data: repliesData } = await insforge.database
             .from("replies")
             .select("body")
-            .in("lead_id", (activityRes.data || []).map((l: any) => l.id).filter(Boolean));
+            .in("lead_id", (activityData.map((l) => l.id).filter(Boolean) as string[]));
 
-        replyQuality = processReplyQuality(repliesData || []);
+        replyQuality = processReplyQuality((repliesData || []) as ReplyData[]);
     }
 
     return (

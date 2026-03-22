@@ -160,7 +160,7 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
 
             const campaignsData = campaignsRes.data || [];
             const campaignIds = campaignsData.map((c: any) => c.id);
-            let statsMap: Record<string, any> = {};
+            const statsMap: Record<string, any> = {};
 
             if (campaignIds.length > 0) {
                 const { data: campaignStats } = await insforge.database

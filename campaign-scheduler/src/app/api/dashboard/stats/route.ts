@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@insforge/nextjs/server";
 import { processChartData, processSendIntelligence, processReplyQuality } from "@/lib/chart-utils";
+import type { LeadData, ReplyData } from "@/lib/types";
 
 export async function GET(req: Request) {
     const url = new URL(req.url);
@@ -27,7 +28,7 @@ export async function GET(req: Request) {
                 .eq("is_active", true)
         ]);
 
-        const campaignIds = (campaignsRes.data || []).map((c: any) => c.id) || [];
+        const campaignIds = (campaignsRes.data || []).map((c) => c.id as string) || [];
         const activeAccounts = activeAccountsRes.count || 0;
 
         if (campaignIds.length === 0) {
@@ -105,7 +106,7 @@ export async function GET(req: Request) {
         // Calculate avg reply time in hours
         let avgReplyTimeHours: number | null = null;
         if (avgReplyTimeRes.data && avgReplyTimeRes.data.length > 0) {
-            const times = avgReplyTimeRes.data.map((l: any) => {
+            const times = avgReplyTimeRes.data.map((l: { sent_at: string; replied_at: string }) => {
                 const sent = new Date(l.sent_at).getTime();
                 const replied = new Date(l.replied_at).getTime();
                 return (replied - sent) / (1000 * 60 * 60);
@@ -115,7 +116,7 @@ export async function GET(req: Request) {
         }
 
         // 3. Process activity data
-        const activityData = activityRes.data || [];
+        const activityData = (activityRes.data || []) as LeadData[];
         const chartData = processChartData(activityData);
         const sendIntelligence = processSendIntelligence(activityData, timeframe);
 
@@ -123,9 +124,9 @@ export async function GET(req: Request) {
         const { data: replies } = await insforge.database
             .from("replies")
             .select("body, lead_id")
-            .in("lead_id", (activityData.map((l: any) => l.id).filter(Boolean)));
+            .in("lead_id", (activityData.map((l) => l.id).filter(Boolean) as string[]));
 
-        const replyQuality = processReplyQuality(replies || []);
+        const replyQuality = processReplyQuality((replies || []) as ReplyData[]);
 
         return NextResponse.json({
             stats: {

@@ -455,7 +455,7 @@ export default function CampaignDetailPage() {
                                     <label className="text-[10px] font-semibold text-muted-foreground uppercase">Subject Line</label>
                                     <div className="flex items-center gap-2 text-white truncate">
                                         <Mail className="w-3.5 h-3.5 text-amber-500" />
-                                        <span className="text-sm font-medium truncate italic">"{campaign.subject}"</span>
+                                        <span className="text-sm font-medium truncate italic">&ldquo;{campaign.subject}&rdquo;</span>
                                     </div>
                                 </div>
                             </div>

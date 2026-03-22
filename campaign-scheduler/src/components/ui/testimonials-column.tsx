@@ -57,7 +57,7 @@ export const TestimonialsColumn = (props: {
                     className="text-sm leading-relaxed"
                     style={{ color: COLORS.text }}
                   >
-                    "{t.text}"
+                    &ldquo;{t.text}&rdquo;
                   </div>
                   <div className="flex items-center gap-3 mt-5">
                     <div
