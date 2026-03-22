@@ -201,7 +201,12 @@ function InboxContent() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
             });
-            if (!res.ok) throw new Error("Sync failed");
+            const data = await res.json();
+            if (!res.ok) {
+                console.error("Sync failed:", data);
+                toast.error(data.error || data.details?.automation?.error || "Sync failed");
+                return;
+            }
             toast.success("Inbox updated");
         } catch (error) {
             console.error("Error syncing inbox:", error);
