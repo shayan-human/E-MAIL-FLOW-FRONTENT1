@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
     LineChart,
     Line,
@@ -9,7 +9,7 @@ import {
     ResponsiveContainer,
     Tooltip,
 } from "recharts";
-import { X, Mail, ArrowRight, Info } from "lucide-react";
+import { X, Info } from "lucide-react";
 import { toast } from "@/components/ui/toast-provider";
 import styles from "./warmup.module.css";
 
@@ -52,20 +52,16 @@ interface CombinedAccount extends WarmupAccount {
 const DURATION_OPTIONS = [5, 10, 20, 30, 40];
 
 interface WarmupClientProps {
-    user: { id: string; email?: string };
-    initialAccounts: WarmupAccount[];
     senderAccounts: SenderAccount[];
     networkOptIn: boolean;
 }
 
 export default function WarmupClient({
-    user,
-    initialAccounts,
     senderAccounts,
     networkOptIn: initialNetworkOptIn,
 }: WarmupClientProps) {
     const [accounts, setAccounts] = useState<CombinedAccount[]>([]);
-    const [networkOptIn, setNetworkOptIn] = useState(initialNetworkOptIn);
+    const [networkOptIn] = useState(initialNetworkOptIn);
     const [loading, setLoading] = useState(true);
     const [selectedAccount, setSelectedAccount] = useState<CombinedAccount | null>(null);
     const [drawerStats, setDrawerStats] = useState<WarmupStats[]>([]);
@@ -73,11 +69,7 @@ export default function WarmupClient({
     const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
     const [selectedDurations, setSelectedDurations] = useState<Record<string, number>>({});
 
-    useEffect(() => {
-        fetchAccounts();
-    }, []);
-
-    const fetchAccounts = async () => {
+    const fetchAccounts = useCallback(async () => {
         try {
             const response = await fetch("/api/warmup/accounts");
             const data = await response.json();
@@ -107,12 +99,10 @@ export default function WarmupClient({
                             received: wa.today_received || 0,
                             replies: wa.today_replies || 0,
                             spam_rescues: wa.today_spam_rescues || 0,
-                        } : null,
+                            } : null,
                         };
                     }
                 );
-
-                setAccounts(combined);
 
                 // Sort accounts: WARMING first, NOT_STARTED (inactive) second, others last
                 const sortOrder: Record<string, number> = { 'warming': 0, 'inactive': 1 };
@@ -134,38 +124,14 @@ export default function WarmupClient({
         } finally {
             setLoading(false);
         }
-    };
+    }, [senderAccounts]);
+
+    useEffect(() => {
+        fetchAccounts();
+    }, [fetchAccounts]);
 
     const handleDurationChange = (accountId: string, duration: number) => {
         setSelectedDurations(prev => ({ ...prev, [accountId]: duration }));
-    };
-
-    const handleNetworkToggle = async () => {
-        try {
-            const endpoint = networkOptIn
-                ? "/api/warmup/network-opt-out"
-                : "/api/warmup/network-opt-in";
-
-            const response = await fetch(endpoint, {
-                method: "POST",
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                setNetworkOptIn(!networkOptIn);
-                toast.success(
-                    networkOptIn
-                        ? "You have left the DemGrow Network"
-                        : "You have joined the DemGrow Network"
-                );
-            } else {
-                throw new Error(data.error);
-            }
-        } catch (error) {
-            console.error("Error toggling network:", error);
-            toast.error("Failed to update network settings");
-        }
     };
 
     const handleStartWarmup = async (account: CombinedAccount) => {

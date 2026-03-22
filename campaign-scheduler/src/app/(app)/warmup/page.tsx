@@ -63,8 +63,6 @@ export default async function WarmupPage() {
 
     return (
         <WarmupClient
-            user={user}
-            initialAccounts={accountsWithEmails}
             senderAccounts={senderAccounts || []}
             networkOptIn={networkOptIn}
         />
