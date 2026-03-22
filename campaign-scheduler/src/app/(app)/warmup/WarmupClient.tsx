@@ -13,7 +13,7 @@ import { X, Info } from "lucide-react";
 import { toast } from "@/components/ui/toast-provider";
 import styles from "./warmup.module.css";
 
-const BACKEND_URL = "";
+
 
 interface WarmupAccount {
     id?: string;
@@ -240,7 +240,7 @@ export default function WarmupClient({
 
         try {
             const response = await fetch(
-                `${BACKEND_URL}/warmup/stats/${account.id}?days=14`
+                `/api/warmup/stats/${account.id}?days=14`
             );
             const data = await response.json();
 
