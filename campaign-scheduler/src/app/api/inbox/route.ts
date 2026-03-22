@@ -14,7 +14,7 @@ export async function GET() {
         // Step 1: Fetch user's campaign IDs first
         const { data: userCampaigns, error: campaignsError } = await insforge.database
             .from("campaigns")
-            .select("id")
+            .select("id, name")
             .eq("user_id", user.id);
 
         if (campaignsError) {

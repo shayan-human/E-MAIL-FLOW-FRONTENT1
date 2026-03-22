@@ -195,7 +195,6 @@ function InboxContent() {
 
     const handleSync = async () => {
         setSyncing(true);
-        toast.info("Syncing new messages...");
         try {
             const res = await fetch("/api/trigger", {
                 method: "POST",
@@ -204,10 +203,10 @@ function InboxContent() {
             const data = await res.json();
             if (!res.ok) {
                 console.error("Sync failed:", data);
-                toast.error(data.error || data.details?.automation?.error || "Sync failed");
+                toast.error(data.error || "Sync failed");
                 return;
             }
-            toast.success("Inbox updated");
+            toast.success("Sync started — refresh inbox in a few minutes");
         } catch (error) {
             console.error("Error syncing inbox:", error);
             toast.error("Failed to sync messages");
