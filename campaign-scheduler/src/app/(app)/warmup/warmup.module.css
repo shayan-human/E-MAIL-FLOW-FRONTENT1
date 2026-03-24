@@ -39,7 +39,7 @@
     padding: 16px 20px;
     background-color: #141414;
     border: 1px solid #222222;
-    border-radius: 10px;
+    border-radius: 12px;
     margin-bottom: 24px;
 }
 
@@ -48,27 +48,55 @@
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    padding: 0 20px;
+    padding: 0 16px;
+    flex: 1;
+    min-width: 0;
 }
 
 .aggregateStatValue {
     font-size: 20px;
     font-weight: 700;
-    color: #ffffff;
+    color: #F59E0B;
+    font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 .aggregateStatLabel {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 500;
     color: #666666;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    text-align: center;
 }
 
 .aggregateStatDivider {
     width: 1px;
     height: 36px;
     background-color: #222222;
+}
+
+@media (max-width: 768px) {
+    .aggregateStats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+
+    .aggregateStatDivider {
+        display: none;
+    }
+
+    .aggregateStatItem {
+        padding: 8px 0;
+    }
+
+    .aggregateStatValue {
+        font-size: 18px;
+    }
+
+    .aggregateStatLabel {
+        font-size: 9px;
+    }
 }
 
 .headerRight {

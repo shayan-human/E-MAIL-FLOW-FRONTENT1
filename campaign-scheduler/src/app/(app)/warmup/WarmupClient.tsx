@@ -9,6 +9,7 @@ import {
     ResponsiveContainer,
     Tooltip,
 } from "recharts";
+import { motion } from "framer-motion";
 import { X, Info } from "lucide-react";
 import { toast } from "@/components/ui/toast-provider";
 import styles from "./warmup.module.css";
@@ -51,6 +52,18 @@ interface CombinedAccount extends WarmupAccount {
     todayStats: WarmupStats | null;
 }
 
+interface AggregateStats {
+    totalAccounts: number;
+    warmedUpAccounts: number;
+    activeAccounts: number;
+    pausedAccounts: number;
+    notStartedAccounts: number;
+    totalSent: number;
+    totalReceived: number;
+    totalReplies: number;
+    totalSpamRescues: number;
+}
+
 const DURATION_OPTIONS = [5, 10, 20, 30, 40];
 
 interface WarmupClientProps {
@@ -70,24 +83,7 @@ export default function WarmupClient({
     const [loadingStats, setLoadingStats] = useState(false);
     const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
     const [selectedDurations, setSelectedDurations] = useState<Record<string, number>>({});
-
-    const aggregateStats = useMemo(() => {
-        const activeAccounts = accounts.filter(a => a.status === "warming" || a.status === "warmed" || a.status === "paused");
-        const totalSent = accounts.reduce((sum, a) => sum + (a.todayStats?.sent || 0), 0);
-        const totalReplies = accounts.reduce((sum, a) => sum + (a.todayStats?.replies || 0), 0);
-        const warmedCount = accounts.filter(a => a.status === "warmed").length;
-        const totalAccounts = accounts.length;
-        const completionPercent = totalAccounts > 0 ? Math.round((warmedCount / totalAccounts) * 100) : 0;
-        
-        return {
-            activeAccounts: activeAccounts.length,
-            totalSent,
-            totalReplies,
-            warmedCount,
-            totalAccounts,
-            completionPercent,
-        };
-    }, [accounts]);
+    const [aggregateData, setAggregateData] = useState<AggregateStats | null>(null);
 
     const fetchAccounts = useCallback(async () => {
         try {
@@ -139,6 +135,17 @@ export default function WarmupClient({
                     defaultDurations[sa.id] = wa?.warmup_duration || 30;
                 });
                 setSelectedDurations(defaultDurations);
+
+                // Fetch aggregate stats
+                try {
+                    const aggRes = await fetch("/api/warmup/stats/aggregate");
+                    const aggData = await aggRes.json();
+                    if (aggData.success) {
+                        setAggregateData(aggData.data);
+                    }
+                } catch (aggError) {
+                    console.error("Error fetching aggregate stats:", aggError);
+                }
             }
         } catch (error) {
             console.error("Error fetching accounts:", error);
@@ -347,33 +354,53 @@ export default function WarmupClient({
             </div>
 
             {/* PART A2: Aggregate Stats Panel */}
-            {accounts.length > 0 && (
-                <div className={styles.aggregateStats}>
+            {accounts.length > 0 && aggregateData && (
+                <motion.div 
+                    className={styles.aggregateStats}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                >
                     <div className={styles.aggregateStatItem}>
-                        <span className={styles.aggregateStatValue}>{aggregateStats.activeAccounts}</span>
+                        <span className={styles.aggregateStatValue}>{aggregateData.totalAccounts}</span>
+                        <span className={styles.aggregateStatLabel}>Total Accounts</span>
+                    </div>
+                    <div className={styles.aggregateStatDivider} />
+                    <div className={styles.aggregateStatItem}>
+                        <span className={styles.aggregateStatValue}>{aggregateData.warmedUpAccounts}</span>
+                        <span className={styles.aggregateStatLabel}>Warmed Up</span>
+                    </div>
+                    <div className={styles.aggregateStatDivider} />
+                    <div className={styles.aggregateStatItem}>
+                        <span className={styles.aggregateStatValue}>{aggregateData.activeAccounts}</span>
                         <span className={styles.aggregateStatLabel}>Active</span>
                     </div>
                     <div className={styles.aggregateStatDivider} />
                     <div className={styles.aggregateStatItem}>
-                        <span className={styles.aggregateStatValue}>{aggregateStats.totalSent}</span>
-                        <span className={styles.aggregateStatLabel}>Sent Today</span>
+                        <span className={styles.aggregateStatValue}>{aggregateData.pausedAccounts}</span>
+                        <span className={styles.aggregateStatLabel}>Paused</span>
                     </div>
                     <div className={styles.aggregateStatDivider} />
                     <div className={styles.aggregateStatItem}>
-                        <span className={styles.aggregateStatValue}>{aggregateStats.totalReplies}</span>
-                        <span className={styles.aggregateStatLabel}>Replies Today</span>
+                        <span className={styles.aggregateStatValue}>{aggregateData.totalSent}</span>
+                        <span className={styles.aggregateStatLabel}>Total Sent</span>
                     </div>
                     <div className={styles.aggregateStatDivider} />
                     <div className={styles.aggregateStatItem}>
-                        <span className={styles.aggregateStatValue}>{aggregateStats.warmedCount}/{aggregateStats.totalAccounts}</span>
-                        <span className={styles.aggregateStatLabel}>Warmed</span>
+                        <span className={styles.aggregateStatValue}>{aggregateData.totalReceived}</span>
+                        <span className={styles.aggregateStatLabel}>Total Received</span>
                     </div>
                     <div className={styles.aggregateStatDivider} />
                     <div className={styles.aggregateStatItem}>
-                        <span className={styles.aggregateStatValue}>{aggregateStats.completionPercent}%</span>
-                        <span className={styles.aggregateStatLabel}>Complete</span>
+                        <span className={styles.aggregateStatValue}>{aggregateData.totalReplies}</span>
+                        <span className={styles.aggregateStatLabel}>Total Replies</span>
                     </div>
-                </div>
+                    <div className={styles.aggregateStatDivider} />
+                    <div className={styles.aggregateStatItem}>
+                        <span className={styles.aggregateStatValue}>{aggregateData.totalSpamRescues}</span>
+                        <span className={styles.aggregateStatLabel}>Spam Rescues</span>
+                    </div>
+                </motion.div>
             )}
 
             {/* PART B: Account Cards Grid */}
