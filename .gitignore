@@ -1,5 +1,8 @@
-.agent/
-.agents/
+opencode.json
+skills-lock.json
+
+# InsForge & AI agent skills
+.insforge/
 PROJECT_BRAIN.md
 AGENTS.md
 node_modules/
