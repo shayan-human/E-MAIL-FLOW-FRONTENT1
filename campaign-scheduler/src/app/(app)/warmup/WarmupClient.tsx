@@ -556,19 +556,17 @@ export default function WarmupClient({
                             </button>
                         </div>
                         <div className={styles.drawerContent}>
-                            {selectedAccount.status === "warmed" && (
+                            {selectedAccount.warmed_up_at && (
                                 <div className={styles.completedInfo}>
                                     <div className={styles.completedInfoItem}>
-                                        <span className={styles.completedInfoLabel}>Completed</span>
+                                        <span className={styles.completedInfoLabel}>Warmed Up On</span>
                                         <span className={styles.completedInfoValue}>
-                                            {selectedAccount.warmed_up_at 
-                                                ? new Date(selectedAccount.warmed_up_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-                                                : "—"}
+                                            {new Date(selectedAccount.warmed_up_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                                         </span>
                                     </div>
                                     <div className={styles.completedInfoItem}>
-                                        <span className={styles.completedInfoLabel}>Duration</span>
-                                        <span className={styles.completedInfoValue}>{selectedAccount.warmup_duration || 30} days</span>
+                                        <span className={styles.completedInfoLabel}>Warmup Duration</span>
+                                        <span className={styles.completedInfoValue}>{selectedAccount.warmup_duration_days || selectedAccount.warmup_duration || 30} Days</span>
                                     </div>
                                 </div>
                             )}
