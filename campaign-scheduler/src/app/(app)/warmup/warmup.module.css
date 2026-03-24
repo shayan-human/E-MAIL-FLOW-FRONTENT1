@@ -32,6 +32,45 @@
     margin: 0;
 }
 
+.aggregateStats {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 16px 20px;
+    background-color: #141414;
+    border: 1px solid #222222;
+    border-radius: 10px;
+    margin-bottom: 24px;
+}
+
+.aggregateStatItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 0 20px;
+}
+
+.aggregateStatValue {
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.aggregateStatLabel {
+    font-size: 11px;
+    font-weight: 500;
+    color: #666666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.aggregateStatDivider {
+    width: 1px;
+    height: 36px;
+    background-color: #222222;
+}
+
 .headerRight {
     display: flex;
     flex-direction: column;
@@ -527,6 +566,36 @@
 
 .drawerContent {
     padding: 20px;
+}
+
+.completedInfo {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 20px;
+    padding: 14px 16px;
+    background-color: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 8px;
+}
+
+.completedInfoItem {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.completedInfoLabel {
+    font-size: 10px;
+    font-weight: 600;
+    color: #10B981;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.completedInfoValue {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
 }
 
 .chartSection {

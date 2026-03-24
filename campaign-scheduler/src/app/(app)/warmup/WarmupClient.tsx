@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
     LineChart,
     Line,
@@ -24,6 +24,7 @@ interface WarmupAccount {
     day_number: number;
     daily_target: number;
     warmup_duration?: number;
+    warmed_up_at?: string | null;
     today_sent?: number;
     today_received?: number;
     today_replies?: number;
@@ -69,6 +70,24 @@ export default function WarmupClient({
     const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
     const [selectedDurations, setSelectedDurations] = useState<Record<string, number>>({});
 
+    const aggregateStats = useMemo(() => {
+        const activeAccounts = accounts.filter(a => a.status === "warming" || a.status === "warmed" || a.status === "paused");
+        const totalSent = accounts.reduce((sum, a) => sum + (a.todayStats?.sent || 0), 0);
+        const totalReplies = accounts.reduce((sum, a) => sum + (a.todayStats?.replies || 0), 0);
+        const warmedCount = accounts.filter(a => a.status === "warmed").length;
+        const totalAccounts = accounts.length;
+        const completionPercent = totalAccounts > 0 ? Math.round((warmedCount / totalAccounts) * 100) : 0;
+        
+        return {
+            activeAccounts: activeAccounts.length,
+            totalSent,
+            totalReplies,
+            warmedCount,
+            totalAccounts,
+            completionPercent,
+        };
+    }, [accounts]);
+
     const fetchAccounts = useCallback(async () => {
         try {
             const response = await fetch("/api/warmup/accounts");
@@ -92,6 +111,7 @@ export default function WarmupClient({
                             day_number: wa?.day_number || 0,
                             daily_target: wa?.daily_target || 0,
                             warmup_duration: duration,
+                            warmed_up_at: wa?.warmed_up_at || null,
                             senderAccount: sa,
                             todayStats: wa ? {
                             date: new Date().toISOString().split('T')[0],
@@ -324,6 +344,36 @@ export default function WarmupClient({
                 </div>
             </div>
 
+            {/* PART A2: Aggregate Stats Panel */}
+            {accounts.length > 0 && (
+                <div className={styles.aggregateStats}>
+                    <div className={styles.aggregateStatItem}>
+                        <span className={styles.aggregateStatValue}>{aggregateStats.activeAccounts}</span>
+                        <span className={styles.aggregateStatLabel}>Active</span>
+                    </div>
+                    <div className={styles.aggregateStatDivider} />
+                    <div className={styles.aggregateStatItem}>
+                        <span className={styles.aggregateStatValue}>{aggregateStats.totalSent}</span>
+                        <span className={styles.aggregateStatLabel}>Sent Today</span>
+                    </div>
+                    <div className={styles.aggregateStatDivider} />
+                    <div className={styles.aggregateStatItem}>
+                        <span className={styles.aggregateStatValue}>{aggregateStats.totalReplies}</span>
+                        <span className={styles.aggregateStatLabel}>Replies Today</span>
+                    </div>
+                    <div className={styles.aggregateStatDivider} />
+                    <div className={styles.aggregateStatItem}>
+                        <span className={styles.aggregateStatValue}>{aggregateStats.warmedCount}/{aggregateStats.totalAccounts}</span>
+                        <span className={styles.aggregateStatLabel}>Warmed</span>
+                    </div>
+                    <div className={styles.aggregateStatDivider} />
+                    <div className={styles.aggregateStatItem}>
+                        <span className={styles.aggregateStatValue}>{aggregateStats.completionPercent}%</span>
+                        <span className={styles.aggregateStatLabel}>Complete</span>
+                    </div>
+                </div>
+            )}
+
             {/* PART B: Account Cards Grid */}
             {accounts.length === 0 ? (
                 <div className={styles.emptyState}>
@@ -504,6 +554,22 @@ export default function WarmupClient({
                             </button>
                         </div>
                         <div className={styles.drawerContent}>
+                            {selectedAccount.status === "warmed" && (
+                                <div className={styles.completedInfo}>
+                                    <div className={styles.completedInfoItem}>
+                                        <span className={styles.completedInfoLabel}>Completed</span>
+                                        <span className={styles.completedInfoValue}>
+                                            {selectedAccount.warmed_up_at 
+                                                ? new Date(selectedAccount.warmed_up_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                                                : "—"}
+                                        </span>
+                                    </div>
+                                    <div className={styles.completedInfoItem}>
+                                        <span className={styles.completedInfoLabel}>Duration</span>
+                                        <span className={styles.completedInfoValue}>{selectedAccount.warmup_duration || 30} days</span>
+                                    </div>
+                                </div>
+                            )}
                             <div className={styles.chartSection}>
                                 <h3 className={styles.chartTitle}>Sent Volume (Last 14 Days)</h3>
                                 <div className={styles.chart}>

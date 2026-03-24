@@ -13,7 +13,7 @@ export default function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
-    return InsforgeMiddleware({
+    const response = InsforgeMiddleware({
         baseUrl: process.env.NEXT_PUBLIC_INSFORGE_BASE_URL || 'https://4njfm5n4.us-east.insforge.app',
         signInUrl: '/auth/signin',
         signUpUrl: '/auth/signup',
@@ -28,6 +28,14 @@ export default function middleware(request: NextRequest) {
             '/api/webhooks/(.*)'
         ],
     })(request);
+
+    if (response.status === 401) {
+        const signInUrl = new URL('/auth/signin', request.url);
+        signInUrl.searchParams.set('reason', 'session_expired');
+        return NextResponse.redirect(signInUrl);
+    }
+
+    return response;
 }
 
 export const config = {

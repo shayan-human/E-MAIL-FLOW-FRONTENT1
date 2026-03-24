@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
+import { useSearchParams } from "next/navigation";
 import { insforge } from "@/lib/insforge";
 
 const COLORS = {
@@ -24,9 +25,17 @@ export default function SignInPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showSessionExpired, setShowSessionExpired] = useState(false);
   const reducedMotion = useReducedMotion();
   const { resolvedTheme } = useTheme();
   const isLightMode = resolvedTheme === 'light';
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('reason') === 'session_expired') {
+      setShowSessionExpired(true);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,6 +106,20 @@ export default function SignInPage() {
             border: `1px solid ${COLORS.border}`,
           }}
         >
+          {/* Session Expired Message */}
+          {showSessionExpired && (
+            <div 
+              className="mb-6 p-4 rounded-[8px] text-sm"
+              style={{ 
+                backgroundColor: "rgba(245, 158, 11, 0.1)", 
+                border: "1px solid rgba(245, 158, 11, 0.3)",
+                color: "#F59E0B"
+              }}
+            >
+              Your session has expired. Please sign in again.
+            </div>
+          )}
+
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
             <div className={isLightMode ? "rounded-lg p-2 bg-white mb-4" : "mb-4"}>

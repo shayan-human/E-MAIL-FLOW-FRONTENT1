@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "@/components/ui/toast-provider";
+import { handleSessionExpired } from "@/lib/session-utils";
 
 interface CampaignWithStats {
     id: string;
@@ -132,20 +133,19 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
                     .select("*")
                     .eq("user_id", user.id)
                     .order("created_at", { ascending: false }),
-                fetch("/api/dashboard/stats").then(res => {
+                fetch("/api/dashboard/stats").then(async (res) => {
                     if (res.status === 401) {
-                        window.location.href = "/";
-                        throw new Error("Unauthorized");
+                        await handleSessionExpired();
+                        throw new Error("Session expired");
                     }
                     return res.json();
                 })
             ]);
 
             if (campaignsRes.error) {
-                // Check if it's an auth error from Supabase/InsForge
                 if (campaignsRes.error.message?.toLowerCase().includes("jwt") || campaignsRes.error.code === "PGRST301") {
-                    window.location.href = "/";
-                    throw new Error("Unauthorized");
+                    await handleSessionExpired();
+                    throw new Error("Session expired");
                 }
                 throw campaignsRes.error;
             }

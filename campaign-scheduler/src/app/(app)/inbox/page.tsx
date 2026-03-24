@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { insforge } from "@/lib/insforge";
 import { toast } from "@/components/ui/toast-provider";
+import { handleSessionExpired } from "@/lib/session-utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Search, Mail, MessageSquareText, RefreshCw, ExternalLink, Building, Globe, Phone, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -144,8 +145,8 @@ function InboxContent() {
         try {
             const res = await fetch("/api/inbox");
             if (res.status === 401) {
-                window.location.href = "/";
-                throw new Error("Unauthorized");
+                await handleSessionExpired();
+                return;
             }
             if (!res.ok) throw new Error("Failed to fetch inbox");
             const data = await res.json();
