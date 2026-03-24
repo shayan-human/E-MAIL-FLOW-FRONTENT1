@@ -354,7 +354,7 @@ export default function WarmupClient({
             </div>
 
             {/* PART A2: Aggregate Stats Panel */}
-            {accounts.length > 0 && aggregateData && (
+            {accounts.length > 0 && (
                 <motion.div 
                     className={styles.aggregateStats}
                     initial={{ opacity: 0, y: 20 }}
@@ -362,42 +362,42 @@ export default function WarmupClient({
                     transition={{ duration: 0.4, ease: "easeOut" }}
                 >
                     <div className={styles.aggregateStatItem}>
-                        <span className={styles.aggregateStatValue}>{aggregateData.totalAccounts}</span>
+                        <span className={styles.aggregateStatValue}>{aggregateData?.totalAccounts ?? accounts.length}</span>
                         <span className={styles.aggregateStatLabel}>Total Accounts</span>
                     </div>
                     <div className={styles.aggregateStatDivider} />
                     <div className={styles.aggregateStatItem}>
-                        <span className={styles.aggregateStatValue}>{aggregateData.warmedUpAccounts}</span>
+                        <span className={styles.aggregateStatValue}>{aggregateData?.warmedUpAccounts ?? 0}</span>
                         <span className={styles.aggregateStatLabel}>Warmed Up</span>
                     </div>
                     <div className={styles.aggregateStatDivider} />
                     <div className={styles.aggregateStatItem}>
-                        <span className={styles.aggregateStatValue}>{aggregateData.activeAccounts}</span>
+                        <span className={styles.aggregateStatValue}>{aggregateData?.activeAccounts ?? 0}</span>
                         <span className={styles.aggregateStatLabel}>Active</span>
                     </div>
                     <div className={styles.aggregateStatDivider} />
                     <div className={styles.aggregateStatItem}>
-                        <span className={styles.aggregateStatValue}>{aggregateData.pausedAccounts}</span>
+                        <span className={styles.aggregateStatValue}>{aggregateData?.pausedAccounts ?? 0}</span>
                         <span className={styles.aggregateStatLabel}>Paused</span>
                     </div>
                     <div className={styles.aggregateStatDivider} />
                     <div className={styles.aggregateStatItem}>
-                        <span className={styles.aggregateStatValue}>{aggregateData.totalSent}</span>
+                        <span className={styles.aggregateStatValue}>{aggregateData?.totalSent ?? 0}</span>
                         <span className={styles.aggregateStatLabel}>Total Sent</span>
                     </div>
                     <div className={styles.aggregateStatDivider} />
                     <div className={styles.aggregateStatItem}>
-                        <span className={styles.aggregateStatValue}>{aggregateData.totalReceived}</span>
+                        <span className={styles.aggregateStatValue}>{aggregateData?.totalReceived ?? 0}</span>
                         <span className={styles.aggregateStatLabel}>Total Received</span>
                     </div>
                     <div className={styles.aggregateStatDivider} />
                     <div className={styles.aggregateStatItem}>
-                        <span className={styles.aggregateStatValue}>{aggregateData.totalReplies}</span>
+                        <span className={styles.aggregateStatValue}>{aggregateData?.totalReplies ?? 0}</span>
                         <span className={styles.aggregateStatLabel}>Total Replies</span>
                     </div>
                     <div className={styles.aggregateStatDivider} />
                     <div className={styles.aggregateStatItem}>
-                        <span className={styles.aggregateStatValue}>{aggregateData.totalSpamRescues}</span>
+                        <span className={styles.aggregateStatValue}>{aggregateData?.totalSpamRescues ?? 0}</span>
                         <span className={styles.aggregateStatLabel}>Spam Rescues</span>
                     </div>
                 </motion.div>
