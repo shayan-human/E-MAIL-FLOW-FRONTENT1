@@ -24,6 +24,7 @@ interface WarmupAccount {
     day_number: number;
     daily_target: number;
     warmup_duration?: number;
+    warmup_duration_days?: number;
     warmed_up_at?: string | null;
     today_sent?: number;
     today_received?: number;
@@ -111,6 +112,7 @@ export default function WarmupClient({
                             day_number: wa?.day_number || 0,
                             daily_target: wa?.daily_target || 0,
                             warmup_duration: duration,
+                            warmup_duration_days: wa?.warmup_duration || duration,
                             warmed_up_at: wa?.warmed_up_at || null,
                             senderAccount: sa,
                             todayStats: wa ? {
