@@ -76,7 +76,7 @@ export default function WarmupClient({
     networkOptIn: initialNetworkOptIn,
 }: WarmupClientProps) {
     const [accounts, setAccounts] = useState<CombinedAccount[]>([]);
-    const [networkOptIn] = useState(initialNetworkOptIn);
+    const [networkOptIn, setNetworkOptIn] = useState(initialNetworkOptIn);
     const [loading, setLoading] = useState(true);
     const [selectedAccount, setSelectedAccount] = useState<CombinedAccount | null>(null);
     const [drawerStats, setDrawerStats] = useState<WarmupStats[]>([]);
@@ -261,6 +261,25 @@ export default function WarmupClient({
         }
     };
 
+    const handleNetworkOptInToggle = async () => {
+        const nextValue = !networkOptIn;
+        try {
+            const response = await fetch(nextValue ? "/api/warmup/network-opt-in" : "/api/warmup/network-opt-out", {
+                method: "POST",
+            });
+            const data = await response.json();
+            if (data.success) {
+                setNetworkOptIn(nextValue);
+                toast.success(nextValue ? "Network opt-in enabled" : "Network opt-in disabled");
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            console.error("Error updating network opt-in:", error);
+            toast.error("Failed to update network opt-in");
+        }
+    };
+
     const openDrawer = async (account: CombinedAccount) => {
         if (!account.id) return;
         
@@ -350,6 +369,23 @@ export default function WarmupClient({
                 <div className={styles.headerLeft}>
                     <h1>Email Warmup</h1>
                     <p>Build sender reputation automatically across your Gmail accounts.</p>
+                </div>
+                <div className={styles.headerRight}>
+                    <div className={styles.toggleContainer}>
+                        <span className={styles.toggleLabel}>DemGrow Network Opt-In</span>
+                        <div
+                            className={`${styles.toggle} ${networkOptIn ? styles.active : ""}`}
+                            onClick={handleNetworkOptInToggle}
+                            role="switch"
+                            aria-checked={networkOptIn}
+                            tabIndex={0}
+                        >
+                            <div className={styles.toggleKnob} />
+                        </div>
+                    </div>
+                    <div className={styles.toggleHelper}>
+                        Allow your accounts to be used as warmup partners for other DemGrow users.
+                    </div>
                 </div>
             </div>
 
