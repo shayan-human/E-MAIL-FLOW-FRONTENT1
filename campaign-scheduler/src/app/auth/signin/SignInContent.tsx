@@ -54,8 +54,18 @@ export default function SignInContent() {
   };
 
   const handleGoogleSignIn = async () => {
+    // Diagnostic check
+    const baseUrl = insforge.auth.session?.baseUrl || (insforge as any).baseUrl;
+    const anonKey = (insforge as any).anonKey;
+    
+    if (!anonKey) {
+      alert("CRITICAL ERROR: NEXT_PUBLIC_INSFORGE_ANON_KEY is missing in the browser. Please check your production environment variables and rebuild the app.");
+      return;
+    }
+
     setIsGoogleLoading(true);
     try {
+      console.log("Initializing Google OAuth with redirect:", `${window.location.origin}/auth/callback`);
       const { error } = await insforge.auth.signInWithOAuth({
         provider: "google",
         redirectTo: `${window.location.origin}/auth/callback`,
@@ -63,7 +73,8 @@ export default function SignInContent() {
       if (error) throw error;
     } catch (error: any) {
       console.error("Google sign in failed:", error);
-      alert(error.message || "Failed to sign in with Google");
+      const errorDetail = typeof error === 'object' ? JSON.stringify(error) : error;
+      alert(`Login Error: ${error.message || "Unknown error"}\n\nDetails: ${errorDetail}`);
     } finally {
       setIsGoogleLoading(false);
     }
