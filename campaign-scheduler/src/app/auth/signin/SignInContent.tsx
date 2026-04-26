@@ -24,6 +24,7 @@ export default function SignInContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showSessionExpired, setShowSessionExpired] = useState(false);
   const reducedMotion = useReducedMotion();
@@ -53,10 +54,19 @@ export default function SignInContent() {
   };
 
   const handleGoogleSignIn = async () => {
-    await insforge.auth.signInWithOAuth({
-      provider: "google",
-      redirectTo: window.location.origin + "/dashboard",
-    });
+    setIsGoogleLoading(true);
+    try {
+      const { error } = await insforge.auth.signInWithOAuth({
+        provider: "google",
+        redirectTo: `${window.location.origin}/api/auth/callback/google`,
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      console.error("Google sign in failed:", error);
+      alert(error.message || "Failed to sign in with Google");
+    } finally {
+      setIsGoogleLoading(false);
+    }
   };
 
   return (
@@ -141,10 +151,15 @@ export default function SignInContent() {
 
           {/* Google Sign In */}
           <button
+            type="button"
             onClick={handleGoogleSignIn}
-            className="w-full h-12 rounded-[8px] font-medium text-[#0f0f0f] transition-all flex items-center justify-center gap-3 hover:bg-[#141414] hover:border hover:border-white"
-            style={{ backgroundColor: COLORS.text }}
+            disabled={isLoading || isGoogleLoading}
+            className="w-full h-12 rounded-[8px] font-medium text-[#0f0f0f] bg-white transition-all flex items-center justify-center gap-3 hover:bg-slate-100 hover:border hover:border-white disabled:opacity-70 disabled:cursor-not-allowed"
           >
+            {isGoogleLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -164,7 +179,9 @@ export default function SignInContent() {
               />
             </svg>
             Continue with Google
-          </button>
+          </>
+        )}
+      </button>
 
           {/* Divider */}
           <div className="relative my-6">
