@@ -1,23 +1,19 @@
-import { createClient } from '@insforge/sdk';
-import { auth } from '@insforge/nextjs/server';
+import { createClient } from '@supabase/supabase-js';
 
-const baseUrl = process.env.NEXT_PUBLIC_INSFORGE_BASE_URL || 'https://4njfm5n4.us-east.insforge.app';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_INSFORGE_BASE_URL || 'https://myagqulgddhnxrxkvvia.supabase.co';
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.INSFORGE_ADMIN_API_KEY;
 
 export async function getInsforgeClient() {
-    const { token } = await auth();
-    return createClient({
-        baseUrl,
-        edgeFunctionToken: token || undefined,
-    });
+    // For now, returning the standard client. 
+    // In a full migration, this would use the user's session token.
+    return createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY || '');
 }
 
 export async function getInsforgeAdminClient() {
-    const adminKey = process.env.INSFORGE_ADMIN_API_KEY;
-    if (!adminKey) {
-        throw new Error("INSFORGE_ADMIN_API_KEY is not configured");
+    if (!serviceRoleKey) {
+        throw new Error("SUPABASE_SERVICE_ROLE_KEY or INSFORGE_ADMIN_API_KEY is not configured");
     }
-    return createClient({
-        baseUrl,
-        edgeFunctionToken: adminKey,
-    });
+    return createClient(supabaseUrl, serviceRoleKey);
 }
+
+export const supabaseAdmin = (serviceRoleKey) ? createClient(supabaseUrl, serviceRoleKey) : null;
