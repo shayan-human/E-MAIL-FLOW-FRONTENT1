@@ -58,7 +58,7 @@ export default function SignInContent() {
     try {
       const { error } = await insforge.auth.signInWithOAuth({
         provider: "google",
-        redirectTo: `${window.location.origin}/api/auth/callback/google`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       });
       if (error) throw error;
     } catch (error: any) {
