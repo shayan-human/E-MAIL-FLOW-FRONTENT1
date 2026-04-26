@@ -56,7 +56,7 @@ export default function SignInContent() {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      console.log("Initializing Google OAuth with redirect:", `${window.location.origin}/auth/callback`);
+      console.log("Forcing direct Supabase OAuth...");
       const { error } = await insforge.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -65,9 +65,8 @@ export default function SignInContent() {
       });
       if (error) throw error;
     } catch (error: any) {
-      console.error("Google sign in failed:", error);
-      const errorDetail = typeof error === 'object' ? JSON.stringify(error) : error;
-      alert(`Login Error: ${error.message || "Unknown error"}\n\nDetails: ${errorDetail}`);
+      console.error("Direct OAuth failed:", error);
+      alert(`Login Error: ${error.message || "Please check your Supabase/Google configuration"}`);
     } finally {
       setIsGoogleLoading(false);
     }
@@ -120,20 +119,6 @@ export default function SignInContent() {
             border: `1px solid ${COLORS.border}`,
           }}
         >
-          {/* Session Expired Message */}
-          {showSessionExpired && (
-            <div 
-              className="mb-6 p-4 rounded-[8px] text-sm"
-              style={{ 
-                backgroundColor: "rgba(245, 158, 11, 0.1)", 
-                border: "1px solid rgba(245, 158, 11, 0.3)",
-                color: "#F59E0B"
-              }}
-            >
-              Your session has expired. Please sign in again.
-            </div>
-          )}
-
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
             <div className={isLightMode ? "rounded-lg p-2 bg-white mb-4" : "mb-4"}>

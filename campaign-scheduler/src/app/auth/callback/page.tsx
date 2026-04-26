@@ -8,6 +8,14 @@ export default function AuthCallbackPage() {
     const router = useRouter();
 
     useEffect(() => {
+        // Subscribe to auth state changes to catch the session immediately
+        const { data: { subscription } } = insforge.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                console.log("Auth state change detected session:", event);
+                router.replace("/dashboard");
+            }
+        });
+
         const checkSession = async () => {
             const { data: { session }, error } = await insforge.auth.getSession();
             
@@ -25,11 +33,15 @@ export default function AuthCallbackPage() {
                     } else {
                         router.replace("/?error=auth_failed");
                     }
-                }, 2000);
+                }, 3000);
             }
         };
 
         checkSession();
+
+        return () => {
+            subscription.unsubscribe();
+        };
     }, [router]);
 
     return (
