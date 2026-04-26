@@ -17,7 +17,7 @@ import {
     FileText,
     Flame,
 } from "lucide-react";
-import { useAuth } from "@insforge/nextjs";
+import { insforge } from "@/lib/insforge";
 import { useTheme } from "next-themes";
 import { SimpleConfirmModal } from "@/components/ui/simple-confirm-modal";
 
@@ -44,7 +44,6 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
     const [showLogout, setShowLogout] = useState(false);
     const [confirmModalOpen, setConfirmModalOpen] = useState(false);
     const [hasWarmingAccount, setHasWarmingAccount] = useState(false);
-    const { signOut } = useAuth();
     const { theme, resolvedTheme } = useTheme();
     const isLightMode = resolvedTheme === 'light';
 
@@ -60,7 +59,7 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
 
     const handleSignOut = async () => {
         setConfirmModalOpen(false);
-        await signOut();
+        await insforge.auth.signOut();
         window.location.href = "/";
     };
 
