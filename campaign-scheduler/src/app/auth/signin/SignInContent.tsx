@@ -55,7 +55,7 @@ export default function SignInContent() {
 
   const handleGoogleSignIn = async () => {
     // Diagnostic check
-    const baseUrl = insforge.auth.session?.baseUrl || (insforge as any).baseUrl;
+    const baseUrl = (insforge as any).baseUrl || "unknown";
     const anonKey = (insforge as any).anonKey;
     
     if (!anonKey) {
