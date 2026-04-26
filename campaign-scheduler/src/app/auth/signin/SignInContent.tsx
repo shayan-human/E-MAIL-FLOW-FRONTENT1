@@ -54,15 +54,6 @@ export default function SignInContent() {
   };
 
   const handleGoogleSignIn = async () => {
-    // Diagnostic check
-    const baseUrl = (insforge as any).baseUrl || "unknown";
-    const anonKey = (insforge as any).anonKey;
-    
-    if (!anonKey) {
-      alert("CRITICAL ERROR: NEXT_PUBLIC_INSFORGE_ANON_KEY is missing in the browser. Please check your production environment variables and rebuild the app.");
-      return;
-    }
-
     setIsGoogleLoading(true);
     try {
       console.log("Initializing Google OAuth with redirect:", `${window.location.origin}/auth/callback`);
