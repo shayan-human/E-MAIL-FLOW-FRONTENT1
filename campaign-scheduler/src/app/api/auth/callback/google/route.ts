@@ -88,14 +88,14 @@ export async function GET(req: Request) {
             console.log(`[OAuth Callback] No new refresh token received for ${email}. Preserving existing one.`);
         }
 
-        const { data: existing } = await insforge.database
+        const { data: existing } = await insforge
             .from("sender_accounts")
             .select("id")
             .eq("email", payload.email)
             .maybeSingle();
 
         if (existing) {
-            const { error: updateError } = await insforge.database
+            const { error: updateError } = await insforge
                 .from("sender_accounts")
                 .update({
                     google_access_token: payload.google_access_token,
@@ -109,7 +109,7 @@ export async function GET(req: Request) {
                 return NextResponse.redirect(new URL(`${redirectPath}?error=save_failed`, req.url));
             }
         } else {
-            const { error: insertError } = await insforge.database
+            const { error: insertError } = await insforge
                 .from("sender_accounts")
                 .insert([payload]);
 

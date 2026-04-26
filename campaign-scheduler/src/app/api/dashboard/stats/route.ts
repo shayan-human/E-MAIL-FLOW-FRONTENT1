@@ -17,11 +17,11 @@ export async function GET(req: Request) {
         // 1. Fetch campaigns and active accounts belonging to the user
         const insforge = await getInsforgeClient();
         const [campaignsRes, activeAccountsRes] = await Promise.all([
-            insforge.database
+            insforge
                 .from("campaigns")
                 .select("id")
                 .eq("user_id", user.id),
-            insforge.database
+            insforge
                 .from("sender_accounts")
                 .select("*", { count: "exact", head: true })
                 .eq("user_id", user.id)
@@ -60,28 +60,28 @@ export async function GET(req: Request) {
             activityRes
         ] = await Promise.all([
             // Emails Sent (status SENT or REPLIED)
-            insforge.database
+            insforge
                 .from("leads")
                 .select("*", { count: "exact", head: true })
                 .in("campaign_id", campaignIds)
                 .in("status", ["SENT", "REPLIED"]),
 
             // Total Replies
-            insforge.database
+            insforge
                 .from("leads")
                 .select("*", { count: "exact", head: true })
                 .in("campaign_id", campaignIds)
                 .eq("status", "REPLIED"),
 
             // Bounced
-            insforge.database
+            insforge
                 .from("leads")
                 .select("*", { count: "exact", head: true })
                 .in("campaign_id", campaignIds)
                 .eq("status", "BOUNCED"),
 
             // Average Reply Time (fetch processed leads with timestamps)
-            insforge.database
+            insforge
                 .from("leads")
                 .select("sent_at, replied_at")
                 .in("campaign_id", campaignIds)
@@ -90,7 +90,7 @@ export async function GET(req: Request) {
                 .not("replied_at", "is", null),
 
             // Activity Chart (Last 30 days) - used for both charts
-            insforge.database
+            insforge
                 .from("leads")
                 .select("sent_at, status")
                 .in("campaign_id", campaignIds)
@@ -121,7 +121,7 @@ export async function GET(req: Request) {
         const sendIntelligence = processSendIntelligence(activityData, timeframe);
 
         // 4. Fetch replies for quality analysis
-        const { data: replies } = await insforge.database
+        const { data: replies } = await insforge
             .from("replies")
             .select("body, lead_id")
             .in("lead_id", (activityData.map((l) => l.id).filter(Boolean) as string[]));

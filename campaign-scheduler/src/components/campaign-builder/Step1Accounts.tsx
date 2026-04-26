@@ -47,7 +47,7 @@ export function Step1Accounts({ onNext }: Step1Props) {
 
     const fetchAccounts = async () => {
         try {
-            const { data, error } = await insforge.database
+            const { data, error } = await insforge
                 .from("sender_accounts")
                 .select("*")
                 .order("created_at", { ascending: false });
@@ -56,7 +56,7 @@ export function Step1Accounts({ onNext }: Step1Props) {
 
             const accountIds = (data || []).map(a => a.id);
             const { data: warmupData } = accountIds.length > 0
-                ? await insforge.database
+                ? await insforge
                     .from("warmup_accounts")
                     .select("gmail_account_id, status")
                     .in("gmail_account_id", accountIds)
@@ -149,7 +149,7 @@ export function Step1Accounts({ onNext }: Step1Props) {
             // Find existing to preserve refresh token if new one is missing
             const existing = currentAccounts.find(a => a.email === userEmail);
 
-            const { error } = await insforge.database
+            const { error } = await insforge
                 .from("sender_accounts")
                 .upsert([
                     {
@@ -188,7 +188,7 @@ export function Step1Accounts({ onNext }: Step1Props) {
         if (!confirmModal.accountId) return;
 
         try {
-            const { error } = await insforge.database
+            const { error } = await insforge
                 .from("sender_accounts")
                 .delete()
                 .eq("id", confirmModal.accountId);

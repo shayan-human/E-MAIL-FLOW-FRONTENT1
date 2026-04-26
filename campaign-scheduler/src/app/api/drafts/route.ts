@@ -10,7 +10,7 @@ export async function GET() {
         }
 
         const insforge = await getInsforgeClient();
-        const { data, error } = await insforge.database
+        const { data, error } = await insforge
             .from("drafts")
             .select("id, name, subject, body, created_at, folder_id")
             .eq("user_id", user.id)
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
         }
 
         const insforge = await getInsforgeAdminClient();
-        const { data, error } = await insforge.database
+        const { data, error } = await insforge
             .from("drafts")
             .insert([{
                 user_id: user.id,

@@ -12,13 +12,13 @@ export async function GET() {
         const insforge = await getInsforgeClient();
 
         // Get all unique emails from leads across all user's campaigns
-        const { data: existingLeads, error: leadsError } = await insforge.database
+        const { data: existingLeads, error: leadsError } = await insforge
             .from('leads')
             .select('email')
             .eq('sender_account_email', user.email);
 
         // Get all blocked emails
-        const { data: blockedLeads, error: blockedError } = await insforge.database
+        const { data: blockedLeads, error: blockedError } = await insforge
             .from('blocked_leads')
             .select('email')
             .eq('user_id', user.id);

@@ -9,7 +9,7 @@ export async function GET() {
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const insforge = await getInsforgeClient();
-        const { data: accounts } = await insforge.database
+        const { data: accounts } = await insforge
             .from("sender_accounts")
             .select("*");
 

@@ -24,7 +24,7 @@ export async function POST(req: Request) {
         const insforge = await getInsforgeClient();
 
         // 1. Get lead and sender account ID
-        const { data: lead, error: leadError } = await insforge.database
+        const { data: lead, error: leadError } = await insforge
             .from("leads")
             .select(`
                 email,
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
 
         if (!gmailThreadId) {
             console.log(`[Reply API]: Thread ID missing on lead ${leadId}, checking replies table...`);
-            const { data: lastReply } = await insforge.database
+            const { data: lastReply } = await insforge
                 .from("replies")
                 .select("gmail_thread_id")
                 .eq("lead_id", leadId)
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
             if (lastReply?.gmail_thread_id) {
                 gmailThreadId = lastReply.gmail_thread_id;
                 // Backfill lead for future
-                await insforge.database
+                await insforge
                     .from("leads")
                     .update({ gmail_thread_id: gmailThreadId })
                     .eq("id", leadId);
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
         } else if (!lead.sender_account_id) {
             if (lead.sender_account_email) {
                 console.log(`[Reply API]: Falling back to email lookup for lead ${leadId}`);
-                const { data: fallbackAcc } = await insforge.database
+                const { data: fallbackAcc } = await insforge
                     .from("sender_accounts")
                     .select("id")
                     .eq("email", lead.sender_account_email)
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
                 if (fallbackAcc) {
                     lead.sender_account_id = fallbackAcc.id;
                     // Link it in DB for future efficiency
-                    await insforge.database
+                    await insforge
                         .from("leads")
                         .update({ sender_account_id: fallbackAcc.id })
                         .eq("id", leadId);
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
         }
 
         // 2. Get sender account credentials
-        const { data: sender, error: senderError } = await insforge.database
+        const { data: sender, error: senderError } = await insforge
             .from("sender_accounts")
             .select(`
                 email,
@@ -126,14 +126,14 @@ export async function POST(req: Request) {
 
         // 4. Update the sender account with the new access token if it was refreshed
         if (response.newAccessToken) {
-            await insforge.database
+            await insforge
                 .from("sender_accounts")
                 .update({ google_access_token: encrypt(response.newAccessToken) })
                 .eq("id", lead.sender_account_id);
         }
 
         // 5. Save the outgoing reply to the database
-        const { error: insertError } = await insforge.database
+        const { error: insertError } = await insforge
             .from("replies")
             .insert([{
                 lead_id: leadId,

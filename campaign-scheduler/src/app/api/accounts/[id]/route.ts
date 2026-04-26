@@ -16,7 +16,7 @@ export async function DELETE(
         const { id } = await context.params;
         const insforge = await getInsforgeClient();
 
-        const { error } = await insforge.database
+        const { error } = await insforge
             .from("sender_accounts")
             .delete()
             .eq("id", id);

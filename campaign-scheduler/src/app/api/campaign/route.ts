@@ -99,7 +99,7 @@ export async function POST(req: Request) {
 
         // 5. Warmup Guard — block accounts that are actively warming up
         const insforge = await getInsforgeClient();
-        const { data: warmupAccounts } = await insforge.database
+        const { data: warmupAccounts } = await insforge
             .from("warmup_accounts")
             .select("gmail_account_id, status")
             .in("gmail_account_id", selectedAccountIds)
@@ -119,7 +119,7 @@ export async function POST(req: Request) {
         // 6. Save Campaign to InsForge
         const campaignName = `Campaign-${idempotencyKey.slice(0, 8)}`;
 
-        const { data: newCampaign, error: campaignError } = await insforge.database
+        const { data: newCampaign, error: campaignError } = await insforge
             .from("campaigns")
             .insert([{
                 user_id: user.id,
@@ -148,7 +148,7 @@ export async function POST(req: Request) {
             sender_account_id: accId,
         }));
 
-        const { error: linkError } = await insforge.database
+        const { error: linkError } = await insforge
             .from("campaign_accounts")
             .insert(accountLinks);
 
@@ -159,7 +159,7 @@ export async function POST(req: Request) {
         // 7. Handle rotation mode - fetch drafts if rotating
         let drafts: { id: string; subject: string; body: string }[] = [];
         if (copyMode === "rotate" && selectedDraftIds && selectedDraftIds.length > 0) {
-            const { data: draftData, error: draftError } = await insforge.database
+            const { data: draftData, error: draftError } = await insforge
                 .from("drafts")
                 .select("id, subject, body")
                 .in("id", selectedDraftIds);
@@ -172,7 +172,7 @@ export async function POST(req: Request) {
         }
 
         // 8. Insert leads
-        const { data: senderAccounts } = await insforge.database
+        const { data: senderAccounts } = await insforge
             .from("sender_accounts")
             .select("id, email")
             .in("id", selectedAccountIds);
@@ -235,7 +235,7 @@ export async function POST(req: Request) {
             };
         });
 
-        const { error: leadsError } = await insforge.database
+        const { error: leadsError } = await insforge
             .from("leads")
             .insert(leadsToInsert);
 

@@ -84,7 +84,7 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
         if (!user) return;
         setIsLoadingAccounts(true);
         try {
-            const { data, error } = await insforge.database
+            const { data, error } = await insforge
                 .from("sender_accounts")
                 .select("*")
                 .eq("user_id", user.id)
@@ -94,7 +94,7 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
 
             const accountIds = (data || []).map((a: Account) => a.id);
             const { data: warmupData } = accountIds.length > 0
-                ? await insforge.database
+                ? await insforge
                     .from("warmup_accounts")
                     .select("gmail_account_id, status")
                     .in("gmail_account_id", accountIds)

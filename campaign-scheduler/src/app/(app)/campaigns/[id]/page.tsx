@@ -115,7 +115,7 @@ export default function CampaignDetailPage() {
         const newStatus = campaign.status === "RUNNING" ? "PAUSED" : "RUNNING";
         setSyncing(true);
         try {
-            const { error } = await insforge.database
+            const { error } = await insforge
                 .from("campaigns")
                 .update({ status: newStatus })
                 .eq("id", campaignId);
@@ -133,7 +133,7 @@ export default function CampaignDetailPage() {
     const handleDelete = async () => {
         if (!confirm("Are you sure you want to delete this campaign? This action cannot be undone.")) return;
         try {
-            const { error } = await insforge.database
+            const { error } = await insforge
                 .from("campaigns")
                 .delete()
                 .eq("id", campaignId);
@@ -152,7 +152,7 @@ export default function CampaignDetailPage() {
             return;
         }
         try {
-            const { error } = await insforge.database
+            const { error } = await insforge
                 .from("campaigns")
                 .update({ name: editedName })
                 .eq("id", campaignId);

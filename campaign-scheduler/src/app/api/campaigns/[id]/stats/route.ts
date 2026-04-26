@@ -16,7 +16,7 @@ export async function GET(
         const insforge = await getInsforgeClient();
 
         // 1. Verify ownership and fetch campaign metadata
-        const { data: campaign, error: campaignError } = await insforge.database
+        const { data: campaign, error: campaignError } = await insforge
             .from("campaigns")
             .select(`
                 *,
@@ -40,21 +40,21 @@ export async function GET(
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
         const [leadsRes, statsRes, repliesRes] = await Promise.all([
-            insforge.database
+            insforge
                 .from("leads")
                 .select("id, email, status, sent_at, replied_at")
                 .eq("campaign_id", campaignId)
                 .order("sent_at", { ascending: false, nullsFirst: false }),
 
             // Stats
-            insforge.database
+            insforge
                 .from("campaign_stats")
                 .select("*")
                 .eq("campaign_id", campaignId)
                 .maybeSingle(),
 
             // Last 5 replies specifically for this campaign
-            insforge.database
+            insforge
                 .from("leads")
                 .select("*")
                 .eq("campaign_id", campaignId)

@@ -11,7 +11,7 @@ export async function GET() {
         }
 
         const insforge = await getInsforgeClient();
-        const { data: accounts, error } = await insforge.database
+        const { data: accounts, error } = await insforge
             .from("sender_accounts")
             .select("*")
             .order("created_at", { ascending: false });
@@ -21,7 +21,7 @@ export async function GET() {
         const accountIds = (accounts || []).map(a => a.id);
 
         const { data: warmupData } = accountIds.length > 0
-            ? await insforge.database
+            ? await insforge
                 .from("warmup_accounts")
                 .select("gmail_account_id, status")
                 .in("gmail_account_id", accountIds)
@@ -36,7 +36,7 @@ export async function GET() {
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
 
-        const { data: sentTodayData } = await insforge.database
+        const { data: sentTodayData } = await insforge
             .from("leads")
             .select("sender_account_id, status")
             .gte("sent_at", startOfDay.toISOString())
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
 
         // Check if account already exists
         const insforge = await getInsforgeClient();
-        const { data: existing } = await insforge.database
+        const { data: existing } = await insforge
             .from("sender_accounts")
             .select("id, user_id")
             .eq("email", email)
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
 
         if (existing) {
             // Update existing account
-            const { data: updated, error } = await insforge.database
+            const { data: updated, error } = await insforge
                 .from("sender_accounts")
                 .update({
                     google_access_token: encrypt(google_access_token),
@@ -113,7 +113,7 @@ export async function POST(req: Request) {
         }
 
         // Create new sender account
-        const { data: created, error } = await insforge.database
+        const { data: created, error } = await insforge
             .from("sender_accounts")
             .insert([{
                 user_id: user.id,

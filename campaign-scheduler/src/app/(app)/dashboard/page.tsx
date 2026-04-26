@@ -16,12 +16,12 @@ export default async function DashboardPage() {
 
     // 1. Initial parallel fetch for campaigns and core stats
     const [campaignsRes, accountsRes] = await Promise.all([
-        insforge.database
+        insforge
             .from("campaigns")
             .select("*")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false }),
-        insforge.database
+        insforge
             .from("sender_accounts")
             .select("*", { count: "exact", head: true })
             .eq("user_id", user.id)
@@ -57,19 +57,19 @@ export default async function DashboardPage() {
             activityRes
         ] = await Promise.all([
             // Get sent, replied, bounced counts directly from leads
-            insforge.database
+            insforge
                 .from("leads")
                 .select("status, sent_at, replied_at")
                 .in("campaign_id", campaignIds),
 
             // Get per-campaign counts for the table
-            insforge.database
+            insforge
                 .from("campaign_stats")
                 .select("*")
                 .in("campaign_id", campaignIds),
 
             // Get activity data for chart
-            insforge.database
+            insforge
                 .from("leads")
                 .select("sent_at, status")
                 .in("campaign_id", campaignIds)
@@ -126,7 +126,7 @@ export default async function DashboardPage() {
         bestSendDay = processBestSendDay(activityData);
 
         // Reply Quality Data
-        const { data: repliesData } = await insforge.database
+        const { data: repliesData } = await insforge
             .from("replies")
             .select("body")
             .in("lead_id", (activityData.map((l) => l.id).filter(Boolean) as string[]));

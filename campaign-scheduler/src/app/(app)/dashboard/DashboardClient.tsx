@@ -128,7 +128,7 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
         setLoading(true);
         try {
             const [campaignsRes, statsRes] = await Promise.all([
-                insforge.database
+                insforge
                     .from("campaigns")
                     .select("*")
                     .eq("user_id", user.id)
@@ -163,7 +163,7 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
             const statsMap: Record<string, any> = {};
 
             if (campaignIds.length > 0) {
-                const { data: campaignStats } = await insforge.database
+                const { data: campaignStats } = await insforge
                     .from("campaign_stats")
                     .select("*")
                     .in("campaign_id", campaignIds);

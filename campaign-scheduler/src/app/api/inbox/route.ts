@@ -12,7 +12,7 @@ export async function GET() {
         const insforge = await getInsforgeClient();
 
         // Step 1: Fetch user's campaign IDs first
-        const { data: userCampaigns, error: campaignsError } = await insforge.database
+        const { data: userCampaigns, error: campaignsError } = await insforge
             .from("campaigns")
             .select("id, name")
             .eq("user_id", user.id);
@@ -27,7 +27,7 @@ export async function GET() {
         // Step 2: Fetch replies only for user's campaigns via leads join
         let repliesData: any[] = [];
         if (campaignIds.size > 0) {
-            const { data, error: repliesError } = await insforge.database
+            const { data, error: repliesError } = await insforge
                 .from("replies")
                 .select(`
                     *,

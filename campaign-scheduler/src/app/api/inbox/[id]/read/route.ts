@@ -15,7 +15,7 @@ export async function POST(
         }
 
         const insforge = await getInsforgeClient();
-        const { error } = await insforge.database
+        const { error } = await insforge
             .from("replies")
             .update({ is_read: true })
             .eq("id", id);

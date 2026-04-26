@@ -19,7 +19,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (name !== undefined) updateData.name = name;
         if (color !== undefined) updateData.color = color;
 
-        const { data, error } = await insforge.database
+        const { data, error } = await insforge
             .from("draft_folders")
             .update(updateData)
             .eq("id", id)
@@ -53,7 +53,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
         const insforge = await getInsforgeClient();
         
-        const { error: deleteError } = await insforge.database
+        const { error: deleteError } = await insforge
             .from("draft_folders")
             .delete()
             .eq("id", id)

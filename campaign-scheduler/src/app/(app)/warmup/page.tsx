@@ -13,20 +13,20 @@ export default async function WarmupPage() {
     const insforge = await getInsforgeClient();
 
     // Fetch sender accounts (connected Gmail accounts)
-    const { data: senderAccounts } = await insforge.database
+    const { data: senderAccounts } = await insforge
         .from("sender_accounts")
         .select("id, email, name")
         .eq("user_id", user.id)
         .eq("is_active", true);
 
     // Fetch warmup accounts
-    const { data: warmupAccounts } = await insforge.database
+    const { data: warmupAccounts } = await insforge
         .from("warmup_accounts")
         .select("*")
         .eq("user_id", user.id);
 
     // Fetch network opt-in status
-    const { data: userSettings } = await insforge.database
+    const { data: userSettings } = await insforge
         .from("user_settings")
         .select("network_opt_in")
         .eq("user_id", user.id)

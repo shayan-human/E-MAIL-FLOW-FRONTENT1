@@ -68,7 +68,7 @@ export default function SettingsPage() {
   const fetchSettings = async () => {
     if (!user?.id) return;
     try {
-      const { data, error } = await insforge.database
+      const { data, error } = await insforge
         .from("user_settings")
         .select("*")
         .eq("user_id", user.id)
@@ -118,19 +118,19 @@ export default function SettingsPage() {
     if (!user?.id) return;
     setSaving(true);
     try {
-      const { data: existing } = await insforge.database
+      const { data: existing } = await insforge
         .from("user_settings")
         .select("id")
         .eq("user_id", user.id)
         .maybeSingle();
 
       if (existing?.id) {
-        await insforge.database
+        await insforge
           .from("user_settings")
           .update({ ...updates, updated_at: new Date().toISOString() })
           .eq("id", existing.id);
       } else {
-        await insforge.database
+        await insforge
           .from("user_settings")
           .insert([{ ...settings, user_id: user.id, ...updates }]);
       }
