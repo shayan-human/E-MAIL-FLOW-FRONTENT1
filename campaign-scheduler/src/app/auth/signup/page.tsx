@@ -53,7 +53,9 @@ export default function SignUpPage() {
   const handleGoogleSignUp = async () => {
     await insforge.auth.signInWithOAuth({
       provider: "google",
-      redirectTo: window.location.origin + "/dashboard",
+      options: {
+        redirectTo: window.location.origin + "/dashboard",
+      }
     });
   };
 

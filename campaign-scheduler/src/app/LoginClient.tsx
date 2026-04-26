@@ -11,7 +11,9 @@ export default function LoginClient() {
         try {
             const { error } = await insforge.auth.signInWithOAuth({
                 provider: 'google',
-                redirectTo: `${window.location.origin}/auth/callback`,
+                options: {
+                    redirectTo: `${window.location.origin}/auth/callback`,
+                }
             });
 
             if (error) throw error;
