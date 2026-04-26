@@ -129,7 +129,7 @@ export default function AccountsPage() {
     const handleDisconnect = async (id: string) => {
         setConfirmModalOpen(false);
         try {
-            const { error } = await insforge.database.from("sender_accounts").delete().eq("id", id);
+            const { error } = await insforge.from("sender_accounts").delete().eq("id", id);
             if (error) throw error;
             toast.info("Account removed");
             setAccounts(accounts.filter(acc => acc.id !== id));

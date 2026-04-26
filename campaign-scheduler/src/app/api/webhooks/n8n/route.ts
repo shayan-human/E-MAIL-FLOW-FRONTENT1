@@ -40,7 +40,7 @@ export async function POST(req: Request) {
         const { campaignId, event, email, gmailMessageId, gmailThreadId } = validationResult.data;
 
         // Use RPC to bypass RLS for this system update
-        const { data: rpcResult, error: rpcError } = await insforge.database.rpc(
+        const { data: rpcResult, error: rpcError } = await insforge.rpc(
             "update_lead_status_from_webhook",
             {
                 p_campaign_id: campaignId,

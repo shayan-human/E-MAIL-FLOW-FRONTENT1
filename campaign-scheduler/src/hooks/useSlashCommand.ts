@@ -31,6 +31,18 @@ export function useSlashCommand({ options, value, onChange }: UseSlashCommandOpt
     }
   }, [onChange, activePopup]);
 
+  const handleSelectOption = useCallback((option: SlashCommandOption) => {
+    if (slashIndex === null) return;
+    
+    const before = value.substring(0, slashIndex);
+    const after = value.substring(slashIndex + 1);
+    const newValue = before + option.tag + after;
+    onChange(newValue);
+    
+    setActivePopup(false);
+    setSlashIndex(null);
+  }, [slashIndex, value, onChange]);
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (!activePopup) return;
 
@@ -48,19 +60,7 @@ export function useSlashCommand({ options, value, onChange }: UseSlashCommandOpt
       setActivePopup(false);
       setSlashIndex(null);
     }
-  }, [activePopup, options, selectedIndex]);
-
-  const handleSelectOption = useCallback((option: SlashCommandOption) => {
-    if (slashIndex === null) return;
-    
-    const before = value.substring(0, slashIndex);
-    const after = value.substring(slashIndex + 1);
-    const newValue = before + option.tag + after;
-    onChange(newValue);
-    
-    setActivePopup(false);
-    setSlashIndex(null);
-  }, [slashIndex, value, onChange]);
+  }, [activePopup, options, selectedIndex, handleSelectOption]);
 
   // Handle click outside
   const popupRef = useRef<HTMLDivElement>(null);

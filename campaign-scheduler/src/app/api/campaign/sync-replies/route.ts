@@ -22,7 +22,7 @@ export async function POST() {
         // 1. Fetch user's campaigns and accounts
         const insforge = await getInsforgeClient();
 
-        const { data: userCampaigns, error: campaignsError } = await insforge.database
+        const { data: userCampaigns, error: campaignsError } = await insforge
             .from("campaigns")
             .select("id, subject")
             .eq("user_id", user.id);
@@ -41,12 +41,12 @@ export async function POST() {
 
         // Fetch user's accounts and leads in parallel
         const [accountsRes, leadsRes] = await Promise.all([
-            insforge.database
+            insforge
                 .from("sender_accounts")
                 .select("id, email, google_access_token, google_refresh_token")
                 .eq("user_id", user.id)
                 .eq("is_active", true),
-            insforge.database
+            insforge
                 .from("leads")
                 .select("id, campaign_id, email, gmail_thread_id, sent_at, sender_account_id")
                 .in("campaign_id", campaignIds)
@@ -136,7 +136,7 @@ export async function POST() {
 
         // 3. Batch update all replied leads at once
         if (repliedLeadIds.length > 0) {
-            await insforge.database
+            await insforge
                 .from("leads")
                 .update({
                     status: "REPLIED",
@@ -147,7 +147,7 @@ export async function POST() {
         }
 
         // 4. Update campaign_stats efficiently
-        const { data: leadCounts } = await insforge.database
+        const { data: leadCounts } = await insforge
             .from("leads")
             .select("campaign_id, status")
             .in("campaign_id", campaignIds)
@@ -175,7 +175,7 @@ export async function POST() {
             }));
 
             if (upsertData.length > 0) {
-                await insforge.database
+                await insforge
                     .from("campaign_stats")
                     .upsert(upsertData, { onConflict: "campaign_id" });
             }
@@ -243,7 +243,7 @@ async function checkReplyByThread(
     if (messages.length <= 1) return false;
 
     let newRepliesFound = false;
-    const { data: senderAcc } = await insforge.database.from("sender_accounts").select("email").eq("id", senderAccountId).maybeSingle();
+    const { data: senderAcc } = await insforge.from("sender_accounts").select("email").eq("id", senderAccountId).maybeSingle();
 
     for (let i = 1; i < messages.length; i++) {
         const msg = messages[i];
@@ -257,7 +257,7 @@ async function checkReplyByThread(
         const body = extractBody(msg);
         const timestamp = new Date(parseInt(msg.internalDate)).toISOString();
 
-        const { error: replyError } = await insforge.database
+        const { error: replyError } = await insforge
             .from("replies")
             .insert([{
                 lead_id: leadId,
@@ -322,7 +322,7 @@ async function checkReplyByEmail(
         if (sentAt && new Date(internalDate) <= new Date(sentAt)) continue;
 
         // Skip if this exact Gmail message already credited to another lead
-        const { data: existing } = await insforge.database
+        const { data: existing } = await insforge
             .from("replies")
             .select("id")
             .eq("gmail_message_id", msg.id)
@@ -331,7 +331,7 @@ async function checkReplyByEmail(
 
         const timestamp = new Date(internalDate).toISOString();
 
-        const { error: replyError } = await insforge.database
+        const { error: replyError } = await insforge
             .from("replies")
             .insert([{
                 lead_id: leadId,
@@ -347,7 +347,7 @@ async function checkReplyByEmail(
         if (!replyError) {
             newRepliesFound = true;
             // Update lead with threadId if missing
-            await insforge.database
+            await insforge
                 .from("leads")
                 .update({ gmail_thread_id: msg.threadId })
                 .eq("id", leadId);
@@ -404,7 +404,7 @@ async function gmailFetchWithRefresh(
         try {
             token = await refreshAccessToken(refreshToken);
 
-            await insforge.database
+            await insforge
                 .from("sender_accounts")
                 .update({ google_access_token: encrypt(token) })
                 .eq("id", senderAccountId);
@@ -468,7 +468,7 @@ async function syncBounces(
 
     for (const m of messages) {
         // Skip if this bounce message already credited
-        const { data: existing } = await insforge.database
+        const { data: existing } = await insforge
             .from("replies")
             .select("id")
             .eq("gmail_message_id", m.id)
@@ -501,7 +501,7 @@ async function syncBounces(
 
         if (failedEmail) {
             // Find the lead associated with this failed email for this user's campaigns
-            const { data: leads } = await insforge.database
+            const { data: leads } = await insforge
                 .from("leads")
                 .select("id, campaign_id")
                 .eq("email", failedEmail)
@@ -509,7 +509,7 @@ async function syncBounces(
 
             if (leads && leads.length > 0) {
                 const leadIds = leads.map((l: any) => l.id);
-                const { error: updateError } = await insforge.database
+                const { error: updateError } = await insforge
                     .from("leads")
                     .update({ status: "BOUNCED" })
                     .in("id", leadIds);
@@ -517,7 +517,7 @@ async function syncBounces(
                 if (!updateError) {
                     bouncesCount++;
                     // Also save the bounce message as a "reply" record to mark it as processed
-                    await insforge.database
+                    await insforge
                         .from("replies")
                         .insert([{
                             lead_id: leads[0].id,

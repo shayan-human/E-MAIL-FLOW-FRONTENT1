@@ -165,12 +165,12 @@ export default function CampaignsPage() {
         setLoading(true);
         try {
             const [campaignsRes, leadsRes] = await Promise.all([
-                insforge.database
+                insforge
                     .from("campaigns")
                     .select("*")
                     .eq("user_id", user.id)
                     .order("created_at", { ascending: false }),
-                insforge.database
+                insforge
                     .from("leads")
                     .select("campaign_id, status")
                     .in("status", ["SENT", "REPLIED"]),
@@ -219,7 +219,7 @@ export default function CampaignsPage() {
 
     const handleStatusChange = async (id: string, newStatus: string) => {
         try {
-            const { error } = await insforge.database
+            const { error } = await insforge
                 .from("campaigns")
                 .update({ status: newStatus })
                 .eq("id", id);
@@ -234,7 +234,7 @@ export default function CampaignsPage() {
     const handleDelete = async (id: string) => {
         setConfirmModalOpen(false);
         try {
-            const { error } = await insforge.database.from("campaigns").delete().eq("id", id);
+            const { error } = await insforge.from("campaigns").delete().eq("id", id);
             if (error) throw error;
             toast.success("Campaign deleted");
             setCampaigns(campaigns.filter(c => c.id !== id));
