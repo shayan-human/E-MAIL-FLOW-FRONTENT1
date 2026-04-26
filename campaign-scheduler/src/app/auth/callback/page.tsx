@@ -1,26 +1,36 @@
 "use client";
 
 import { useEffect } from "react";
-import { useUser } from "@insforge/nextjs";
+import { insforge } from "@/lib/insforge";
 import { useRouter } from "next/navigation";
 
 export default function AuthCallbackPage() {
-    const { user, isLoaded } = useUser();
     const router = useRouter();
 
     useEffect(() => {
-        if (isLoaded) {
-            if (user) {
+        const checkSession = async () => {
+            const { data: { session }, error } = await insforge.auth.getSession();
+            
+            if (session) {
                 router.replace("/dashboard");
+            } else if (error) {
+                console.error("Auth callback session error:", error);
+                router.replace("/?error=auth_failed");
             } else {
-                console.warn("Auth callback loaded but no user found.");
-                // Give it a brief moment in case the session is still settling
-                setTimeout(() => {
-                    router.replace("/?error=auth_failed");
+                // If no session yet, wait a bit and try again (for OAuth settling)
+                setTimeout(async () => {
+                    const { data: { session: retrySession } } = await insforge.auth.getSession();
+                    if (retrySession) {
+                        router.replace("/dashboard");
+                    } else {
+                        router.replace("/?error=auth_failed");
+                    }
                 }, 2000);
             }
-        }
-    }, [isLoaded, user, router]);
+        };
+
+        checkSession();
+    }, [router]);
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-background">
