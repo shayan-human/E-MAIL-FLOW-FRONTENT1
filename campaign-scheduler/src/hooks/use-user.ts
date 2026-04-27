@@ -24,3 +24,6 @@ export function useUser() {
 
     return { user, isLoaded };
 }
+
+// Alias for files that expect useAuth
+export const useAuth = useUser;
