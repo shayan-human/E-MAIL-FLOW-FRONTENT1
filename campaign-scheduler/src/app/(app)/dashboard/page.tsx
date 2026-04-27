@@ -6,11 +6,11 @@ import { processChartData, processBestSendDay, processReplyQuality } from "@/lib
 import type { LeadData, ReplyData } from "@/lib/types";
 
 export default async function DashboardPage() {
-    const user = {
-        id: '00000000-0000-0000-0000-000000000000',
-        email: 'admin@demgrow.space',
-        role: 'authenticated',
-    } as any;
+    const { user } = await auth();
+
+    if (!user) {
+        return null;
+    }
 
     const insforge = await getInsforgeClient();
 

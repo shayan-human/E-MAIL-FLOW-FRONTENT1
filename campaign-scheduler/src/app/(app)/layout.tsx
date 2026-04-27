@@ -23,12 +23,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         }
     );
 
-    // NUCLEAR BYPASS: Hardcode user
-    const user = {
-        id: '00000000-0000-0000-0000-000000000000',
-        email: 'admin@demgrow.space',
-        role: 'authenticated',
-    } as any;
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return null;
+    }
 
     return (
         <div className="h-screen flex overflow-hidden" style={{ backgroundColor: "var(--bg-page)", color: "var(--text-primary)" }}>

@@ -1,7 +1,14 @@
+import { auth } from "@/lib/auth-helper";
 import { redirect } from "next/navigation";
+import LandingPage from "@/components/LandingPage";
 
-export default function Home() {
-    // NUCLEAR OPTION: INSTANT REDIRECT
-    // No landing page, no buttons. Just go to the dashboard.
+export default async function LoginPage() {
+  const { user } = await auth();
+
+  // Instant server-side redirect if already logged in
+  if (user) {
     redirect("/dashboard");
+  }
+
+  return <LandingPage />;
 }
