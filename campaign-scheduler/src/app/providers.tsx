@@ -1,11 +1,7 @@
 'use client';
-import { InsforgeBrowserProvider } from '@insforge/nextjs';
-import { insforge } from '@/lib/insforge';
 
-export function InsforgeProvider({ children }: { children: React.ReactNode }) {
-    return (
-        <InsforgeBrowserProvider client={insforge as any} afterSignInUrl="/dashboard">
-            {children}
-        </InsforgeBrowserProvider>
-    );
+export function SupabaseProvider({ children }: { children: React.ReactNode }) {
+    // We are now using pure Supabase SSR, so we don't need a heavy wrapper provider.
+    // The session is handled by the middleware and the auth helper.
+    return <>{children}</>;
 }

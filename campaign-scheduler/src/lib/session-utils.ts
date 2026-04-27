@@ -1,14 +1,12 @@
 import { toast } from "@/components/ui/toast-provider";
-import { useAuth } from "@insforge/nextjs";
+import { insforge as supabase } from "@/lib/insforge";
 
 const AUTH_KEYS = [
-    'insforge-session',
-    'insforge-token',
-    'insforge-refresh-token',
+    'sb-access-token',
+    'sb-refresh-token',
     'auth-token',
     'session',
     'user',
-    'dashboard_visible_cards',
 ];
 
 export async function handleSessionExpired(): Promise<void> {
@@ -26,8 +24,6 @@ export async function handleSessionExpired(): Promise<void> {
 }
 
 export function useSessionExpired() {
-    const { signOut } = useAuth();
-
     return async function sessionExpired() {
         localStorage.clear();
         sessionStorage.clear();
@@ -38,7 +34,7 @@ export function useSessionExpired() {
         });
 
         try {
-            await signOut();
+            await supabase.auth.signOut();
         } catch {
         }
 

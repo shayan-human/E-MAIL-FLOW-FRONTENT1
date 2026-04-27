@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Settings as SettingsIcon, Sun, Moon, Monitor, Bell, BellOff, LogOut, Save, X } from "lucide-react";
 import { insforge } from "@/lib/insforge";
-import { useUser, useAuth } from "@insforge/nextjs";
+import { useUser, useAuth } from "@/hooks/use-user";
 import { toast } from "@/components/ui/toast-provider";
 import { SimpleConfirmModal } from "@/components/ui/simple-confirm-modal";
 import { formatInTimezone, getBrowserTimezone } from "@/lib/utils";

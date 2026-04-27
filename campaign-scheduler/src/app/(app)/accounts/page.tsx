@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { insforge } from "@/lib/insforge";
-import { useUser } from "@insforge/nextjs";
+import { useUser } from "@/hooks/use-user";
 
 import { Plus, Mail, Unplug, RefreshCw } from "lucide-react";
 import { toast } from "@/components/ui/toast-provider";

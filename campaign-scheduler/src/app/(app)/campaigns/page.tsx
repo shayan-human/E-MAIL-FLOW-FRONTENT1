@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { insforge } from "@/lib/insforge";
-import { useUser } from "@insforge/nextjs";
+import { useUser } from "@/hooks/use-user";
 import { toast } from "@/components/ui/toast-provider";
 import { SimpleConfirmModal } from "@/components/ui/simple-confirm-modal";
 import Link from "next/link";

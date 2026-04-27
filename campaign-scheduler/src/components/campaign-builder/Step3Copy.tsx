@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/toast-provider";
 import { Account } from "./Step1Accounts";
 import { insforge } from "@/lib/insforge";
-import { useUser } from "@insforge/nextjs";
+import { useUser } from "@/hooks/use-user";
 import { RotateDraftsSelector } from "@/components/campaign-builder/RotateDraftsSelector";
 import { generateEmailContent } from "@/lib/openrouter";
 

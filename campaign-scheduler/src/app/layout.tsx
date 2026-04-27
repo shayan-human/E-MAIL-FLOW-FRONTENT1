@@ -42,11 +42,11 @@ export default function RootLayout({
       </head>
       <body className="antialiased min-h-screen bg-background text-foreground font-sans">
         <ThemeProvider>
-          <InsforgeProvider>
+          <SupabaseProvider>
             <ToastProvider>
               {children}
             </ToastProvider>
-          </InsforgeProvider>
+          </SupabaseProvider>
         </ThemeProvider>
       </body>
     </html>

