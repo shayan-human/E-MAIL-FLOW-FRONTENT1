@@ -5,7 +5,7 @@ import { encrypt } from "@/lib/encryption";
 
 export async function GET(req: Request) {
     try {
-        const { user } = await auth();
+        const { user, supabase: insforge } = await auth();
         if (!user) {
             return NextResponse.redirect(new URL("/", req.url));
         }
@@ -66,9 +66,6 @@ export async function GET(req: Request) {
         if (!email) {
             return NextResponse.redirect(new URL(`${redirectPath}?error=no_email`, req.url));
         }
-
-        // Upsert sender account (update if exists, insert if new)
-        const insforge = await getInsforgeClient();
 
         // Build payload dynamically to avoid overwriting existing refresh tokens
         const payload: any = {

@@ -28,6 +28,7 @@ export async function auth() {
     const { data: { session } } = await supabase.auth.getSession();
 
     return {
+        supabase,
         session,
         user: user ?? null,
         token: session?.access_token ?? null,
