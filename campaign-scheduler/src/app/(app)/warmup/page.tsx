@@ -1,4 +1,4 @@
-import { auth } from "@insforge/nextjs/server";
+import { auth } from "@/lib/auth-helper";
 import { getInsforgeClient } from "@/lib/insforge-server";
 import WarmupClient from "./WarmupClient";
 import { redirect } from "next/navigation";

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@insforge/nextjs/server";
+import { auth } from "@/lib/auth-helper";
 import { getInsforgeClient } from "@/lib/insforge-server";
 
 export async function GET() {

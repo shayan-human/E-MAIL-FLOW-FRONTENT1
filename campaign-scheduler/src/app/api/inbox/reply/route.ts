@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getInsforgeClient } from "@/lib/insforge-server";
-import { auth } from "@insforge/nextjs/server";
+import { auth } from "@/lib/auth-helper";
 import { sendGmailEmail } from "@/lib/gmail";
 import { encrypt, decrypt } from "@/lib/encryption";
 

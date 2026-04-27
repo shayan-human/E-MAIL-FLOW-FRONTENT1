@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { getInsforgeClient } from "@/lib/insforge-server";
-import { auth } from "@insforge/nextjs/server";
+import { auth } from "@/lib/auth-helper";
 import { decrypt } from "@/lib/encryption";
 import { CampaignPayloadSchema } from "@/lib/validations/campaign";
 import { globalRateLimiter } from "@/lib/rate-limit";

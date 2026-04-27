@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getInsforgeClient } from "@/lib/insforge-server";
-import { auth } from "@insforge/nextjs/server";
+import { auth } from "@/lib/auth-helper";
 import { encrypt } from "@/lib/encryption";
 
 export async function GET() {

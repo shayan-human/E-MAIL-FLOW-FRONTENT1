@@ -1,4 +1,4 @@
-import { auth } from "@insforge/nextjs/server";
+import { auth } from "@/lib/auth-helper";
 import { redirect } from "next/navigation";
 import LandingPage from "@/components/LandingPage";
 

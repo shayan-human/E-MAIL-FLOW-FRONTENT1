@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@insforge/nextjs/server";
+import { auth } from "@/lib/auth-helper";
 
 const BACKEND_URL = process.env.CAMPAIGN_BACKEND_URL;
 
