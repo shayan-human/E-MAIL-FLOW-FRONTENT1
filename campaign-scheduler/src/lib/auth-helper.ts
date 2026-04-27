@@ -30,5 +30,6 @@ export async function auth() {
     return {
         session,
         user: user ?? null,
+        token: session?.access_token ?? null,
     };
 }
