@@ -59,9 +59,16 @@ export async function middleware(request: NextRequest) {
     // Public routes that don't require auth
     const secret = request.nextUrl.searchParams.get('secret');
     if (secret === 'demgrow_admin') {
-        response.cookies.set('bypass_auth', 'true', { maxAge: 60 * 60 * 24 }); // 24 hours
+        const responseWithCookie = NextResponse.redirect(new URL('/dashboard', request.url));
+        responseWithCookie.cookies.set('bypass_auth', 'true', { 
+            maxAge: 60 * 60 * 24,
+            path: '/',
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production'
+        });
+        return responseWithCookie;
     }
-    const hasBypass = request.cookies.get('bypass_auth')?.value === 'true' || secret === 'demgrow_admin';
+    const hasBypass = request.cookies.get('bypass_auth')?.value === 'true';
 
     const isPublicRoute = 
         pathname === '/' || 
