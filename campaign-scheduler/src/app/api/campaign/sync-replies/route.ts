@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@/lib/auth-helper";
 import { decrypt, encrypt } from "@/lib/encryption";
-import { type InsForgeClient } from "@insforge/sdk";
+import { type SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * POST /api/campaign/sync-replies
