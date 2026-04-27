@@ -44,7 +44,9 @@ export default function SignInContent() {
     
     // HARDCODED ADMIN BYPASS
     if (email === "demgrow@admin.com" && password === "29u848urfr48") {
-      window.location.href = "/dashboard?secret=demgrow_admin";
+      // FORCE-SET COOKIE CLIENT SIDE
+      document.cookie = "bypass_auth=true; path=/; max-age=" + (60 * 60 * 24);
+      window.location.href = "/dashboard";
       return;
     }
 
