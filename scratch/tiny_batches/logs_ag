@@ -1,0 +1,5 @@
+('5ec1e241-75c0-4afa-9075-9ed131178ed7', 'ac2764f0-acc2-4f87-b53c-3b202cf3d89b', '3c6515f4-756a-42ea-a8ae-6751a5dc5fa8', NULL, 'working?', 'SENT', NULL, '19cc8b7cb5a132f9', NULL, '0', '2026-03-07 14:33:34.42005+00'),
+('48f8eae8-61cf-49f7-8639-bc772f7f14fd', '935663c7-216c-450b-92b9-6ade828a2399', '369206e0-3b4c-4b85-8918-1121c008e2df', NULL, 'hey {{firstName}}', 'SENT', NULL, '19cc8c73dc4982b6', NULL, '0', '2026-03-07 14:50:26.417446+00'),
+('1252f4cd-387f-44e7-9b4a-603913184d4b', '935663c7-216c-450b-92b9-6ade828a2399', '1e7ad43b-5c9b-4c30-9df3-e60a36a74075', NULL, 'hey {{firstName}}', 'SENT', NULL, '19cc8c8f898f3acf', NULL, '0', '2026-03-07 14:52:20.078692+00'),
+('739c55b2-6acf-4688-af32-8c1aca3c1158', '504a8f20-af43-47c1-9e36-62834c711cf0', '451c1c6f-099e-4268-bad5-477819c199f8', NULL, 'hey your {{email}}', 'SENT', NULL, '19cc8cafa3f0b387', NULL, '0', '2026-03-07 14:54:31.602173+00'),
+('58a89839-f38e-4e2a-ac83-cb02a8588c6e', '504a8f20-af43-47c1-9e36-62834c711cf0', 'e8572c1d-2437-4ac0-9ff7-1d87fdbaf590', NULL, 'hey your {{email}}', 'SENT', NULL, '19cc8ccd257d9fff', NULL, '0', '2026-03-07 14:56:32.788617+00'),

@@ -1,0 +1,5 @@
+('a4f83308-fba4-480c-a41b-c957808ed968', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', 'a1dd4da9-3496-412a-954d-4238325812b1', 'c8ac189d-a210-40f7-aed5-4a7bb4545f09', 'No Limit Mobile Auto Detail X  DMEGROW ', 'SENT', NULL, '19d122b51f9b0ac0', NULL, '0', '2026-03-21 20:52:02.358881+00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES
+('92b1fb7f-6805-463a-bed9-7c4d2253a7e3', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', 'e74d6b1c-6af3-47a3-b63a-d166fc1b69f9', 'b28c1d77-3c33-4e30-8c8f-e89bf50125ec', 'can I show you something for your shop, Noble Auto Spa | Mobile Car Detailing San Diego?', 'SENT', NULL, '19d122b966f35549', NULL, '0', '2026-03-21 20:52:20.573063+00'),

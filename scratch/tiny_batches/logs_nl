@@ -1,0 +1,5 @@
+('1ec03edc-735d-4d7f-ad1d-a13765dfcaf8', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '80cae357-380b-4e85-adc0-68424837ea4f', 'b28c1d77-3c33-4e30-8c8f-e89bf50125ec', 'PPF Wrap Up X DEMGROW ', 'SENT', NULL, '19cf4ec668b964e7', NULL, '0', '2026-03-16 04:34:20.170201+00'),
+('5346f17a-3d8e-485c-b052-af370a4d1b23', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '784dd9d7-a2eb-42d6-a952-ac13af350f8e', '861a840d-a044-4a9a-9028-2e3f8b93042b', 'P & S Sales of San Francisco X DEMGROW ', 'SENT', NULL, '19cf4f0490ff31cb', NULL, '0', '2026-03-16 04:38:33.916377+00'),
+('83c06102-deac-4491-bb94-8eb9b318d5cf', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '80cae357-380b-4e85-adc0-68424837ea4f', 'b28c1d77-3c33-4e30-8c8f-e89bf50125ec', 'PPF Wrap Up X DEMGROW ', 'SENT', NULL, '19cf4f35e74bf0fb', NULL, '0', '2026-03-16 04:41:56.615278+00'),
+('ce2ae326-bd4e-422d-b104-d6ee03e25af0', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '83d7c4c9-5bd7-460f-911f-0ca86291da93', '4b243b95-5d10-49b9-8ec7-5482b4ee8695', 'most detailing sites lose the customer before they ever call', 'SENT', NULL, '19d110d62fc77550', NULL, '0', '2026-03-21 15:39:44.008927+00')
+ON CONFLICT (id) DO NOTHING;

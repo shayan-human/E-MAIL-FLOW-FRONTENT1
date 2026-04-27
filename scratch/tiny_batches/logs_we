@@ -1,0 +1,5 @@
+('3800f20d-c54b-4bde-b9ee-e5970abf4797', '5947e05f-d285-4de0-87ae-6cc29c4e8cbd', 'a0f2c844-0bb4-4006-8dd9-26b56d8450fb', '38207b1e-b301-4673-937a-12753feef079', 'most detailing sites lose the customer before they ever call', 'SENT', NULL, '19d2aa879fea8fd0', NULL, '0', '2026-03-26 14:59:37.883453+00'),
+('7ab14e88-0c28-4458-8bb2-9a40ed464cd0', '5947e05f-d285-4de0-87ae-6cc29c4e8cbd', 'ba27b8eb-87aa-477f-9401-dd962113d23d', '07927116-b265-44c4-8471-20e6ea66fbfe', 'ceramic coating page for Lukas Mobile Detailing | Ceramic Coatings | Window Tinting', 'SENT', NULL, '19d2aa8dd8f3aa0d', NULL, '0', '2026-03-26 15:00:03.805101+00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES

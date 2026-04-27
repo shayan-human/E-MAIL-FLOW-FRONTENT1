@@ -1,0 +1,2 @@
+I have added it to our procurement list and will distribute the copies once they arrive.', '2026-03-23 14:24:29.374119+00'),
+('0667fb73-3665-4a70-a51c-6a4de24930de', 'ac111555-8a56-4759-aedd-ee45443cb207', '4e7037ca-fc19-4c1c-98bd-e41025172b5b', '19d1b14a3e50359b', '19d1b14a3e50359b', 'Architecture book recommendation for the microservices migration', 'replied', '2026-03-23 14:23:51.019391+00', '<CAACUBofPJqBW0=eZSNdKoq0eesmMhdk3LFmDHRiZvzBD2uNNcg@mail.gmail.com>', 'f', NULL, NULL, NULL, NULL, '2026-03-23 14:30:00.103+00', 'Thank you for the recommendation;

@@ -1,0 +1,5 @@
+('2063727d-1323-45b9-8743-51366140b16c', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', 'e6f55be3-2e1e-422b-b32b-67a922440f96', NULL, 'ESM Motors | XPEL San Francisco X DEMGROW ', 'SENT', NULL, '19cf34fc0b656b3d', NULL, '0', '2026-03-15 21:03:36.207656+00'),
+('1d916448-cfa9-4468-bdf7-903c608a111e', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', 'b9ba86ab-e155-457a-bcad-b11ffc263300', NULL, 'Art Car Detailing Services X DEMGROW ', 'SENT', NULL, '19cf34fdeef41ca6', NULL, '0', '2026-03-15 21:03:44.2155+00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES

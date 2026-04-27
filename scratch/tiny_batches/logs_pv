@@ -1,0 +1,5 @@
+('7606f818-02dc-4b33-91aa-570dad7f7c69', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '38972538-67a7-469a-95f8-69aac1196102', NULL, 'Viliura Mobile Detailing X DEMGROW ', 'SENT', NULL, '19cf42afc107db71', NULL, '0', '2026-03-16 01:03:04.146168+00'),
+('8b2c93aa-f37a-4bf4-9134-271a6c22f287', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '8a815b61-5d64-441e-834a-d6ce6b25cc62', NULL, 'Hero Auto Detailing X DEMGROW ', 'SENT', NULL, '19cf42b386b2346d', NULL, '0', '2026-03-16 01:03:19.372129+00'),
+('d1bc5e7a-4381-481a-86fc-f038d652b83a', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', 'bdc1d08e-a7a6-4d87-b0c3-56496f59cd2c', NULL, 'Golden Bay Detailing - Mobile Detailing, Ceramic Coating, Paint Correction X DEMGROW ', 'SENT', NULL, '19cf42c3a3603881', NULL, '0', '2026-03-16 01:04:25.511116+00')
+ON CONFLICT (id) DO NOTHING;
+

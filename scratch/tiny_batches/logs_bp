@@ -1,0 +1,5 @@
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES
+('9274e740-57d1-45d1-97c9-387f83dc0602', 'fa70cc7c-97f2-4c57-b069-8aeb9a2dd413', 'bea22c71-d353-4ecc-8666-7019b9c7b934', NULL, 'RydrDie Auto Detailing - Mobile Detailing Tallahassee X DEMGROW', 'SENT', NULL, '19cecb9a04143d3c', NULL, '0', '2026-03-14 14:21:54.734921+00'),
+('4a7eab85-b67e-4463-bc90-5b97bf9470ff', 'fa70cc7c-97f2-4c57-b069-8aeb9a2dd413', 'afeae4ce-7284-457e-900b-deee00c42272', NULL, 'Goodwill Car Wash & Donation Center X DEMGROW', 'SENT', NULL, '19cecee611c956a8', NULL, '0', '2026-03-14 15:19:31.614947+00'),
+('338c789d-409f-441a-8f76-40798a485418', '39d742e8-c9a0-4490-aeb9-f8aff4001917', '49cca283-da27-403a-8110-272150ebd4dc', NULL, 'DetailedByPrecision - Ceramic Coating | Paint Protection Film | Paint Correction X DEMGROW', 'SENT', NULL, '19cedbf6b7a91ee3', NULL, '0', '2026-03-14 19:07:51.037909+00'),

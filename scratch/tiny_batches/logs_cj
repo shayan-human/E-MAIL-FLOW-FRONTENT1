@@ -1,0 +1,5 @@
+('2443b94c-ed82-4441-82a2-ac6bed416a06', '39d742e8-c9a0-4490-aeb9-f8aff4001917', '10a7c5f7-a8bd-47f4-867d-6f113b57e197', NULL, '{{firstName}} X DEMGROW', 'FAILED', 'Sender account not found or deleted.', NULL, NULL, '0', '2026-03-15 19:20:25.156092+00'),
+('3a268b7a-9010-406f-a1c8-6a110fc11b2b', '39d742e8-c9a0-4490-aeb9-f8aff4001917', '6c4277bc-c978-48dd-84ad-02a440463500', NULL, '{{firstName}} X DEMGROW', 'FAILED', 'Sender account not found or deleted.', NULL, NULL, '0', '2026-03-15 19:20:25.636983+00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES

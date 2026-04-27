@@ -1,0 +1,5 @@
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES
+('1290597d-b088-422a-9337-c0aa41242039', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', 'd922788c-4922-4809-8b0c-5f9ae9246666', '49bd2f11-463d-488c-b455-b985484b602e', 'quick question about your ceramic coating page, Auto Detail Now', 'SENT', NULL, '19d116daac73ec27', NULL, '0', '2026-03-21 17:24:53.267093+00'),
+('4332402c-2dff-4567-ad4e-27a948471cb2', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '5737309e-d52a-499c-8cd8-e33efba6d371', '9b811455-48ac-40ec-8f30-d855b13c84e7', 'can I show you something for your shop, RaomShine Car Detailing?', 'SENT', NULL, '19d116dac9b75225', NULL, '0', '2026-03-21 17:24:53.71262+00'),
+('5d15ef46-40a1-474a-8784-f43c341d09e3', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', 'c718ba59-8a44-45e9-8031-9c63c542aa50', 'adcd2c76-b2d9-4474-be00-826632835e96', 'Hillbilly Detailing X  DMEGROW ', 'SENT', NULL, '19d116f1e9de3cff', NULL, '0', '2026-03-21 17:26:28.578935+00'),

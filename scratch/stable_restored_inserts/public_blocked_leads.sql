@@ -1,0 +1,30 @@
+-- BATCH START --
+INSERT INTO public.blocked_leads (id, user_id, email, reason, blocked_at) VALUES
+('2ba06786-bd37-4e1e-b15d-b642c9940856', '9c70d838-994a-452a-b6b7-1476f98d893e', 'esautodetailing@esautodetailing.com', 'bounce', '2026-03-16 05:56:35.866376+00'),
+('a03c867d-e777-4614-9d7b-e2f3f489925d', '9c70d838-994a-452a-b6b7-1476f98d893e', 'excelentemobiledetailing@gmail.com', 'bounce', '2026-03-16 05:56:35.866376+00'),
+('9ac89e50-c3b1-4a25-a27e-8bb405a57860', '9c70d838-994a-452a-b6b7-1476f98d893e', 'info@abledetailing.com', 'bounce', '2026-03-16 05:56:35.866376+00'),
+('92a92bed-c271-402f-8358-4f4fd6916981', '9c70d838-994a-452a-b6b7-1476f98d893e', 'hello@flinelinedetail.com', 'bounce', '2026-03-16 05:56:35.866376+00'),
+('f64420ea-c327-49be-ae10-33d0f40cfad3', '9c70d838-994a-452a-b6b7-1476f98d893e', 'eben@eyebytes.com', 'bounce', '2026-03-16 05:56:35.866376+00'),
+('abe76ad5-3bb7-4d24-9f23-e4f78de89208', '9c70d838-994a-452a-b6b7-1476f98d893e', 'nperformancerefinishhh@gmail.com', 'bounce', '2026-03-16 05:56:35.866376+00'),
+('bdf35cbe-5170-4312-8129-2d1c37ea1341', '9c70d838-994a-452a-b6b7-1476f98d893e', 'hi@mystore.com', 'bounce', '2026-03-16 05:56:35.866376+00'),
+('6e37b741-2756-447a-9c54-faab0ae08464', '9c70d838-994a-452a-b6b7-1476f98d893e', 'prodetailjax@gmail.com', 'bounce', '2026-03-16 05:56:35.866376+00'),
+('38a7784f-6be5-435e-8d31-06569673c86b', '9c70d838-994a-452a-b6b7-1476f98d893e', 'info@sparklenshinedetail.biz', 'bounce', '2026-03-16 05:56:35.866376+00'),
+('a77e4644-88d5-465e-8b27-a7317225af4a', '9c70d838-994a-452a-b6b7-1476f98d893e', 'info@website.com', 'Bounce: Delivery Status Notification (Failure)', '2026-03-26 15:21:11.368183+00'),
+('50bf306a-a03e-4db7-beb9-4a4b92d50265', '9c70d838-994a-452a-b6b7-1476f98d893e', 'jack.smith@gmail.com', 'Bounce: Delivery Status Notification (Failure)', '2026-03-26 15:25:44.131925+00'),
+('37da51ad-bef4-4382-bd5b-c03e933c7195', '9c70d838-994a-452a-b6b7-1476f98d893e', 'service@justrightautowichita.com', 'Bounce: Delivery Status Notification (Failure)', '2026-03-26 15:40:47.340657+00'),
+('c95d2bc4-5819-498a-84ab-4f225e480653', '9c70d838-994a-452a-b6b7-1476f98d893e', 'matt@detailsandiego.com', 'Validation: Domain not found or has no mail servers', '2026-03-21 15:25:37.010045+00'),
+('61cf1525-ba0a-4ff8-9407-3e29736aabcf', '9c70d838-994a-452a-b6b7-1476f98d893e', 'ntransformationdetail@gmail.com', 'bounce from campaign b1ead201', '2026-03-21 14:05:04.213532+00'),
+('46f9bd2f-0cf1-4d5c-9d69-6b4ccd1be2c1', '9c70d838-994a-452a-b6b7-1476f98d893e', 'email@example.com', 'bounce from campaign b1ead201', '2026-03-21 15:10:06.973066+00'),
+('99a5a5db-afa7-4296-8560-764ce7c006d0', '9c70d838-994a-452a-b6b7-1476f98d893e', '%77%65%73%74%63%6f%61%73%74%73%64%31@%67%6d%61%69%6c.%63%6f%6d', 'bounce from campaign b1ead201', '2026-03-21 14:53:51.64612+00'),
+('650f4457-12f4-468a-93e9-e869337eadba', '9c70d838-994a-452a-b6b7-1476f98d893e', 'info@ndiscovered.com', 'Bounce: Delivery Status Notification (Failure)', '2026-03-21 15:35:24.088724+00'),
+('205e4065-b261-45c1-a0b5-fa9f8408e0b9', '9c70d838-994a-452a-b6b7-1476f98d893e', 'customersupport@down2shine.com', 'Bounce: Delivery Status Notification (Failure)', '2026-03-21 16:05:24.765489+00'),
+('322978ed-97a5-45c4-bb9a-000d6c199915', '9c70d838-994a-452a-b6b7-1476f98d893e', 'concierge@ecoautosolutions.com', 'bounce from campaign b1ead201', '2026-03-21 14:30:24.569762+00'),
+('de446285-6bec-49dc-9838-296c4a97560f', '9c70d838-994a-452a-b6b7-1476f98d893e', 'info@twdetailskc.com', 'Validation: DNS check failed: queryMx ENODATA twdetailskc.com', '2026-03-26 15:15:03.393361+00'),
+('dcfd14fc-98e2-476a-9c73-9426a1a6ba72', '9c70d838-994a-452a-b6b7-1476f98d893e', 'info@dennisautodetails.com', 'Validation: Domain not found or has no mail servers', '2026-03-21 15:08:16.727704+00'),
+('a8a449d8-146c-436d-9c0d-83770135a78c', '9c70d838-994a-452a-b6b7-1476f98d893e', 'info@theautosalon.com', 'Validation: DNS check failed: queryMx ENODATA theautosalon.com', '2026-03-26 15:36:15.253465+00'),
+('acd2f7f8-f78c-4a53-b62c-8d0f40517670', '9c70d838-994a-452a-b6b7-1476f98d893e', 'u002f@quantumclean.md', 'Validation: DNS check failed: queryMx ENOTFOUND quantumclean.md', '2026-03-26 15:37:28.422816+00'),
+('a6ee14a2-8a79-4bdb-8eaa-b1d56186fafd', '9c70d838-994a-452a-b6b7-1476f98d893e', 'info@tomsdetailshop.com', 'Validation: DNS check failed: queryMx ENODATA tomsdetailshop.com', '2026-03-26 15:40:03.111504+00'),
+('02363a17-fc83-432d-9e81-7d2ddced5836', '9c70d838-994a-452a-b6b7-1476f98d893e', 'info@theamenitywash.com', 'Bounce: Delivery Status Notification (Failure)', '2026-03-27 16:50:35.682551+00')
+ON CONFLICT (id) DO NOTHING;
+-- BATCH END --
+

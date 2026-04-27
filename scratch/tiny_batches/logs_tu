@@ -1,0 +1,5 @@
+('a0985f66-1347-47da-965d-ce7ac5ec680f', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', 'fdd3a537-a8ef-4123-ac6e-38b4dbdd9d32', '07927116-b265-44c4-8471-20e6ea66fbfe', 'your work is good, Washman Car Wash Mission Bay San Diego – the site should say that', 'SENT', NULL, '19d11f0843b026fc', NULL, '0', '2026-03-21 19:47:49.345496+00'),
+('1c93770c-7749-41c5-82d0-b6bbfa211ef3', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '3402bd24-f788-4de7-92d7-a2c688604c67', '9940988f-ce26-4533-987b-ab41b77be81a', '', 'BLOCKED', 'Validation failed: Domain not found or has no mail servers (UNAVAILABLE)', NULL, NULL, '0', '2026-03-21 19:48:36.426126+00'),
+('33676faf-c06a-4a57-8f9d-d8c091e699f0', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '9d4c5031-5a77-44e4-8525-acb11567a806', 'b28c1d77-3c33-4e30-8c8f-e89bf50125ec', 'Car Detailing Zone Kolkata X DEMGROW ', 'SENT', NULL, '19d11f141278d06d', NULL, '0', '2026-03-21 19:48:37.104731+00')
+ON CONFLICT (id) DO NOTHING;
+

@@ -1,0 +1,5 @@
+('04331155-5649-473d-9ec2-b076aa32ebcb', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', 'a52f1b98-d6ed-49e7-a163-11e7c6450ab3', 'b28c1d77-3c33-4e30-8c8f-e89bf50125ec', 'Noe Valley Auto Works X DEMGROW ', 'SENT', NULL, '19cf40d6c3ea6d0a', NULL, '0', '2026-03-16 00:30:46.853222+00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES
+('32d56907-5393-4166-9714-7cd214894717', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '6842434c-0794-4c6d-bb12-453aa8042810', '38207b1e-b301-4673-937a-12753feef079', 'Bio Car Care: Mobile Car Wash & Detailing X DEMGROW ', 'SENT', NULL, '19cf40de29a34ccc', NULL, '0', '2026-03-16 00:31:16.821811+00'),

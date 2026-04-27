@@ -1,0 +1,5 @@
+('a134152c-237a-45f6-a413-06a533a1d658', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '6b739728-ea01-4bcc-84f4-17dd027a4543', '861a840d-a044-4a9a-9028-2e3f8b93042b', 'Mike''s Craftline Detailing X DEMGROW ', 'SENT', NULL, '19cf342287ac7543', NULL, '0', '2026-03-15 20:48:45.401128+00'),
+('a7fd30c2-54ae-4085-a781-babecbd0965c', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', 'ebf71dd0-fba2-443f-8e80-988ae4c6cd44', 'b28c1d77-3c33-4e30-8c8f-e89bf50125ec', 'DetailedByPrecision - Ceramic Coating | Paint Protection Film | Paint Correction X DEMGROW ', 'SENT', NULL, '19cf342d2a15c2d7', NULL, '0', '2026-03-15 20:49:29.19026+00'),
+('491e174a-3574-4f51-a552-fb244f649ad5', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '66402cfb-47b0-4a5f-b7e0-45b71191e30e', 'b28c1d77-3c33-4e30-8c8f-e89bf50125ec', 'TLC Auto Detail X DEMGROW ', 'SENT', NULL, '19cf342e91aec2fc', NULL, '0', '2026-03-15 20:49:34.990211+00')
+ON CONFLICT (id) DO NOTHING;
+

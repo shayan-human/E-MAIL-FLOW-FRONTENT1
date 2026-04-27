@@ -1,0 +1,5 @@
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES
+('db087a4d-2e2c-4db3-b4d4-922ec17920c9', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '1c672190-2924-495e-be74-d1c74317a69a', '861a840d-a044-4a9a-9028-2e3f8b93042b', 'Cole''s Auto Detailing X DEMGROW ', 'SENT', NULL, '19cf3997af1f983a', NULL, '0', '2026-03-15 22:24:08.275545+00'),
+('e10a7811-850d-4a40-a41c-fbfea8f75aed', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '1241b782-d4a9-45da-9b91-7cd70e7b2e60', '861a840d-a044-4a9a-9028-2e3f8b93042b', 'Viliura Mobile Detailing X DEMGROW ', 'SENT', NULL, '19cf39a1f48ccdb2', NULL, '0', '2026-03-15 22:24:49.974289+00'),

@@ -1,0 +1,7 @@
+-- BATCH START --
+INSERT INTO system.deployments (id, provider, provider_deployment_id, status, url, metadata, created_at, updated_at) VALUES
+('6b4dc3a5-267b-47cf-ba55-17fc7a781277', 'vercel', 'dpl_4kX6ooZUwzeywD3oUDwjTFGjEnc4', 'ERROR', 'https://4njfm5n4.insforge.site', '{"error": {"errorCode": "NOW_SANDBOX_WORKER_ROOTDIR_NOT_EXIST", "errorMessage": "The specified Root Directory \\"campaign-backend\\" does not exist. Please update your Project Settings."}, "target": "production", "fileCount": 29, "projectId": "prj_oVkZKeJKa7wTSp8jcwg4pLRJZmtF", "startedAt": "2026-03-18T14:00:45.126Z", "envVarKeys": [], "vercelName": "deployment", "lastWebhookAt": "2026-03-18T14:00:59.741Z", "webhookEventId": "at3sPvV1yqb8_117fa2yE", "webhookEventType": "deployment.error"}', '2026-03-18 14:00:30.810451+00', '2026-03-18 14:00:59.74141+00'),
+('023697de-e03e-460c-8f2a-c76b8f5c26f3', 'vercel', 'dpl_7QtKzFEDDudCBd1fxjV3V9jCrGjH', 'ERROR', 'https://4njfm5n4.insforge.site', '{"error": {"errorCode": "NOW_SANDBOX_WORKER_ROOTDIR_NOT_EXIST", "errorMessage": "The specified Root Directory \\"campaign-backend\\" does not exist. Please update your Project Settings."}, "target": "production", "fileCount": 29, "projectId": "prj_oVkZKeJKa7wTSp8jcwg4pLRJZmtF", "startedAt": "2026-03-18T18:39:11.606Z", "envVarKeys": [], "vercelName": "deployment", "lastWebhookAt": "2026-03-18T18:39:27.219Z", "webhookEventId": "q0Wds6nhsngu559L0_q4O", "webhookEventType": "deployment.error"}', '2026-03-18 18:39:00.262317+00', '2026-03-18 18:39:27.219387+00')
+ON CONFLICT (id) DO NOTHING;
+-- BATCH END --
+

@@ -1,0 +1,5 @@
+('d50da600-76c0-4ef5-96d1-825dfcfc9879', 'f1234af3-f350-4787-ba65-f7dfed956d75', 'ded0f17d-7716-4d41-8d83-84914d46421c', NULL, 'nahhh possible demgrow', 'SENT', NULL, '19cde4ade60bdb51', NULL, '0', '2026-03-11 19:06:15.077231+00'),
+('d81161fc-1bf3-4b7e-976c-727d9298521b', 'f1234af3-f350-4787-ba65-f7dfed956d75', 'ded0f17d-7716-4d41-8d83-84914d46421c', NULL, 'nahhh possible demgrow', 'SENT', NULL, '19cde4ae15540a1a', NULL, '0', '2026-03-11 19:06:15.3348+00'),
+('ea92bf5c-0790-4e23-97b8-f5a55ffb00aa', 'fa70cc7c-97f2-4c57-b069-8aeb9a2dd413', '7cfb014d-4990-4d31-b809-70911295b53b', NULL, 'Ultimate Auto Detailing X DEMGROW', 'SENT', NULL, '19cecbf3566b90ac', NULL, '0', '2026-03-14 14:27:59.942806+00'),
+('4c12bd8a-0c51-401b-84ab-889e144245f8', '39d742e8-c9a0-4490-aeb9-f8aff4001917', 'dfe37843-c65e-42ee-863a-39e957d11ab9', NULL, 'Autobody Detail Specialist - ADS X DEMGROW', 'SENT', NULL, '19cedc437ebf9cdd', NULL, '0', '2026-03-14 19:13:05.250786+00')
+ON CONFLICT (id) DO NOTHING;

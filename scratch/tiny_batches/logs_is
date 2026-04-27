@@ -1,0 +1,5 @@
+('c92accd1-9f9b-4a63-a85d-547d26e74621', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '95d0acac-778e-41b3-af6f-3dce39345349', '38207b1e-b301-4673-937a-12753feef079', 'Art Car Detailing Services X DEMGROW ', 'SENT', NULL, '19cf3cbdefe4ebd0', NULL, '0', '2026-03-15 23:19:10.6252+00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES
+('1a4d364b-0c51-4925-91ae-836052da75f7', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '5800587c-2eee-4439-b956-d37554ba617c', '9940988f-ce26-4533-987b-ab41b77be81a', 'Blue Leaf Detailing LLC – made something for your shop', 'SENT', NULL, '19d10df05e1b58ae', NULL, '0', '2026-03-21 14:49:05.331877+00'),

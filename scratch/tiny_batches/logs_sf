@@ -1,0 +1,5 @@
+('f100394a-a89a-4e85-94a6-29de1344e77f', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '815f3d7f-ed58-4a88-ade8-e101092739f6', '3837ef9c-16ea-4a69-8d89-613cd1b7ef8c', '3RE Auto Detailing – made something for your shop', 'SENT', NULL, '19d1194a69f2a661', NULL, '0', '2026-03-21 18:07:28.639551+00'),
+('68d8ddc0-1a4c-4b3b-b0cc-e8be26442449', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '2389a9e0-901f-4616-8ea3-2ec9f865daa4', '3837ef9c-16ea-4a69-8d89-613cd1b7ef8c', 'most detailing sites lose the customer before they ever call', 'SENT', NULL, '19d1195f4d19ca32', NULL, '0', '2026-03-21 18:08:53.967208+00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES

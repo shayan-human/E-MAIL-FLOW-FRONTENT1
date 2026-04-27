@@ -1,0 +1,5 @@
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES
+('df1c4b17-ccef-4743-a7dd-2ae39dcfb852', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '1bda5bca-b519-4648-928c-74f2c7a1dff8', '49bd2f11-463d-488c-b455-b985484b602e', 'how some detailers nearby are picking up more bookings', 'SENT', NULL, '19d11c04f1265450', NULL, '0', '2026-03-21 18:55:09.449657+00'),
+('963d57cb-1751-4d4a-bf04-5cf8a76155a1', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', 'bcbe4871-9dac-4aad-b7ed-f71a91ac8a62', '3837ef9c-16ea-4a69-8d89-613cd1b7ef8c', 'quick question about your ceramic coating page, Down2Shine Car Detailing', 'SENT', NULL, '19d11c193db6cf2b', NULL, '0', '2026-03-21 18:56:32.372265+00'),

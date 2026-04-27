@@ -1,0 +1,5 @@
+('99dcc79a-555c-43ba-ba98-4925698f7d57', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '7703bbd9-cf6d-4918-9ed4-4327a1b0cf41', '864c6db5-fa55-46a6-bfe3-6c65e87d5a51', 'one page change and a detailer went from calls only to online bookings', 'SENT', NULL, '19d112862eb1bde2', NULL, '0', '2026-03-21 16:09:13.281797+00'),
+('3b7de2cf-4ec6-453f-89d9-864bf2478480', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', 'b0eb503b-ec97-46fc-8300-da676238441b', '861a840d-a044-4a9a-9028-2e3f8b93042b', 'Autobody Detail Specialist - ADS X DEMGROW ', 'SENT', NULL, '19cf3b12cbff4d81', NULL, '0', '2026-03-15 22:50:00.822611+00'),
+('4740a01e-6c47-4c28-b456-4966ca5d21da', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '2b7754de-fdf2-4092-a8e6-8015302ed4ef', 'b28c1d77-3c33-4e30-8c8f-e89bf50125ec', 'PPF Wrap Up X DEMGROW ', 'SENT', NULL, '19cf3b1d3a67a24c', NULL, '0', '2026-03-15 22:50:43.395734+00')
+ON CONFLICT (id) DO NOTHING;
+

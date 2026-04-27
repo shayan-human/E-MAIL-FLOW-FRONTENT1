@@ -1,0 +1,5 @@
+('3431c369-9378-4e5c-ab8e-ca913eedd9aa', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '3940c560-6a8d-4146-b79a-26e0d80c1107', '07927116-b265-44c4-8471-20e6ea66fbfe', 'ceramic coating page for Uptown Car Wash', 'SENT', NULL, '19d1108ced6cd35e', NULL, '0', '2026-03-21 15:34:43.54504+00'),
+('9ccbce64-0cec-40f6-96a6-2e018ac994dc', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '95d0acac-778e-41b3-af6f-3dce39345349', '38207b1e-b301-4673-937a-12753feef079', 'Art Car Detailing Services X DEMGROW ', 'SENT', NULL, '19cf3e5f6618e1f0', NULL, '0', '2026-03-15 23:47:40.865135+00'),
+('aa54aa69-0a39-4fb9-9b55-d669d1d4d49c', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '5d5fec4f-ec50-4db3-8174-4a550bb7ac1e', '864c6db5-fa55-46a6-bfe3-6c65e87d5a51', 'your work is good, Top Dog Detail – the site should say that', 'SENT', NULL, '19d1113b63ad9131', NULL, '0', '2026-03-21 15:46:38.255214+00'),
+('6d4e634f-defa-4876-acd2-3cf50fdb5dd2', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '3e36f7a0-0e1d-4580-bff7-dec10b7cc9ff', '861a840d-a044-4a9a-9028-2e3f8b93042b', 'Cole''s Auto Detailing X DEMGROW ', 'SENT', NULL, '19cf3e61390f299b', NULL, '0', '2026-03-15 23:47:47.772803+00')
+ON CONFLICT (id) DO NOTHING;

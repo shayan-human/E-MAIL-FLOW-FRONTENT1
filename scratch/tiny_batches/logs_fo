@@ -1,0 +1,5 @@
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES
+('91c19bfe-87bb-443d-81c7-759efcb2ba37', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '592ba7c0-8ec9-4c27-9fd0-f4559062596e', 'c37cf571-3f60-49e9-acf9-6627a1b69627', 'Splash Mobile Detailing X DEMGROW ', 'SENT', NULL, '19d11372524dc235', NULL, '0', '2026-03-21 16:25:20.215333+00'),
+('fbe002cd-04c4-4b4d-afa1-0315c41a0bd2', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', 'acb778f9-ba34-44b4-ae00-53677ff9a61a', '861a840d-a044-4a9a-9028-2e3f8b93042b', 'At2Detailing X DEMGROW ', 'SENT', NULL, '19cf36cd944e9e71', NULL, '0', '2026-03-15 21:35:22.800313+00'),
+('c756a68f-284c-4702-a5ce-00312505b069', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '8d021251-f2c1-40f2-8135-223964fda353', '3837ef9c-16ea-4a69-8d89-613cd1b7ef8c', 'your work is good, Official California Detailing – the site should say that', 'SENT', NULL, '19d113c84eff1e86', NULL, '0', '2026-03-21 16:31:12.589588+00'),

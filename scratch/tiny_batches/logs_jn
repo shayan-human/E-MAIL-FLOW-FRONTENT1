@@ -1,0 +1,5 @@
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES
+('51802155-f1b0-4bb2-b7b7-077b175e4626', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '9c9afe5a-4835-4a93-a46f-2382e12e0aa0', 'b28c1d77-3c33-4e30-8c8f-e89bf50125ec', 'Cole''s Auto Detailing X DEMGROW ', 'SENT', NULL, '19cf3e61d55aff18', NULL, '0', '2026-03-15 23:47:50.101598+00'),
+('e38cabc3-6f71-47f1-892b-1f568ecd844c', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', 'd68b5717-58ba-48fe-99c8-eb16952d0bb8', 'b28c1d77-3c33-4e30-8c8f-e89bf50125ec', 'Paul''s Mobile Detailing X DEMGROW ', 'SENT', NULL, '19cf3e6417f95b76', NULL, '0', '2026-03-15 23:47:59.393786+00'),
+('1145fefb-2c13-4133-9831-18ac7b93a508', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', 'dbabb9a1-5753-4064-8b67-e24586406bb4', '861a840d-a044-4a9a-9028-2e3f8b93042b', 'ESM Motors | XPEL San Francisco X DEMGROW ', 'SENT', NULL, '19cf3e65024c52df', NULL, '0', '2026-03-15 23:48:03.558386+00'),

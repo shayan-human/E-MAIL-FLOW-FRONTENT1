@@ -1,0 +1,5 @@
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES
+('4b8f1ced-949c-47e0-b7c5-5f83d36aaffe', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', 'fdd3a537-a8ef-4123-ac6e-38b4dbdd9d32', '07927116-b265-44c4-8471-20e6ea66fbfe', 'your work is good, Washman Car Wash Mission Bay San Diego – the site should say that', 'SENT', NULL, '19d11186abc2336f', NULL, '0', '2026-03-21 15:51:46.583695+00'),
+('77b2d246-db3c-46ec-a9d2-d66dec778f46', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '5d5fec4f-ec50-4db3-8174-4a550bb7ac1e', '864c6db5-fa55-46a6-bfe3-6c65e87d5a51', 'your work is good, Top Dog Detail – the site should say that', 'SENT', NULL, '19d1123a0542e49f', NULL, '0', '2026-03-21 16:04:01.970461+00'),
+('b83d3a01-df5e-4a01-9545-1c2f8bb60848', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '5cbb82cc-2182-4069-8009-53319e7a8866', '9b811455-48ac-40ec-8f30-d855b13c84e7', 'most detailing sites lose the customer before they ever call', 'SENT', NULL, '19d112ed3aa5e16b', NULL, '0', '2026-03-21 16:16:14.828414+00'),

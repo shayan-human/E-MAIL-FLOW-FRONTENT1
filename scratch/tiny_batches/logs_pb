@@ -1,0 +1,5 @@
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES
+('7840fb79-09b7-4159-b380-68ee1ad77d09', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', 'e14512b2-1378-460d-83e0-caca32eb0577', NULL, 'Lombard Auto Body X DEMGROW ', 'SENT', NULL, '19cf3d63248467fa', NULL, '0', '2026-03-15 23:30:27.306488+00'),
+('f4e0acd8-de8a-4cda-a068-0e78aab0421d', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '049b0550-0be0-46a4-9747-cb389c284292', NULL, 'DetailedByPrecision - Ceramic Coating | Paint Protection Film | Paint Correction X DEMGROW ', 'SENT', NULL, '19cf3a584f7357d8', NULL, '0', '2026-03-15 22:37:16.906239+00'),

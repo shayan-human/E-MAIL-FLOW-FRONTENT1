@@ -1,0 +1,5 @@
+('f8b6bfd3-07b7-44b8-9c9d-eb70f254f724', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '0553355d-d0f4-4d65-b1da-88682035cbf6', '864eb27b-f59a-434a-b9a5-3c35183d2f5d', 'ceramic coating page for Wax on Wax off Inc.', 'SENT', NULL, '19d1144eee7755da', NULL, '0', '2026-03-21 16:40:24.222494+00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES
+('30cfe125-d6b9-4242-8d2a-a8d37afd30f7', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', 'cdeb5c3a-a0cf-4361-9b15-d8c7aa803c5b', '864eb27b-f59a-434a-b9a5-3c35183d2f5d', 'one page change and a detailer went from calls only to online bookings', 'SENT', NULL, '19d114543ac2b8ef', NULL, '0', '2026-03-21 16:40:45.851665+00'),

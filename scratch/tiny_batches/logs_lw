@@ -1,0 +1,5 @@
+('29bef931-af2a-4f5e-a3f0-8a412a86e566', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '9c9afe5a-4835-4a93-a46f-2382e12e0aa0', 'b28c1d77-3c33-4e30-8c8f-e89bf50125ec', 'Cole''s Auto Detailing X DEMGROW ', 'SENT', NULL, '19cf46612c845998', NULL, '0', '2026-03-16 02:07:36.363334+00'),
+('4f1cb463-0629-43c7-83d2-0bb0ff6b2ffc', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '6842434c-0794-4c6d-bb12-453aa8042810', '38207b1e-b301-4673-937a-12753feef079', 'Bio Car Care: Mobile Car Wash & Detailing X DEMGROW ', 'SENT', NULL, '19cf46625dadadf0', NULL, '0', '2026-03-16 02:07:41.31026+00'),
+('3a090d59-a000-48c0-a01f-1548bcd23539', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '03fbafe7-aa03-423a-bb60-a361f28dfea4', 'b28c1d77-3c33-4e30-8c8f-e89bf50125ec', 'your work is good, MK San Diego Detailing – the site should say that', 'SENT', NULL, '19d10e3681c1edc6', NULL, '0', '2026-03-21 14:53:52.537863+00')
+ON CONFLICT (id) DO NOTHING;
+

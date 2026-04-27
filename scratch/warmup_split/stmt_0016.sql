@@ -1,0 +1,3 @@
+I will review the current distribution immediately and propose a reallocation plan by end of day. We certainly want to ensure the workload is manageable before Thursday''s client presentation.', '2026-03-23 09:10:38.946992+00'),
+('60a9591a-24a6-4f05-a0bc-cdc4adae5d1f', '4e7037ca-fc19-4c1c-98bd-e41025172b5b', 'ac111555-8a56-4759-aedd-ee45443cb207', '19d19fbbbfe763e9', '19d19fbbbfe763e9', 'Cake in the kitchen for Sarah''s birthday!', 'replied', '2026-03-23 09:17:01.812421+00', '<CAKc7ywXfHUVHc6uANbc6Ya7LB44HmhJe5JPkW1HT+2_5Eyc9Jw@mail.gmail.com>', 'f', NULL, NULL, NULL, NULL, '2026-03-23 09:30:00.203+00', 'Sweet, I''ll head over in a few. Thanks for organizing!', '2026-03-23 09:17:01.812421+00')
+ON CONFLICT (id) DO NOTHING;

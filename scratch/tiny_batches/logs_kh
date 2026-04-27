@@ -1,0 +1,5 @@
+('4be7665e-a850-4ca1-a4f8-a03d4715b539', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', '82c70e23-6e5d-4af5-8021-881e2fac4f33', '861a840d-a044-4a9a-9028-2e3f8b93042b', 'Tower Car Wash X DEMGROW ', 'SENT', NULL, '19cf41aeff6d0c91', NULL, '0', '2026-03-16 00:45:31.973516+00'),
+('9b2e5283-cdde-470b-8051-f49337313778', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', 'b0eb503b-ec97-46fc-8300-da676238441b', '861a840d-a044-4a9a-9028-2e3f8b93042b', 'Autobody Detail Specialist - ADS X DEMGROW ', 'SENT', NULL, '19cf41b22627e7f5', NULL, '0', '2026-03-16 00:45:45.091196+00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES

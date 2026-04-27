@@ -1,0 +1,5 @@
+('5b5414d7-6387-41c2-ad50-43ad05cd40a8', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', 'dec0ee40-a219-4bc4-81f5-5f93c9fdbec7', 'b28c1d77-3c33-4e30-8c8f-e89bf50125ec', '{{firstName}} X DEMGROW ', 'FAILED', 'Email Validation: Domain not found or has no mail servers (UNAVAILABLE)', NULL, NULL, '0', '2026-03-15 21:59:05.71676+00'),
+('b5615f10-1eeb-452c-ac90-7c9c52373f3a', '4f0c52bf-35a8-42ff-86f6-045626d0cb73', 'e1c341ed-2d54-4e5c-bca0-f550bbfd26be', '38207b1e-b301-4673-937a-12753feef079', 'Mike''s Craftline Detailing X DEMGROW ', 'SENT', NULL, '19cf38291bf6faab', NULL, '0', '2026-03-15 21:59:06.359805+00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES

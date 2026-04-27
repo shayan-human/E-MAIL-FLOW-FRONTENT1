@@ -1,0 +1,5 @@
+
+INSERT INTO public.email_logs (id, campaign_id, lead_id, sender_account_id, subject, status, error_message, gmail_message_id, gmail_thread_id, retry_count, sent_at) VALUES
+('af9af883-c0fc-41f3-a198-56eac98a0141', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '7ea42882-12e4-4bc3-b7b1-513892052e5e', 'c8ac189d-a210-40f7-aed5-4a7bb4545f09', 'ceramic coating page for Smith Bros Mobile Detailing, Ceramic, Tint, & PPF', 'SENT', NULL, '19d127dc870a324d', NULL, '0', '2026-03-21 22:22:07.095167+00'),
+('0eee46dc-e6a3-4d45-ae7e-b8a629a9c322', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', 'e74d6b1c-6af3-47a3-b63a-d166fc1b69f9', 'b28c1d77-3c33-4e30-8c8f-e89bf50125ec', 'can I show you something for your shop, Noble Auto Spa | Mobile Car Detailing San Diego?', 'SENT', NULL, '19d1281078ce4dfb', NULL, '0', '2026-03-21 22:25:39.286844+00'),
+('d56e4c64-559f-4576-9ed3-344c2dffa8c7', 'b1ead201-ffaa-4ba3-886a-033f3a9c1dbe', '7ea42882-12e4-4bc3-b7b1-513892052e5e', 'c8ac189d-a210-40f7-aed5-4a7bb4545f09', 'ceramic coating page for Smith Bros Mobile Detailing, Ceramic, Tint, & PPF', 'SENT', NULL, '19d12814be627fa0', NULL, '0', '2026-03-21 22:25:56.887501+00'),
