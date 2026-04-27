@@ -22,11 +22,13 @@ export async function auth() {
         }
     );
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user } } = await supabase.auth.getUser();
     
+    // Also get session for completeness if needed by other parts of the app
+    const { data: { session } } = await supabase.auth.getSession();
 
     return {
         session,
-        user: session?.user ?? null,
+        user: user ?? null,
     };
 }

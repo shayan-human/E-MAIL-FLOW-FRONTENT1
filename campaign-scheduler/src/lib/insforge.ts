@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -7,16 +7,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
     console.error('Supabase URL or Anon Key is missing in environment variables');
 }
 
-// We keep the export name 'insforge' to avoid breaking 100+ files, 
-// but it is now a pure Supabase client.
-export const insforge = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-        flowType: 'pkce',
-    }
-});
+// Use createBrowserClient so that it syncs session with cookies for middleware
+export const insforge = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
 // Alias for clarity in new files
 export const supabase = insforge;

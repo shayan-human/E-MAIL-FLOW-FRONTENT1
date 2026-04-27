@@ -63,18 +63,18 @@ export async function middleware(request: NextRequest) {
 
     const isAuthPath = pathname.startsWith('/auth/');
 
-    // Get session once
-    const { data: { session } } = await supabase.auth.getSession();
+    // Get user instead of session for more secure validation
+    const { data: { user } } = await supabase.auth.getUser();
 
     // 1. If trying to access protected route without session -> Sign In
-    if (!session && !isPublicRoute && !isAuthPath) {
+    if (!user && !isPublicRoute && !isAuthPath) {
         const signInUrl = new URL('/auth/signin', request.url);
         signInUrl.searchParams.set('reason', 'session_expired');
         return NextResponse.redirect(signInUrl);
     }
 
     // 2. If already logged in and hitting Sign In/Sign Up/Landing -> Dashboard
-    if (session && (pathname === '/' || isAuthPath)) {
+    if (user && (pathname === '/' || isAuthPath)) {
         return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
