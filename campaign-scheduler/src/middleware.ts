@@ -81,16 +81,15 @@ export async function middleware(request: NextRequest) {
     // Get session once
     const { data: { session } } = await supabase.auth.getSession();
 
-    // 1. If trying to access protected route without session -> Sign In
-    if (!session && !isPublicRoute && !isAuthPath) {
-        const signInUrl = new URL('/auth/signin', request.url);
-        signInUrl.searchParams.set('reason', 'session_expired');
-        return NextResponse.redirect(signInUrl);
+    // 1. If has bypass or session, and hitting Sign In/Sign Up/Landing -> Dashboard
+    if ((session || hasBypass) && (pathname === '/' || isAuthPath)) {
+        return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
-    // 2. If already logged in and hitting Sign In/Sign Up/Landing -> Dashboard
-    if (session && isPublicRoute) {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+    // 2. If trying to access protected route without session or bypass -> Sign In
+    if (!session && !hasBypass && !isPublicRoute && !isAuthPath) {
+        const signInUrl = new URL('/auth/signin', request.url);
+        return NextResponse.redirect(signInUrl);
     }
 
     return response;
