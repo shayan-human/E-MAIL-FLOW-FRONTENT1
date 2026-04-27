@@ -9,6 +9,17 @@ if (!supabaseUrl) {
 
 export async function getSupabaseClient() {
     const client = createClient(supabaseUrl!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '');
+    
+    (client as any).getHttpClient = () => ({
+        baseUrl: supabaseUrl,
+        get: async () => ({ data: {} })
+    });
+    
+    (client as any).getConfig = () => ({
+        baseUrl: supabaseUrl,
+        client
+    });
+
     return client;
 }
 
@@ -17,6 +28,17 @@ export async function getSupabaseAdminClient() {
         throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured");
     }
     const client = createClient(supabaseUrl!, serviceRoleKey);
+
+    (client as any).getHttpClient = () => ({
+        baseUrl: supabaseUrl,
+        get: async () => ({ data: {} })
+    });
+    
+    (client as any).getConfig = () => ({
+        baseUrl: supabaseUrl,
+        client
+    });
+
     return client;
 }
 
@@ -25,4 +47,14 @@ export const getInsforgeClient = getSupabaseClient;
 export const getInsforgeAdminClient = getSupabaseAdminClient;
 
 const adminClient = (serviceRoleKey) ? createClient(supabaseUrl!, serviceRoleKey) : null;
+if (adminClient) {
+    (adminClient as any).getHttpClient = () => ({
+        baseUrl: supabaseUrl,
+        get: async () => ({ data: {} })
+    });
+    (adminClient as any).getConfig = () => ({
+        baseUrl: supabaseUrl,
+        client: adminClient
+    });
+}
 export const supabaseAdmin = adminClient;

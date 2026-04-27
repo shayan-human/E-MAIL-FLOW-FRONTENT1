@@ -14,5 +14,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     }
 });
 
-// Alias for easier transition (keeping 'insforge' name for now to avoid breaking imports)
+// Shims for compatibility with @insforge/nextjs provider
+(supabase as any).getHttpClient = () => ({
+    baseUrl: supabaseUrl,
+    get: async (path: string) => ({ data: {} })
+});
+
+(supabase as any).getConfig = () => ({
+    baseUrl: supabaseUrl,
+    anonKey: supabaseAnonKey,
+    client: supabase
+});
+
+// Alias for easier transition
 export const insforge = supabase;
