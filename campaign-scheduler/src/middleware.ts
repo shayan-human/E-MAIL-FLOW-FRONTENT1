@@ -81,16 +81,14 @@ export async function middleware(request: NextRequest) {
     // Get session once
     const { data: { session } } = await supabase.auth.getSession();
 
-    // 1. If has bypass or session, and hitting Sign In/Sign Up/Landing -> Dashboard
-    if ((session || hasBypass) && (pathname === '/' || isAuthPath)) {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
-
-    // 2. If trying to access protected route without session or bypass -> Sign In
+    // 1. If trying to access protected route without session or bypass -> Sign In
     if (!session && !hasBypass && !isPublicRoute && !isAuthPath) {
         const signInUrl = new URL('/auth/signin', request.url);
         return NextResponse.redirect(signInUrl);
     }
+
+    // Otherwise, just let it through
+    return response;
 
     return response;
 }
