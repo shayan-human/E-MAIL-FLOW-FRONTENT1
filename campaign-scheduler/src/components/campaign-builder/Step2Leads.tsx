@@ -120,13 +120,6 @@ export function Step2Leads({ onNext, onBack }: Step2Props) {
                             return;
                         }
                         
-                        // Check for duplicate (from past campaigns or blocked)
-                        if (existingEmails.has(e) || blockedEmails.has(e)) {
-                            duplicate++;
-                            csvEmails.add(e);
-                            return;
-                        }
-                        
                         // Check for duplicate within current CSV
                         if (csvEmails.has(e)) {
                             duplicate++;
@@ -198,12 +191,6 @@ export function Step2Leads({ onNext, onBack }: Step2Props) {
                 const isValidFormat = e && emailRegex.test(e);
                 
                 if (isValidFormat) {
-                    // Check for duplicate (from past campaigns or blocked)
-                    if (existingEmails.has(e) || blockedEmails.has(e)) {
-                        skippedDuplicateCount++;
-                        return;
-                    }
-                    
                     // Check for duplicate within current CSV
                     if (processedCsvEmails.has(e)) {
                         skippedDuplicateCount++;
@@ -236,7 +223,7 @@ export function Step2Leads({ onNext, onBack }: Step2Props) {
             complete: () => {
                 setIsParsing(false);
                 if (skippedDuplicateCount > 0) {
-                    toast.info(`Skipped ${skippedDuplicateCount} duplicate emails (from past campaigns or blocklist)`);
+                    toast.info(`Skipped ${skippedDuplicateCount} duplicate emails (repeated in CSV)`);
                 }
                 if (skippedPersonalCount > 0) {
                     toast.info(`Skipped ${skippedPersonalCount} personal emails (Business Only enabled)`);
@@ -333,7 +320,7 @@ export function Step2Leads({ onNext, onBack }: Step2Props) {
                                     </div>
                                     {stats.duplicate > 0 && (
                                         <p className="text-xs text-muted-foreground text-center">
-                                            Duplicates: from past campaigns or previously bounced emails
+                                            Duplicates: repeated emails in this file
                                         </p>
                                     )}
                                 </>
