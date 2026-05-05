@@ -37,6 +37,7 @@ interface Thread {
     lastMessageAt: string;
     lastMessagePreview: string;
     isRead: boolean;
+    isBounced?: boolean;
 }
 
 interface Account {
@@ -136,6 +137,12 @@ function InboxContent() {
     const [isSending, setIsSending] = useState(false);
     const [syncing, setSyncing] = useState(false);
     const [isInfoOpen, setIsInfoOpen] = useState(false);
+
+    // Filter states
+    const [statusFilter, setStatusFilter] = useState<'ALL' | 'AWAITING' | 'REPLIED' | 'BOUNCED'>('ALL');
+    const [timeFilter, setTimeFilter] = useState<'ALL' | '24H' | '7D' | 'CUSTOM'>('ALL');
+    const [startDate, setStartDate] = useState<string>("");
+    const [endDate, setEndDate] = useState<string>("");
 
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -262,12 +269,56 @@ function InboxContent() {
 
     const selectedThread = threads.find(t => t.contactEmail === selectedThreadId) || null;
 
-    const filteredThreads = threads.filter(t =>
-        t.contactEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.contactName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.lastMessagePreview.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.campaignName.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredThreads = threads.filter(t => {
+        // 1. Search Query
+        const matchesSearch = 
+            t.contactEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            t.contactName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            t.lastMessagePreview.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            t.campaignName.toLowerCase().includes(searchQuery.toLowerCase());
+        
+        if (!matchesSearch) return false;
+
+        // 2. Status Filter
+        if (statusFilter === 'BOUNCED') {
+            if (!t.isBounced) return false;
+        } else {
+            // If not in Bounced tab, hide bounced threads by default
+            if (t.isBounced) return false;
+
+            if (statusFilter === 'AWAITING') {
+                const latestMsg = t.messages[t.messages.length - 1];
+                if (latestMsg?.type !== 'incoming') return false;
+            } else if (statusFilter === 'REPLIED') {
+                const latestMsg = t.messages[t.messages.length - 1];
+                if (latestMsg?.type !== 'outgoing') return false;
+            }
+        }
+
+        // 3. Time Filter
+        const msgDate = new Date(t.lastMessageAt);
+        const now = new Date();
+
+        if (timeFilter === '24H') {
+            const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            if (msgDate < twentyFourHoursAgo) return false;
+        } else if (timeFilter === '7D') {
+            const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            if (msgDate < sevenDaysAgo) return false;
+        } else if (timeFilter === 'CUSTOM') {
+            if (startDate) {
+                const start = new Date(startDate);
+                if (msgDate < start) return false;
+            }
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                if (msgDate > end) return false;
+            }
+        }
+
+        return true;
+    });
 
     if (loading) {
         return (
@@ -302,7 +353,7 @@ function InboxContent() {
                             <RefreshCw className={`w-4 h-4 text-muted-foreground ${syncing ? 'animate-spin' : ''}`} />
                         </button>
                     </div>
-                    <div className="relative">
+                    <div className="relative mb-4">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#555]" />
                         <input
                             type="text"
@@ -311,6 +362,60 @@ function InboxContent() {
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full pl-9 pr-3 py-2 rounded-lg text-[12px] bg-[#1a1a1a] border border-[#222] text-white outline-none focus:ring-1 focus:ring-[#333]"
                         />
+                    </div>
+
+                    {/* Filter Bar */}
+                    <div className="flex flex-col gap-3 pb-2 border-b border-[#222]">
+                        <div className="flex items-center gap-1 p-1 bg-[#1a1a1a] rounded-lg border border-[#222]">
+                            {[
+                                { id: 'ALL', label: 'All' },
+                                { id: 'AWAITING', label: 'Waiting' },
+                                { id: 'REPLIED', label: 'Replied' },
+                                { id: 'BOUNCED', label: 'Bounced' }
+                            ].map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setStatusFilter(tab.id as any)}
+                                    className={`flex-1 py-1.5 text-[11px] font-medium rounded-md transition-all ${
+                                        statusFilter === tab.id 
+                                            ? "bg-[#333] text-white shadow-sm" 
+                                            : "text-[#666] hover:text-[#888]"
+                                    }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2">
+                            <select
+                                value={timeFilter}
+                                onChange={(e) => setTimeFilter(e.target.value as any)}
+                                className="flex-1 bg-[#1a1a1a] border border-[#222] rounded-md px-2 py-1.5 text-[11px] text-[#888] outline-none focus:border-[#333]"
+                            >
+                                <option value="ALL">All Time</option>
+                                <option value="24H">Last 24 Hours</option>
+                                <option value="7D">Last 7 Days</option>
+                                <option value="CUSTOM">Custom Range</option>
+                            </select>
+                        </div>
+
+                        {timeFilter === 'CUSTOM' && (
+                            <div className="grid grid-cols-2 gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="bg-[#1a1a1a] border border-[#222] rounded-md px-2 py-1 text-[10px] text-[#888] outline-none"
+                                />
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="bg-[#1a1a1a] border border-[#222] rounded-md px-2 py-1 text-[10px] text-[#888] outline-none"
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
 

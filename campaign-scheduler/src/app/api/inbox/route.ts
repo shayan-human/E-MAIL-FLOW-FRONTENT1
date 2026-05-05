@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@/lib/auth-helper";
+import { isBounce } from "@/lib/email-utils";
 
 export async function GET() {
     try {
@@ -69,12 +70,10 @@ export async function GET() {
             const email = r.lead?.email;
             if (!email) return;
 
-            // Filter out system bounce messages from the replies table
-            const isBounceMessage = 
-                (r.sender_email && r.sender_email.includes('mailer-daemon@googlemail.com')) ||
-                (r.subject && r.subject.includes('Delivery Status Notification (Failure)'));
+            const isBounceMessage = isBounce(r.subject, r.body, r.sender_email);
             
-            if (isBounceMessage) return;
+            // We still want to track the bounce, but we'll flag it
+            // If the latest message is a bounce, the whole thread is marked as bounced
 
             const campaign = r.lead?.campaign_id ? campaignMap[r.lead.campaign_id] : null;
 
@@ -98,14 +97,14 @@ export async function GET() {
                     lastMessageAt: r.timestamp,
                     lastMessagePreview: "",
                     isRead: true,
-                    status: r.lead?.status
+                    status: r.lead?.status,
+                    isBounced: isBounceMessage
                 };
             }
 
-            // Skip threads that are explicitly BOUNCED at the lead level
+            // Note: We no longer delete bounced leads here so they can be shown in the 'Bounced' tab
             if (threadMap[email].status === 'BOUNCED') {
-                delete threadMap[email];
-                return;
+                threadMap[email].isBounced = true;
             }
 
             // Always update the thread metadata with the LATEST message's context
@@ -113,6 +112,7 @@ export async function GET() {
             const messageAt = new Date(r.timestamp).getTime();
 
             if (messageAt >= currentLastAt) {
+                threadMap[email].isBounced = isBounceMessage;
                 threadMap[email].campaignName = campaign?.name || "Unknown Campaign";
                 threadMap[email].campaignId = campaign?.id;
                 threadMap[email].leadId = r.lead?.id;

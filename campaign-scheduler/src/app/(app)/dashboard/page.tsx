@@ -4,6 +4,7 @@ import DashboardClient from "./DashboardClient";
 import { redirect } from "next/navigation";
 import { processChartData, processBestSendDay, processReplyQuality } from "@/lib/chart-utils";
 import type { LeadData, ReplyData } from "@/lib/types";
+import { isBounce } from "@/lib/email-utils";
 
 export default async function DashboardPage() {
     const { user } = await auth();
@@ -78,23 +79,62 @@ export default async function DashboardPage() {
 
         const leads = leadsStatsRes.data || [];
         const sentCount = leads.filter(l => ["SENT", "REPLIED"].includes(l.status)).length;
-        const replyCount = leads.filter(l => l.status === "REPLIED").length;
         const bouncedCount = leads.filter(l => l.status === "BOUNCED").length;
-        const avgReplyRate = sentCount > 0 ? Math.round((replyCount / sentCount) * 100) : 0;
 
-        // Calculate Average Reply Time
-        const replyTimes = leads
-            .filter(l => l.status === "REPLIED" && l.sent_at && l.replied_at)
-            .map(l => (new Date(l.replied_at!).getTime() - new Date(l.sent_at!).getTime()) / (1000 * 60 * 60));
+        // Fetch replies for leads marked as REPLIED to verify they are genuine
+        const repliedLeadIds = leads.filter(l => l.status === "REPLIED").map(l => l.id);
+        let genuineReplyCount = 0;
+        let genuineReplyTimes: number[] = [];
+        let allGenuineReplies: any[] = [];
 
-        const avgTime = replyTimes.length > 0
-            ? Math.round(replyTimes.reduce((a, b) => a + b, 0) / replyTimes.length)
+        if (repliedLeadIds.length > 0) {
+            const { data: allReplies } = await insforge
+                .from("replies")
+                .select("lead_id, subject, body, sender_email, timestamp, type")
+                .in("lead_id", repliedLeadIds);
+
+            const replies = allReplies || [];
+            
+            // Group replies by lead_id to check if each lead has at least one genuine human reply
+            const repliesByLead: Record<string, any[]> = {};
+            replies.forEach(r => {
+                if (!repliesByLead[r.lead_id]) repliesByLead[r.lead_id] = [];
+                repliesByLead[r.lead_id].push(r);
+            });
+
+            repliedLeadIds.forEach(id => {
+                const leadReplies = repliesByLead[id] || [];
+                const genuineReplies = leadReplies.filter(r => 
+                    r.type === 'incoming' && !isBounce(r.subject, r.body, r.sender_email)
+                );
+
+                if (genuineReplies.length > 0) {
+                    genuineReplyCount++;
+                    allGenuineReplies.push(...genuineReplies);
+                    
+                    // Calculate reply time for this lead
+                    const lead = leads.find(l => l.id === id);
+                    const earliestReply = genuineReplies.sort((a, b) => 
+                        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+                    )[0];
+
+                    if (lead?.sent_at && earliestReply.timestamp) {
+                        const timeDiff = (new Date(earliestReply.timestamp).getTime() - new Date(lead.sent_at).getTime()) / (1000 * 60 * 60);
+                        if (timeDiff > 0) genuineReplyTimes.push(timeDiff);
+                    }
+                }
+            });
+        }
+
+        const avgReplyRate = sentCount > 0 ? Math.round((genuineReplyCount / sentCount) * 100) : 0;
+        const avgTime = genuineReplyTimes.length > 0
+            ? Math.round(genuineReplyTimes.reduce((a, b) => a + b, 0) / genuineReplyTimes.length)
             : null;
 
         stats = {
             ...stats,
             emailsSent: sentCount,
-            totalReplies: replyCount,
+            totalReplies: genuineReplyCount,
             avgReplyRate: `${avgReplyRate}%`,
             bouncedCount: bouncedCount,
             avgReplyTime: avgTime !== null ? `${avgTime}h` : "---"
@@ -125,13 +165,12 @@ export default async function DashboardPage() {
         chartData = processChartData(activityData);
         bestSendDay = processBestSendDay(activityData);
 
-        // Reply Quality Data
-        const { data: repliesData } = await insforge
-            .from("replies")
-            .select("body")
-            .in("lead_id", (activityData.map((l) => l.id).filter(Boolean) as string[]));
-
-        replyQuality = processReplyQuality((repliesData || []) as ReplyData[]);
+        // Reply Quality Data - only use genuine replies
+        replyQuality = processReplyQuality(allGenuineReplies.map(r => ({
+            id: r.id,
+            body: r.body,
+            lead_id: r.lead_id
+        })));
     }
 
     return (
