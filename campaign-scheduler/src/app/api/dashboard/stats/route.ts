@@ -53,11 +53,33 @@ export async function GET(req: Request) {
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         thirtyDaysAgo.setHours(0, 0, 0, 0);
 
-        const [leadsRes, activityRes] = await Promise.all([
+        const [
+            sentRes,
+            bouncedRes,
+            repliedLeadsRes,
+            activityRes
+        ] = await Promise.all([
+            // Exact counts for the main cards - bypasses row limits
+            insforge
+                .from("leads")
+                .select("*", { count: "exact", head: true })
+                .in("campaign_id", campaignIds)
+                .in("status", ["SENT", "REPLIED"]),
+
+            insforge
+                .from("leads")
+                .select("*", { count: "exact", head: true })
+                .in("campaign_id", campaignIds)
+                .eq("status", "BOUNCED"),
+
+            // Only fetch actual lead rows for status = 'REPLIED' to filter them
             insforge
                 .from("leads")
                 .select("id, status, sent_at, replied_at")
-                .in("campaign_id", campaignIds),
+                .in("campaign_id", campaignIds)
+                .eq("status", "REPLIED"),
+
+            // Activity Chart (Last 30 days) - used for both charts
             insforge
                 .from("leads")
                 .select("id, sent_at, status")
@@ -65,16 +87,14 @@ export async function GET(req: Request) {
                 .gte("sent_at", thirtyDaysAgo.toISOString())
         ]);
 
-        const leads = leadsRes.data || [];
+        const sentCount = sentRes.count || 0;
+        const baseBouncedCount = bouncedRes.count || 0;
+        const repliedLeads = repliedLeadsRes.data || [];
         const activityData = (activityRes.data || []) as LeadData[];
 
-        const sentCount = leads.filter(l => ["SENT", "REPLIED"].includes(l.status)).length;
-        let baseBouncedCount = leads.filter(l => l.status === "BOUNCED").length;
-
-        // Fetch replies for leads marked as REPLIED or SENT to verify they are genuine
-        const potentialReplyLeadIds = leads.filter(l => ["REPLIED", "SENT"].includes(l.status)).map(l => l.id);
+        // Fetch replies for leads marked as REPLIED to verify they are genuine
+        const potentialReplyLeadIds = repliedLeads.map(l => l.id);
         let genuineReplyCount = 0;
-        let additionalBouncedCount = 0;
         let genuineReplyTimes: number[] = [];
         let allGenuineReplies: any[] = [];
 
@@ -92,12 +112,8 @@ export async function GET(req: Request) {
                 repliesByLead[r.lead_id].push(r);
             });
 
-            potentialReplyLeadIds.forEach(id => {
-                const leadReplies = repliesByLead[id] || [];
-                const lead = leads.find(l => l.id === id);
-                if (!lead) return;
-
-                const hasBounce = leadReplies.some(r => isBounce(r.subject, r.body, r.sender_email));
+            repliedLeads.forEach(lead => {
+                const leadReplies = repliesByLead[lead.id] || [];
                 const genuineReplies = leadReplies.filter(r => 
                     r.type === 'incoming' && !isBounce(r.subject, r.body, r.sender_email)
                 );
@@ -114,13 +130,10 @@ export async function GET(req: Request) {
                         const timeDiff = (new Date(earliestReply.timestamp).getTime() - new Date(lead.sent_at).getTime()) / (1000 * 60 * 60);
                         if (timeDiff > 0) genuineReplyTimes.push(timeDiff);
                     }
-                } else if (hasBounce || lead.status === 'BOUNCED') {
-                    additionalBouncedCount++;
                 }
             });
         }
 
-        const totalBounced = baseBouncedCount + additionalBouncedCount;
         const avgReplyRate = sentCount > 0 ? Math.round((genuineReplyCount / sentCount) * 100) : 0;
         const avgTime = genuineReplyTimes.length > 0
             ? Math.round(genuineReplyTimes.reduce((a, b) => a + b, 0) / genuineReplyTimes.length)
@@ -144,7 +157,7 @@ export async function GET(req: Request) {
                 totalReplies: genuineReplyCount,
                 avgReplyRate: `${avgReplyRate}%`,
                 activeAccounts: activeAccounts,
-                bouncedCount: totalBounced,
+                bouncedCount: baseBouncedCount,
                 avgReplyTime: avgTime !== null ? `${avgTime}h` : "---"
             },
             chartData,
