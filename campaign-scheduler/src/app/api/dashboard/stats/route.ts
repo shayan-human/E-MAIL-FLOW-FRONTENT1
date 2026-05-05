@@ -3,6 +3,7 @@ import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@/lib/auth-helper";
 import { processChartData, processSendIntelligence, processReplyQuality } from "@/lib/chart-utils";
 import type { LeadData, ReplyData } from "@/lib/types";
+import { isBounce } from "@/lib/email-utils";
 
 export async function GET(req: Request) {
     const url = new URL(req.url);
@@ -47,96 +48,104 @@ export async function GET(req: Request) {
             });
         }
 
-        // 2. Fetch metrics
+        // 2. Fetch leads to calculate stats
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         thirtyDaysAgo.setHours(0, 0, 0, 0);
 
-        const [
-            sentRes,
-            repliedRes,
-            bouncedRes,
-            avgReplyTimeRes,
-            activityRes
-        ] = await Promise.all([
-            // Emails Sent (status SENT or REPLIED)
+        const [leadsRes, activityRes] = await Promise.all([
             insforge
                 .from("leads")
-                .select("*", { count: "exact", head: true })
-                .in("campaign_id", campaignIds)
-                .in("status", ["SENT", "REPLIED"]),
-
-            // Total Replies
+                .select("id, status, sent_at, replied_at")
+                .in("campaign_id", campaignIds),
             insforge
                 .from("leads")
-                .select("*", { count: "exact", head: true })
-                .in("campaign_id", campaignIds)
-                .eq("status", "REPLIED"),
-
-            // Bounced
-            insforge
-                .from("leads")
-                .select("*", { count: "exact", head: true })
-                .in("campaign_id", campaignIds)
-                .eq("status", "BOUNCED"),
-
-            // Average Reply Time (fetch processed leads with timestamps)
-            insforge
-                .from("leads")
-                .select("sent_at, replied_at")
-                .in("campaign_id", campaignIds)
-                .eq("status", "REPLIED")
-                .not("sent_at", "is", null)
-                .not("replied_at", "is", null),
-
-            // Activity Chart (Last 30 days) - used for both charts
-            insforge
-                .from("leads")
-                .select("sent_at, status")
+                .select("id, sent_at, status")
                 .in("campaign_id", campaignIds)
                 .gte("sent_at", thirtyDaysAgo.toISOString())
         ]);
 
-        const sentCount = sentRes.count || 0;
-        const replyCount = repliedRes.count || 0;
-        const bouncedCount = bouncedRes.count || 0;
+        const leads = leadsRes.data || [];
+        const activityData = (activityRes.data || []) as LeadData[];
 
-        const avgReplyRate = sentCount > 0 ? Math.round((replyCount / sentCount) * 100) : 0;
+        const sentCount = leads.filter(l => ["SENT", "REPLIED"].includes(l.status)).length;
+        let baseBouncedCount = leads.filter(l => l.status === "BOUNCED").length;
 
-        // Calculate avg reply time in hours
-        let avgReplyTimeHours: number | null = null;
-        if (avgReplyTimeRes.data && avgReplyTimeRes.data.length > 0) {
-            const times = avgReplyTimeRes.data.map((l: { sent_at: string; replied_at: string }) => {
-                const sent = new Date(l.sent_at).getTime();
-                const replied = new Date(l.replied_at).getTime();
-                return (replied - sent) / (1000 * 60 * 60);
+        // Fetch replies for leads marked as REPLIED or SENT to verify they are genuine
+        const potentialReplyLeadIds = leads.filter(l => ["REPLIED", "SENT"].includes(l.status)).map(l => l.id);
+        let genuineReplyCount = 0;
+        let additionalBouncedCount = 0;
+        let genuineReplyTimes: number[] = [];
+        let allGenuineReplies: any[] = [];
+
+        if (potentialReplyLeadIds.length > 0) {
+            const { data: allReplies } = await insforge
+                .from("replies")
+                .select("lead_id, subject, body, sender_email, timestamp, type")
+                .in("lead_id", potentialReplyLeadIds);
+
+            const replies = allReplies || [];
+            
+            const repliesByLead: Record<string, any[]> = {};
+            replies.forEach(r => {
+                if (!repliesByLead[r.lead_id]) repliesByLead[r.lead_id] = [];
+                repliesByLead[r.lead_id].push(r);
             });
-            const sum = times.reduce((a, b) => a + b, 0);
-            avgReplyTimeHours = Math.round(sum / times.length);
+
+            potentialReplyLeadIds.forEach(id => {
+                const leadReplies = repliesByLead[id] || [];
+                const lead = leads.find(l => l.id === id);
+                if (!lead) return;
+
+                const hasBounce = leadReplies.some(r => isBounce(r.subject, r.body, r.sender_email));
+                const genuineReplies = leadReplies.filter(r => 
+                    r.type === 'incoming' && !isBounce(r.subject, r.body, r.sender_email)
+                );
+
+                if (genuineReplies.length > 0) {
+                    genuineReplyCount++;
+                    allGenuineReplies.push(...genuineReplies);
+                    
+                    const earliestReply = genuineReplies.sort((a, b) => 
+                        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+                    )[0];
+
+                    if (lead.sent_at && earliestReply.timestamp) {
+                        const timeDiff = (new Date(earliestReply.timestamp).getTime() - new Date(lead.sent_at).getTime()) / (1000 * 60 * 60);
+                        if (timeDiff > 0) genuineReplyTimes.push(timeDiff);
+                    }
+                } else if (hasBounce || lead.status === 'BOUNCED') {
+                    additionalBouncedCount++;
+                }
+            });
         }
 
-        // 3. Process activity data
-        const activityData = (activityRes.data || []) as LeadData[];
+        const totalBounced = baseBouncedCount + additionalBouncedCount;
+        const avgReplyRate = sentCount > 0 ? Math.round((genuineReplyCount / sentCount) * 100) : 0;
+        const avgTime = genuineReplyTimes.length > 0
+            ? Math.round(genuineReplyTimes.reduce((a, b) => a + b, 0) / genuineReplyTimes.length)
+            : null;
+
+        // 3. Process activity data for charts
         const chartData = processChartData(activityData);
         const sendIntelligence = processSendIntelligence(activityData, timeframe);
 
-        // 4. Fetch replies for quality analysis
-        const { data: replies } = await insforge
-            .from("replies")
-            .select("body, lead_id")
-            .in("lead_id", (activityData.map((l) => l.id).filter(Boolean) as string[]));
-
-        const replyQuality = processReplyQuality((replies || []) as ReplyData[]);
+        // 4. Process quality from genuine replies
+        const replyQuality = processReplyQuality(allGenuineReplies.map(r => ({
+            id: r.id,
+            body: r.body,
+            lead_id: r.lead_id
+        })));
 
         return NextResponse.json({
             stats: {
                 totalCampaigns: campaignIds.length,
                 emailsSent: sentCount,
-                totalReplies: replyCount,
+                totalReplies: genuineReplyCount,
                 avgReplyRate: `${avgReplyRate}%`,
                 activeAccounts: activeAccounts,
-                bouncedCount: bouncedCount,
-                avgReplyTime: avgReplyTimeHours !== null ? `${avgReplyTimeHours}h` : "---"
+                bouncedCount: totalBounced,
+                avgReplyTime: avgTime !== null ? `${avgTime}h` : "---"
             },
             chartData,
             sendIntelligence,
