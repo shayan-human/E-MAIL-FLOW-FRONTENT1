@@ -70,11 +70,8 @@ export async function GET() {
             const email = r.lead?.email;
             if (!email) return;
 
-            const isBounceMessage = isBounce(r.subject, r.body, r.sender_email);
-            
-            // We still want to track the bounce, but we'll flag it
-            // If the latest message is a bounce, the whole thread is marked as bounced
-
+            const isThisMessageBounce = isBounce(r.subject, r.body, r.sender_email);
+            const isIncoming = r.type === 'incoming';
             const campaign = r.lead?.campaign_id ? campaignMap[r.lead.campaign_id] : null;
 
             if (!threadMap[email]) {
@@ -98,12 +95,23 @@ export async function GET() {
                     lastMessagePreview: "",
                     isRead: true,
                     status: r.lead?.status,
-                    isBounced: isBounceMessage
+                    // Initial state: true if lead is BOUNCED, or if this first message is a bounce
+                    isBounced: r.lead?.status === 'BOUNCED' || isThisMessageBounce,
+                    hasGenuineReply: isIncoming && !isThisMessageBounce
                 };
             }
 
-            // Note: We no longer delete bounced leads here so they can be shown in the 'Bounced' tab
-            if (threadMap[email].status === 'BOUNCED') {
+            // Update genuine reply flag
+            if (isIncoming && !isThisMessageBounce) {
+                threadMap[email].hasGenuineReply = true;
+                threadMap[email].isBounced = false; // If we have a genuine reply, it's not a "Bounced" thread
+            }
+
+            // If the thread was marked bounced but we find a genuine message, unmark it
+            if (threadMap[email].hasGenuineReply) {
+                threadMap[email].isBounced = false;
+            } else if (isThisMessageBounce || r.lead?.status === 'BOUNCED') {
+                // Only mark as bounced if we still haven't seen a genuine reply
                 threadMap[email].isBounced = true;
             }
 
@@ -112,7 +120,6 @@ export async function GET() {
             const messageAt = new Date(r.timestamp).getTime();
 
             if (messageAt >= currentLastAt) {
-                threadMap[email].isBounced = isBounceMessage;
                 threadMap[email].campaignName = campaign?.name || "Unknown Campaign";
                 threadMap[email].campaignId = campaign?.id;
                 threadMap[email].leadId = r.lead?.id;
@@ -126,6 +133,8 @@ export async function GET() {
                     threadMap[email].gmailThreadId = r.lead?.gmail_thread_id || r.gmail_thread_id;
                 }
                 threadMap[email].lastMessageAt = r.timestamp;
+                threadMap[email].lastMessagePreview = r.body.slice(0, 100) + (r.body.length > 100 ? "..." : "");
+                threadMap[email].subject = r.subject;
             }
 
             const message = {
@@ -140,7 +149,6 @@ export async function GET() {
             };
 
             threadMap[email].messages.push(message);
-            threadMap[email].lastMessagePreview = r.body.slice(0, 100) + (r.body.length > 100 ? "..." : "");
             if (!r.is_read) {
                 threadMap[email].isRead = false;
             }

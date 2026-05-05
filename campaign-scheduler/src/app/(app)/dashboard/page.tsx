@@ -94,12 +94,13 @@ export default async function DashboardPage() {
         ]);
 
         const sentCount = sentRes.count || 0;
-        const baseBouncedCount = bouncedRes.count || 0;
+        let baseBouncedCount = bouncedRes.count || 0;
         const repliedLeads = repliedLeadsRes.data || [];
 
         // Fetch replies for leads marked as REPLIED to verify they are genuine
         const potentialReplyLeadIds = repliedLeads.map(l => l.id);
         let genuineReplyCount = 0;
+        let additionalBouncedCount = 0;
         let genuineReplyTimes: number[] = [];
         let allGenuineReplies: any[] = [];
 
@@ -135,10 +136,14 @@ export default async function DashboardPage() {
                         const timeDiff = (new Date(earliestReply.timestamp).getTime() - new Date(lead.sent_at).getTime()) / (1000 * 60 * 60);
                         if (timeDiff > 0) genuineReplyTimes.push(timeDiff);
                     }
+                } else {
+                    // This was marked REPLIED but only contains bounces
+                    additionalBouncedCount++;
                 }
             });
         }
 
+        const totalBounced = baseBouncedCount + additionalBouncedCount;
         const avgReplyRate = sentCount > 0 ? Math.round((genuineReplyCount / sentCount) * 100) : 0;
         const avgTime = genuineReplyTimes.length > 0
             ? Math.round(genuineReplyTimes.reduce((a, b) => a + b, 0) / genuineReplyTimes.length)
@@ -149,7 +154,7 @@ export default async function DashboardPage() {
             emailsSent: sentCount,
             totalReplies: genuineReplyCount,
             avgReplyRate: `${avgReplyRate}%`,
-            bouncedCount: baseBouncedCount,
+            bouncedCount: totalBounced,
             avgReplyTime: avgTime !== null ? `${avgTime}h` : "---"
         };
 
