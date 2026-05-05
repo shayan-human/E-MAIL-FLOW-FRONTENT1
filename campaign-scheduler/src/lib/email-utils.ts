@@ -35,14 +35,18 @@ export function isBounce(subject: string | null, body: string | null, senderEmai
         "automatic reply",
         "out of office",
         "out-of-office",
-        "vacation response"
+        "vacation response",
+        "address not found",
+        "mailbox unavailable",
+        "delivery report",
+        "could not be delivered"
     ];
 
     if (bounceSubjects.some(s => lowSubject.includes(s))) {
         return true;
     }
 
-    // 3. Check for common bounce patterns in body (especially for cases where subject might be generic)
+    // 3. Check for common bounce patterns in body
     const bounceBodyPatterns = [
         "delivery has failed",
         "could not be delivered",
@@ -52,7 +56,14 @@ export function isBounce(subject: string | null, body: string | null, senderEmai
         "on vacation",
         "auto-reply",
         "automatically generated",
-        "this is an automated message"
+        "this is an automated message",
+        "address not found",
+        "mailbox name not found",
+        "recipient address rejected",
+        "user unknown",
+        "quota exceeded",
+        "mailbox is full",
+        "message was not delivered"
     ];
 
     if (bounceBodyPatterns.some(p => lowBody.includes(p))) {

@@ -60,7 +60,7 @@ export default async function DashboardPage() {
             // Get sent, replied, bounced counts directly from leads
             insforge
                 .from("leads")
-                .select("status, sent_at, replied_at")
+                .select("id, status, sent_at, replied_at")
                 .in("campaign_id", campaignIds),
 
             // Get per-campaign counts for the table
@@ -72,60 +72,68 @@ export default async function DashboardPage() {
             // Get activity data for chart
             insforge
                 .from("leads")
-                .select("sent_at, status")
+                .select("id, sent_at, status")
                 .in("campaign_id", campaignIds)
                 .gte("sent_at", thirtyDaysAgo.toISOString())
         ]);
 
         const leads = leadsStatsRes.data || [];
         const sentCount = leads.filter(l => ["SENT", "REPLIED"].includes(l.status)).length;
-        const bouncedCount = leads.filter(l => l.status === "BOUNCED").length;
+        let baseBouncedCount = leads.filter(l => l.status === "BOUNCED").length;
 
         // Fetch replies for leads marked as REPLIED to verify they are genuine
-        const repliedLeadIds = leads.filter(l => l.status === "REPLIED").map(l => l.id);
+        // We also fetch for SENT leads to catch bounces that didn't update the status
+        const potentialReplyLeadIds = leads.filter(l => ["REPLIED", "SENT"].includes(l.status)).map(l => l.id);
         let genuineReplyCount = 0;
+        let additionalBouncedCount = 0;
         let genuineReplyTimes: number[] = [];
         let allGenuineReplies: any[] = [];
 
-        if (repliedLeadIds.length > 0) {
+        if (potentialReplyLeadIds.length > 0) {
             const { data: allReplies } = await insforge
                 .from("replies")
                 .select("lead_id, subject, body, sender_email, timestamp, type")
-                .in("lead_id", repliedLeadIds);
+                .in("lead_id", potentialReplyLeadIds);
 
             const replies = allReplies || [];
             
-            // Group replies by lead_id to check if each lead has at least one genuine human reply
             const repliesByLead: Record<string, any[]> = {};
             replies.forEach(r => {
                 if (!repliesByLead[r.lead_id]) repliesByLead[r.lead_id] = [];
                 repliesByLead[r.lead_id].push(r);
             });
 
-            repliedLeadIds.forEach(id => {
+            potentialReplyLeadIds.forEach(id => {
                 const leadReplies = repliesByLead[id] || [];
+                const lead = leads.find(l => l.id === id);
+                if (!lead) return;
+
+                const hasBounce = leadReplies.some(r => isBounce(r.subject, r.body, r.sender_email));
                 const genuineReplies = leadReplies.filter(r => 
                     r.type === 'incoming' && !isBounce(r.subject, r.body, r.sender_email)
                 );
 
                 if (genuineReplies.length > 0) {
+                    // Lead has at least one genuine human reply
                     genuineReplyCount++;
                     allGenuineReplies.push(...genuineReplies);
                     
-                    // Calculate reply time for this lead
-                    const lead = leads.find(l => l.id === id);
                     const earliestReply = genuineReplies.sort((a, b) => 
                         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
                     )[0];
 
-                    if (lead?.sent_at && earliestReply.timestamp) {
+                    if (lead.sent_at && earliestReply.timestamp) {
                         const timeDiff = (new Date(earliestReply.timestamp).getTime() - new Date(lead.sent_at).getTime()) / (1000 * 60 * 60);
                         if (timeDiff > 0) genuineReplyTimes.push(timeDiff);
                     }
+                } else if (hasBounce || lead.status === 'BOUNCED') {
+                    // Lead is a bounce and has NO genuine replies
+                    additionalBouncedCount++;
                 }
             });
         }
 
+        const totalBounced = baseBouncedCount + additionalBouncedCount;
         const avgReplyRate = sentCount > 0 ? Math.round((genuineReplyCount / sentCount) * 100) : 0;
         const avgTime = genuineReplyTimes.length > 0
             ? Math.round(genuineReplyTimes.reduce((a, b) => a + b, 0) / genuineReplyTimes.length)
@@ -136,7 +144,7 @@ export default async function DashboardPage() {
             emailsSent: sentCount,
             totalReplies: genuineReplyCount,
             avgReplyRate: `${avgReplyRate}%`,
-            bouncedCount: bouncedCount,
+            bouncedCount: totalBounced,
             avgReplyTime: avgTime !== null ? `${avgTime}h` : "---"
         };
 
