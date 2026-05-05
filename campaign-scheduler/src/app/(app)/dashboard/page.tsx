@@ -75,7 +75,7 @@ export default async function DashboardPage() {
             // Only fetch actual lead rows for status = 'REPLIED' to filter them
             insforge
                 .from("leads")
-                .select("id, status, sent_at, replied_at")
+                .select("id, status, sent_at, replied_at, email")
                 .in("campaign_id", campaignIds)
                 .eq("status", "REPLIED"),
 
@@ -99,7 +99,7 @@ export default async function DashboardPage() {
 
         // Fetch replies for leads marked as REPLIED to verify they are genuine
         const potentialReplyLeadIds = repliedLeads.map(l => l.id);
-        let genuineReplyCount = 0;
+        const genuineReplyEmails = new Set<string>();
         let additionalBouncedCount = 0;
         let genuineReplyTimes: number[] = [];
         let allGenuineReplies: any[] = [];
@@ -125,7 +125,7 @@ export default async function DashboardPage() {
                 );
 
                 if (genuineReplies.length > 0) {
-                    genuineReplyCount++;
+                    genuineReplyEmails.add(lead.email);
                     allGenuineReplies.push(...genuineReplies);
                     
                     const earliestReply = genuineReplies.sort((a, b) => 
@@ -143,6 +143,7 @@ export default async function DashboardPage() {
             });
         }
 
+        const genuineReplyCount = genuineReplyEmails.size;
         const totalBounced = baseBouncedCount + additionalBouncedCount;
         const avgReplyRate = sentCount > 0 ? Math.round((genuineReplyCount / sentCount) * 100) : 0;
         const avgTime = genuineReplyTimes.length > 0
