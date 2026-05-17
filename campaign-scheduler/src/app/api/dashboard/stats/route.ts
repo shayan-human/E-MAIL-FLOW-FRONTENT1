@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getInsforgeClient } from "@/lib/insforge-server";
+import { pool } from "@/lib/db";
 import { auth } from "@/lib/auth-helper";
 import { processChartData, processSendIntelligence, processReplyQuality } from "@/lib/chart-utils";
-import type { LeadData, ReplyData } from "@/lib/types";
+import type { LeadData } from "@/lib/types";
 import { isBounce } from "@/lib/email-utils";
 
 export async function GET(req: Request) {
@@ -16,21 +16,20 @@ export async function GET(req: Request) {
         }
 
         // 1. Fetch campaigns and active accounts belonging to the user
-        const insforge = await getInsforgeClient();
-        const [campaignsRes, activeAccountsRes] = await Promise.all([
-            insforge
-                .from("campaigns")
-                .select("id")
-                .eq("user_id", user.id),
-            insforge
-                .from("sender_accounts")
-                .select("*", { count: "exact", head: true })
-                .eq("user_id", user.id)
-                .eq("is_active", true)
+        const [campaignsResult, accountsResult] = await Promise.all([
+            pool.query(
+                "SELECT * FROM campaigns WHERE user_id = $1 ORDER BY created_at DESC",
+                [user.id]
+            ),
+            pool.query(
+                "SELECT COUNT(*) AS count FROM sender_accounts WHERE user_id = $1 AND is_active = true",
+                [user.id]
+            )
         ]);
 
-        const campaignIds = (campaignsRes.data || []).map((c) => c.id as string) || [];
-        const activeAccounts = activeAccountsRes.count || 0;
+        const campaignsData = campaignsResult.rows || [];
+        const campaignIds = campaignsData.map((c) => c.id);
+        const activeAccounts = parseInt(accountsResult.rows[0]?.count) || 0;
 
         if (campaignIds.length === 0) {
             return NextResponse.json({
@@ -44,11 +43,12 @@ export async function GET(req: Request) {
                     avgReplyTime: "---"
                 },
                 chartData: { "24H": [], "7D": [], "30D": [] },
-                sendIntelligence: []
+                sendIntelligence: [],
+                campaigns: []
             });
         }
 
-        // 2. Fetch leads to calculate stats
+        // 2. Fetch leads and stats in parallel scoped strictly to the user's campaigns
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         thirtyDaysAgo.setHours(0, 0, 0, 0);
@@ -57,40 +57,35 @@ export async function GET(req: Request) {
             sentRes,
             bouncedRes,
             repliedLeadsRes,
+            campaignStatsRes,
             activityRes
         ] = await Promise.all([
-            // Exact counts for the main cards - bypasses row limits
-            insforge
-                .from("leads")
-                .select("*", { count: "exact", head: true })
-                .in("campaign_id", campaignIds)
-                .in("status", ["SENT", "REPLIED"]),
-
-            insforge
-                .from("leads")
-                .select("*", { count: "exact", head: true })
-                .in("campaign_id", campaignIds)
-                .eq("status", "BOUNCED"),
-
-            // Only fetch actual lead rows for status = 'REPLIED' to filter them
-            insforge
-                .from("leads")
-                .select("id, status, sent_at, replied_at, email")
-                .in("campaign_id", campaignIds)
-                .eq("status", "REPLIED"),
-
-            // Activity Chart (Last 30 days) - used for both charts
-            insforge
-                .from("leads")
-                .select("id, sent_at, status")
-                .in("campaign_id", campaignIds)
-                .gte("sent_at", thirtyDaysAgo.toISOString())
+            pool.query(
+                "SELECT COUNT(*) AS count FROM leads WHERE campaign_id = ANY($1::uuid[]) AND status IN ('SENT', 'REPLIED')",
+                [campaignIds]
+            ),
+            pool.query(
+                "SELECT COUNT(*) AS count FROM leads WHERE campaign_id = ANY($1::uuid[]) AND status = 'BOUNCED'",
+                [campaignIds]
+            ),
+            pool.query(
+                "SELECT id, status, sent_at, replied_at, email FROM leads WHERE campaign_id = ANY($1::uuid[]) AND status = 'REPLIED'",
+                [campaignIds]
+            ),
+            pool.query(
+                "SELECT * FROM campaign_stats WHERE campaign_id = ANY($1::uuid[])",
+                [campaignIds]
+            ),
+            pool.query(
+                "SELECT id, sent_at, status FROM leads WHERE campaign_id = ANY($1::uuid[]) AND sent_at >= $2",
+                [campaignIds, thirtyDaysAgo.toISOString()]
+            )
         ]);
 
-        const sentCount = sentRes.count || 0;
-        let baseBouncedCount = bouncedRes.count || 0;
-        const repliedLeads = repliedLeadsRes.data || [];
-        const activityData = (activityRes.data || []) as LeadData[];
+        const sentCount = parseInt(sentRes.rows[0]?.count) || 0;
+        let baseBouncedCount = parseInt(bouncedRes.rows[0]?.count) || 0;
+        const repliedLeads = repliedLeadsRes.rows || [];
+        const activityData = (activityRes.rows || []) as LeadData[];
 
         // Fetch replies for leads marked as REPLIED to verify they are genuine
         const potentialReplyLeadIds = repliedLeads.map(l => l.id);
@@ -100,12 +95,11 @@ export async function GET(req: Request) {
         let allGenuineReplies: any[] = [];
 
         if (potentialReplyLeadIds.length > 0) {
-            const { data: allReplies } = await insforge
-                .from("replies")
-                .select("lead_id, subject, body, sender_email, timestamp, type")
-                .in("lead_id", potentialReplyLeadIds);
-
-            const replies = allReplies || [];
+            const repliesResult = await pool.query(
+                "SELECT lead_id, subject, body, sender_email, timestamp, type FROM replies WHERE lead_id = ANY($1::uuid[])",
+                [potentialReplyLeadIds]
+            );
+            const replies = repliesResult.rows || [];
             
             const repliesByLead: Record<string, any[]> = {};
             replies.forEach(r => {
@@ -156,6 +150,26 @@ export async function GET(req: Request) {
             lead_id: r.lead_id
         })));
 
+        // 5. Enrich campaigns list for the dashboard table
+        const campaignStatsMap: Record<string, any> = {};
+        if (campaignStatsRes.rows) {
+            campaignStatsRes.rows.forEach((s: any) => {
+                campaignStatsMap[s.campaign_id] = s;
+            });
+        }
+
+        const enrichedCampaigns = campaignsData.map((c: any) => {
+            const s = campaignStatsMap[c.id] || {};
+            const sent = s.total_sent || 0;
+            return {
+                ...c,
+                sent_count: sent,
+                reply_count: s.total_replied || 0,
+                completion_rate: c.total_leads > 0 ? Math.round((sent / c.total_leads) * 100) : 0,
+                reply_rate: s.reply_rate || 0,
+            };
+        });
+
         return NextResponse.json({
             stats: {
                 totalCampaigns: campaignIds.length,
@@ -168,7 +182,8 @@ export async function GET(req: Request) {
             },
             chartData,
             sendIntelligence,
-            replyQuality
+            replyQuality,
+            campaigns: enrichedCampaigns
         });
 
     } catch (error) {

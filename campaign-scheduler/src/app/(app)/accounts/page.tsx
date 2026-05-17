@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { insforge } from "@/lib/insforge";
+
 import { useUser } from "@/hooks/use-user";
 
 import { Plus, Mail, Unplug, RefreshCw } from "lucide-react";
@@ -123,14 +123,17 @@ export default function AccountsPage() {
 
     const handleConnectGmail = async () => {
         setIsConnecting(true);
-        window.location.href = "/api/auth/google?redirect=/accounts";
+        window.location.href = "/api/gmail-connect/google?redirect=/accounts";
     };
 
     const handleDisconnect = async (id: string) => {
         setConfirmModalOpen(false);
         try {
-            const { error } = await insforge.from("sender_accounts").delete().eq("id", id);
-            if (error) throw error;
+            const res = await fetch(`/api/accounts/${id}`, { method: "DELETE" });
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || "Failed to disconnect account");
+            }
             toast.info("Account removed");
             setAccounts(accounts.filter(acc => acc.id !== id));
         } catch (err: unknown) {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@/lib/auth-helper";
+import { pool } from "@/lib/db";
 import { encrypt } from "@/lib/encryption";
 
 export async function GET() {
@@ -10,46 +10,46 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const insforge = await getInsforgeClient();
-        const { data: accounts, error } = await insforge
-            .from("sender_accounts")
-            .select("*")
-            .order("created_at", { ascending: false });
+        // Fetch sender accounts scoped to user_id
+        const accountsResult = await pool.query(
+            "SELECT * FROM sender_accounts WHERE user_id = $1 ORDER BY created_at DESC",
+            [user.id]
+        );
+        const accounts = accountsResult.rows || [];
 
-        if (error) throw error;
+        const accountIds = accounts.map(a => a.id);
 
-        const accountIds = (accounts || []).map(a => a.id);
-
-        const { data: warmupData } = accountIds.length > 0
-            ? await insforge
-                .from("warmup_accounts")
-                .select("gmail_account_id, status")
-                .in("gmail_account_id", accountIds)
-            : { data: null };
-
-        const warmupStatusMap: Record<string, string> = {};
-        (warmupData || []).forEach(row => {
-            warmupStatusMap[row.gmail_account_id] = row.status;
-        });
+        let warmupStatusMap: Record<string, string> = {};
+        if (accountIds.length > 0) {
+            const warmupResult = await pool.query(
+                "SELECT gmail_account_id, status FROM warmup_accounts WHERE gmail_account_id = ANY($1::uuid[])",
+                [accountIds]
+            );
+            (warmupResult.rows || []).forEach(row => {
+                warmupStatusMap[row.gmail_account_id] = row.status;
+            });
+        }
 
         // Fetch emails sent today per account
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
 
-        const { data: sentTodayData } = await insforge
-            .from("leads")
-            .select("sender_account_id, status")
-            .gte("sent_at", startOfDay.toISOString())
-            .in("status", ["SENT", "REPLIED"]);
+        const sentTodayResult = await pool.query(
+            `SELECT sender_account_id, status FROM leads 
+             WHERE sent_at >= $1 
+             AND status IN ('SENT', 'REPLIED') 
+             AND sender_account_id = ANY($2::uuid[])`,
+            [startOfDay.toISOString(), accountIds]
+        );
 
         const sentTodayMap: Record<string, number> = {};
-        sentTodayData?.forEach(lead => {
+        (sentTodayResult.rows || []).forEach(lead => {
             if (lead.sender_account_id) {
                 sentTodayMap[lead.sender_account_id] = (sentTodayMap[lead.sender_account_id] || 0) + 1;
             }
         });
 
-        const accountsWithStats = (accounts || []).map(acc => ({
+        const accountsWithStats = accounts.map(acc => ({
             ...acc,
             google_access_token: "••••••••", // Sanitize
             google_refresh_token: acc.google_refresh_token ? "••••••••" : null, // Sanitize
@@ -83,51 +83,49 @@ export async function POST(req: Request) {
         }
 
         // Check if account already exists
-        const insforge = await getInsforgeClient();
-        const { data: existing } = await insforge
-            .from("sender_accounts")
-            .select("id, user_id")
-            .eq("email", email)
-            .eq("user_id", user.id)
-            .maybeSingle();
+        const existingResult = await pool.query(
+            "SELECT id, user_id FROM sender_accounts WHERE email = $1 AND user_id = $2 LIMIT 1",
+            [email, user.id]
+        );
+        const existing = existingResult.rows[0];
 
         if (existing) {
             // Update existing account
-            const { data: updated, error } = await insforge
-                .from("sender_accounts")
-                .update({
-                    google_access_token: encrypt(google_access_token),
-                    google_refresh_token: google_refresh_token ? encrypt(google_refresh_token) : null,
-                    is_active: true,
-                })
-                .eq("id", existing.id)
-                .select()
-                .single();
-
-            if (error) throw error;
+            const updateResult = await pool.query(
+                `UPDATE sender_accounts 
+                 SET google_access_token = $1, 
+                     google_refresh_token = $2, 
+                     is_active = true 
+                 WHERE id = $3 
+                 RETURNING *`,
+                [
+                    encrypt(google_access_token),
+                    google_refresh_token ? encrypt(google_refresh_token) : null,
+                    existing.id
+                ]
+            );
 
             return NextResponse.json(
-                { message: "Account updated", data: updated },
+                { message: "Account updated", data: updateResult.rows[0] },
                 { status: 200 }
             );
         }
 
         // Create new sender account
-        const { data: created, error } = await insforge
-            .from("sender_accounts")
-            .insert([{
-                user_id: user.id,
+        const insertResult = await pool.query(
+            `INSERT INTO sender_accounts (user_id, email, google_access_token, google_refresh_token) 
+             VALUES ($1, $2, $3, $4) 
+             RETURNING *`,
+            [
+                user.id,
                 email,
-                google_access_token: encrypt(google_access_token),
-                google_refresh_token: google_refresh_token ? encrypt(google_refresh_token) : null,
-            }])
-            .select()
-            .single();
-
-        if (error) throw error;
+                encrypt(google_access_token),
+                google_refresh_token ? encrypt(google_refresh_token) : null
+            ]
+        );
 
         return NextResponse.json(
-            { message: "Account connected successfully", data: created },
+            { message: "Account connected successfully", data: insertResult.rows[0] },
             { status: 201 }
         );
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth-helper";
-import { getInsforgeClient } from "@/lib/insforge-server";
+import { pool } from "@/lib/db";
 
 export async function GET() {
     try {
@@ -9,18 +9,15 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const insforge = await getInsforgeClient();
-        const { data: folders, error } = await insforge
-            .from("draft_folders")
-            .select("id, name, color, created_at")
-            .eq("user_id", user.id)
-            .order("name", { ascending: true });
+        const result = await pool.query(
+            `SELECT id, name, color, created_at 
+             FROM draft_folders 
+             WHERE user_id = $1 
+             ORDER BY name ASC`,
+            [user.id]
+        );
 
-        if (error) {
-            throw error;
-        }
-
-        return NextResponse.json({ data: folders || [] });
+        return NextResponse.json({ data: result.rows || [] });
     } catch (error) {
         console.error("[GET Folders API Error]:", error);
         return NextResponse.json({ error: "Failed to fetch folders" }, { status: 500 });
@@ -41,22 +38,18 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Folder name is required" }, { status: 400 });
         }
 
-        const insforge = await getInsforgeClient();
-        const { data, error } = await insforge
-            .from("draft_folders")
-            .insert([{
-                user_id: user.id,
+        const result = await pool.query(
+            `INSERT INTO draft_folders (user_id, name, color) 
+             VALUES ($1, $2, $3) 
+             RETURNING id, name, color, created_at`,
+            [
+                user.id,
                 name,
-                color: color || "#F59E0B",
-            }])
-            .select("id, name, color, created_at")
-            .single();
+                color || "#F59E0B"
+            ]
+        );
 
-        if (error) {
-            throw error;
-        }
-
-        return NextResponse.json({ data }, { status: 201 });
+        return NextResponse.json({ data: result.rows[0] }, { status: 201 });
     } catch (error) {
         console.error("[POST Folders API Error]:", error);
         return NextResponse.json({ error: "Failed to create folder" }, { status: 500 });

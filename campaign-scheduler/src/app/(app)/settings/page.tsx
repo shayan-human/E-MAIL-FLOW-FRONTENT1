@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Settings as SettingsIcon, Sun, Moon, Monitor, Bell, BellOff, LogOut, Save, X } from "lucide-react";
-import { insforge } from "@/lib/insforge";
+
 import { useUser, useAuth } from "@/hooks/use-user";
 import { toast } from "@/components/ui/toast-provider";
 import { SimpleConfirmModal } from "@/components/ui/simple-confirm-modal";
@@ -68,11 +68,9 @@ export default function SettingsPage() {
   const fetchSettings = async () => {
     if (!user?.id) return;
     try {
-      const { data, error } = await insforge
-        .from("user_settings")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const res = await fetch("/api/settings");
+      if (!res.ok) throw new Error("Failed to fetch settings");
+      const { data } = await res.json();
 
       if (data) {
         const newSettings = {
@@ -118,21 +116,15 @@ export default function SettingsPage() {
     if (!user?.id) return;
     setSaving(true);
     try {
-      const { data: existing } = await insforge
-        .from("user_settings")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
 
-      if (existing?.id) {
-        await insforge
-          .from("user_settings")
-          .update({ ...updates, updated_at: new Date().toISOString() })
-          .eq("id", existing.id);
-      } else {
-        await insforge
-          .from("user_settings")
-          .insert([{ ...settings, user_id: user.id, ...updates }]);
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to save settings");
       }
 
       if (!instant) {

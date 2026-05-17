@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@/lib/auth-helper";
+import { pool } from "@/lib/db";
 
 export async function GET() {
     try {
@@ -9,34 +9,31 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const insforge = await getInsforgeClient();
+        // Get all unique emails from leads across all user's campaigns using JOIN scoping
+        const leadsResult = await pool.query(
+            `SELECT DISTINCT l.email 
+             FROM leads l
+             JOIN campaigns c ON l.campaign_id = c.id
+             WHERE c.user_id = $1`,
+            [user.id]
+        );
+        const existingLeads = leadsResult.rows || [];
 
-        // Get all unique emails from leads across all user's campaigns
-        const { data: existingLeads, error: leadsError } = await insforge
-            .from('leads')
-            .select('email')
-            .eq('sender_account_email', user.email);
-
-        // Get all blocked emails
-        const { data: blockedLeads, error: blockedError } = await insforge
-            .from('blocked_leads')
-            .select('email')
-            .eq('user_id', user.id);
-
-        if (leadsError) {
-            console.error('[Leads API] Error fetching existing leads:', leadsError.message);
-        }
-
-        if (blockedError) {
-            console.error('[Leads API] Error fetching blocked leads:', blockedError.message);
-        }
+        // Get all blocked emails scoped strictly by user_id
+        const blockedResult = await pool.query(
+            `SELECT email 
+             FROM blocked_leads 
+             WHERE user_id = $1`,
+            [user.id]
+        );
+        const blockedLeads = blockedResult.rows || [];
 
         const existingEmails = new Set(
-            (existingLeads || []).map(l => l.email?.toLowerCase()).filter(Boolean)
+            existingLeads.map(l => l.email?.toLowerCase()).filter(Boolean)
         );
         
         const blockedEmails = new Set(
-            (blockedLeads || []).map(l => l.email?.toLowerCase()).filter(Boolean)
+            blockedLeads.map(l => l.email?.toLowerCase()).filter(Boolean)
         );
 
         return NextResponse.json({

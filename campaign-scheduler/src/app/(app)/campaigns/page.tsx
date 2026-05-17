@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { insforge } from "@/lib/insforge";
 import { useUser } from "@/hooks/use-user";
 import { toast } from "@/components/ui/toast-provider";
 import { SimpleConfirmModal } from "@/components/ui/simple-confirm-modal";
@@ -164,31 +163,17 @@ export default function CampaignsPage() {
         }
         setLoading(true);
         try {
-            const [campaignsRes, leadsRes] = await Promise.all([
-                insforge
-                    .from("campaigns")
-                    .select("*")
-                    .eq("user_id", user.id)
-                    .order("created_at", { ascending: false }),
-                insforge
-                    .from("leads")
-                    .select("campaign_id, status")
-                    .in("status", ["SENT", "REPLIED"]),
-            ]);
+            const res = await fetch("/api/campaign");
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
 
-            if (campaignsRes.error) {
-                if (campaignsRes.error.message?.toLowerCase().includes("jwt") || campaignsRes.error.code === "PGRST301") {
-                    window.location.href = "/";
-                    throw new Error("Unauthorized");
-                }
-                throw campaignsRes.error;
-            }
-            if (!campaignsRes.data) return;
+            const campaignsList = data.campaigns || [];
+            const leadsList = data.leads || [];
 
             // Count sent/replied per campaign in memory
             const sentMap: Record<string, number> = {};
             const repliedMap: Record<string, number> = {};
-            for (const lead of (leadsRes.data || [])) {
+            for (const lead of leadsList) {
                 if (lead.status === "SENT" || lead.status === "REPLIED") {
                     sentMap[lead.campaign_id] = (sentMap[lead.campaign_id] || 0) + 1;
                 }
@@ -197,7 +182,7 @@ export default function CampaignsPage() {
                 }
             }
 
-            const enriched: CampaignRow[] = campaignsRes.data.map((c: any) => {
+            const enriched: CampaignRow[] = campaignsList.map((c: any) => {
                 const sent = sentMap[c.id] || 0;
                 const replied = repliedMap[c.id] || 0;
                 const replyRate = sent > 0 ? Math.round((replied / sent) * 100) : 0;
@@ -219,11 +204,12 @@ export default function CampaignsPage() {
 
     const handleStatusChange = async (id: string, newStatus: string) => {
         try {
-            const { error } = await insforge
-                .from("campaigns")
-                .update({ status: newStatus })
-                .eq("id", id);
-            if (error) throw error;
+            const res = await fetch(`/api/campaigns/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: newStatus })
+            });
+            if (!res.ok) throw new Error("Failed to update status");
             toast.success(`Campaign ${newStatus.toLowerCase()}`);
             setCampaigns(campaigns.map(c => c.id === id ? { ...c, status: newStatus } : c));
         } catch {
@@ -234,8 +220,10 @@ export default function CampaignsPage() {
     const handleDelete = async (id: string) => {
         setConfirmModalOpen(false);
         try {
-            const { error } = await insforge.from("campaigns").delete().eq("id", id);
-            if (error) throw error;
+            const res = await fetch(`/api/campaigns/${id}`, {
+                method: "DELETE"
+            });
+            if (!res.ok) throw new Error("Failed to delete campaign");
             toast.success("Campaign deleted");
             setCampaigns(campaigns.filter(c => c.id !== id));
         } catch {

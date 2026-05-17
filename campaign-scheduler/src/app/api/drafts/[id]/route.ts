@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth-helper";
-import { getInsforgeClient } from "@/lib/insforge-server";
+import { pool } from "@/lib/db";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -13,32 +13,61 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         const body = await req.json();
         const { name, subject, body: draftBody, folder_id } = body;
 
-        const insforge = await getInsforgeClient();
-        
-        const updateData: Record<string, unknown> = {};
-        if (name !== undefined) updateData.name = name;
-        if (subject !== undefined) updateData.subject = subject;
-        if (draftBody !== undefined) updateData.body = draftBody;
-        if (folder_id !== undefined) updateData.folder_id = folder_id;
-        updateData.updated_at = new Date().toISOString();
+        const updateFields: string[] = [];
+        const values: any[] = [];
+        let valIdx = 1;
 
-        const { data, error } = await insforge
-            .from("drafts")
-            .update(updateData)
-            .eq("id", id)
-            .eq("user_id", user.id)
-            .select("id, name, subject, body, created_at, folder_id, updated_at")
-            .single();
-
-        if (error) {
-            throw error;
+        if (name !== undefined) {
+            updateFields.push(`name = $${valIdx}`);
+            values.push(name);
+            valIdx++;
+        }
+        if (subject !== undefined) {
+            updateFields.push(`subject = $${valIdx}`);
+            values.push(subject);
+            valIdx++;
+        }
+        if (draftBody !== undefined) {
+            updateFields.push(`body = $${valIdx}`);
+            values.push(draftBody);
+            valIdx++;
+        }
+        if (folder_id !== undefined) {
+            updateFields.push(`folder_id = $${valIdx}`);
+            values.push(folder_id);
+            valIdx++;
         }
 
-        if (!data) {
-            return NextResponse.json({ error: "Draft not found" }, { status: 404 });
+        if (updateFields.length === 0) {
+            return NextResponse.json({ error: "No fields to update" }, { status: 400 });
         }
 
-        return NextResponse.json({ data });
+        updateFields.push(`updated_at = $${valIdx}`);
+        values.push(new Date().toISOString());
+        valIdx++;
+
+        // Append ID and User ID parameters for WHERE clause
+        values.push(id);
+        const idIdx = valIdx;
+        valIdx++;
+
+        values.push(user.id);
+        const userIdIdx = valIdx;
+
+        const queryText = `
+            UPDATE drafts 
+            SET ${updateFields.join(", ")} 
+            WHERE id = $${idIdx} AND user_id = $${userIdIdx} 
+            RETURNING id, name, subject, body, created_at, folder_id, updated_at
+        `;
+
+        const result = await pool.query(queryText, values);
+
+        if (result.rowCount === 0) {
+            return NextResponse.json({ error: "Draft not found or access denied" }, { status: 404 });
+        }
+
+        return NextResponse.json({ data: result.rows[0] });
     } catch (error) {
         console.error("[PATCH Draft API Error]:", error);
         return NextResponse.json({ error: "Failed to update draft" }, { status: 500 });
@@ -54,16 +83,13 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
         const { id } = await params;
 
-        const insforge = await getInsforgeClient();
-        
-        const { error: deleteError } = await insforge
-            .from("drafts")
-            .delete()
-            .eq("id", id)
-            .eq("user_id", user.id);
+        const result = await pool.query(
+            "DELETE FROM drafts WHERE id = $1 AND user_id = $2",
+            [id, user.id]
+        );
 
-        if (deleteError) {
-            throw deleteError;
+        if (result.rowCount === 0) {
+            return NextResponse.json({ error: "Draft not found or access denied" }, { status: 404 });
         }
 
         return NextResponse.json({ success: true });

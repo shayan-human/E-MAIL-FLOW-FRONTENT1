@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth-helper";
-import { getInsforgeClient } from "@/lib/insforge-server";
+import { pool } from "@/lib/db";
 import DashboardClient from "./DashboardClient";
 import { redirect } from "next/navigation";
 import { processChartData, processBestSendDay, processReplyQuality } from "@/lib/chart-utils";
@@ -13,24 +13,21 @@ export default async function DashboardPage() {
         return null;
     }
 
-    const insforge = await getInsforgeClient();
-
     // 1. Initial parallel fetch for campaigns and core stats
     const [campaignsRes, accountsRes] = await Promise.all([
-        insforge
-            .from("campaigns")
-            .select("*")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false }),
-        insforge
-            .from("sender_accounts")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .eq("is_active", true)
+        pool.query(
+            "SELECT * FROM campaigns WHERE user_id = $1 ORDER BY created_at DESC",
+            [user.id]
+        ),
+        pool.query(
+            "SELECT COUNT(*) AS count FROM sender_accounts WHERE user_id = $1 AND is_active = true",
+            [user.id]
+        )
     ]);
 
-    const campaignsData = campaignsRes.data || [];
+    const campaignsData = campaignsRes.rows || [];
     const campaignIds = campaignsData.map((c: any) => c.id);
+    const activeAccounts = parseInt(accountsRes.rows[0].count) || 0;
 
     // Initial default values
     let stats = {
@@ -38,7 +35,7 @@ export default async function DashboardPage() {
         emailsSent: 0,
         totalReplies: 0,
         avgReplyRate: "0%",
-        activeAccounts: accountsRes.count || 0,
+        activeAccounts,
         bouncedCount: 0,
         avgReplyTime: "---",
     };
@@ -60,42 +57,38 @@ export default async function DashboardPage() {
             activityRes
         ] = await Promise.all([
             // Exact counts for the main cards - bypasses row limits
-            insforge
-                .from("leads")
-                .select("*", { count: "exact", head: true })
-                .in("campaign_id", campaignIds)
-                .in("status", ["SENT", "REPLIED"]),
+            pool.query(
+                "SELECT COUNT(*) AS count FROM leads WHERE campaign_id = ANY($1) AND status IN ('SENT', 'REPLIED')",
+                [campaignIds]
+            ),
 
-            insforge
-                .from("leads")
-                .select("*", { count: "exact", head: true })
-                .in("campaign_id", campaignIds)
-                .eq("status", "BOUNCED"),
+            pool.query(
+                "SELECT COUNT(*) AS count FROM leads WHERE campaign_id = ANY($1) AND status = 'BOUNCED'",
+                [campaignIds]
+            ),
 
             // Only fetch actual lead rows for status = 'REPLIED' to filter them
-            insforge
-                .from("leads")
-                .select("id, status, sent_at, replied_at, email")
-                .in("campaign_id", campaignIds)
-                .eq("status", "REPLIED"),
+            pool.query(
+                "SELECT id, status, sent_at, replied_at, email FROM leads WHERE campaign_id = ANY($1) AND status = 'REPLIED'",
+                [campaignIds]
+            ),
 
             // Get per-campaign counts for the table
-            insforge
-                .from("campaign_stats")
-                .select("*")
-                .in("campaign_id", campaignIds),
+            pool.query(
+                "SELECT * FROM campaign_stats WHERE campaign_id = ANY($1)",
+                [campaignIds]
+            ),
 
             // Get activity data for chart
-            insforge
-                .from("leads")
-                .select("id, sent_at, status")
-                .in("campaign_id", campaignIds)
-                .gte("sent_at", thirtyDaysAgo.toISOString())
+            pool.query(
+                "SELECT id, sent_at, status FROM leads WHERE campaign_id = ANY($1) AND sent_at >= $2",
+                [campaignIds, thirtyDaysAgo.toISOString()]
+            )
         ]);
 
-        const sentCount = sentRes.count || 0;
-        let baseBouncedCount = bouncedRes.count || 0;
-        const repliedLeads = repliedLeadsRes.data || [];
+        const sentCount = parseInt(sentRes.rows[0].count) || 0;
+        let baseBouncedCount = parseInt(bouncedRes.rows[0].count) || 0;
+        const repliedLeads = repliedLeadsRes.rows || [];
 
         // Fetch replies for leads marked as REPLIED to verify they are genuine
         const potentialReplyLeadIds = repliedLeads.map(l => l.id);
@@ -105,12 +98,12 @@ export default async function DashboardPage() {
         let allGenuineReplies: any[] = [];
 
         if (potentialReplyLeadIds.length > 0) {
-            const { data: allReplies } = await insforge
-                .from("replies")
-                .select("lead_id, subject, body, sender_email, timestamp, type")
-                .in("lead_id", potentialReplyLeadIds);
+            const repliesResult = await pool.query(
+                "SELECT lead_id, subject, body, sender_email, timestamp, type FROM replies WHERE lead_id = ANY($1)",
+                [potentialReplyLeadIds]
+            );
 
-            const replies = allReplies || [];
+            const replies = repliesResult.rows || [];
             
             const repliesByLead: Record<string, any[]> = {};
             replies.forEach(r => {
@@ -161,8 +154,8 @@ export default async function DashboardPage() {
 
         // Enrich campaigns for the table
         const campaignStatsMap: Record<string, any> = {};
-        if (campaignStatsRes.data) {
-            campaignStatsRes.data.forEach((s: any) => {
+        if (campaignStatsRes.rows) {
+            campaignStatsRes.rows.forEach((s: any) => {
                 campaignStatsMap[s.campaign_id] = s;
             });
         }
@@ -180,7 +173,7 @@ export default async function DashboardPage() {
         });
 
         // Generate Chart Data
-        const activityData = (activityRes.data || []) as LeadData[];
+        const activityData = (activityRes.rows || []) as LeadData[];
         chartData = processChartData(activityData);
         bestSendDay = processBestSendDay(activityData);
 

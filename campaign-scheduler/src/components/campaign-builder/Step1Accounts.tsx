@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { insforge } from "@/lib/insforge";
 import { useUser } from "@/hooks/use-user";
 import { toast } from "@/components/ui/toast-provider";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -47,33 +46,15 @@ export function Step1Accounts({ onNext }: Step1Props) {
 
     const fetchAccounts = async () => {
         try {
-            const { data, error } = await insforge
-                .from("sender_accounts")
-                .select("*")
-                .order("created_at", { ascending: false });
+            const res = await fetch("/api/accounts");
+            if (!res.ok) {
+                throw new Error("Failed to fetch accounts");
+            }
+            const { data } = await res.json();
+            const accountsList = data || [];
 
-            if (error) throw error;
-
-            const accountIds = (data || []).map(a => a.id);
-            const { data: warmupData } = accountIds.length > 0
-                ? await insforge
-                    .from("warmup_accounts")
-                    .select("gmail_account_id, status")
-                    .in("gmail_account_id", accountIds)
-                : { data: null };
-
-            const warmupStatusMap: Record<string, string> = {};
-            (warmupData || []).forEach((row: { gmail_account_id: string; status: string }) => {
-                warmupStatusMap[row.gmail_account_id] = row.status;
-            });
-
-            const accountsWithWarmup = (data || []).map(a => ({
-                ...a,
-                warmup_status: warmupStatusMap[a.id] || null,
-            }));
-
-            const nonWarming = accountsWithWarmup.filter(a => a.warmup_status !== "warming");
-            const warming = accountsWithWarmup.filter(a => a.warmup_status === "warming");
+            const nonWarming = accountsList.filter((a: Account) => a.warmup_status !== "warming");
+            const warming = accountsList.filter((a: Account) => a.warmup_status === "warming");
 
             return [...nonWarming, ...warming];
         } catch (err: unknown) {
@@ -131,10 +112,10 @@ export function Step1Accounts({ onNext }: Step1Props) {
 
     const handleConnectGmail = async () => {
         setIsConnecting(true);
-        window.location.href = "/api/auth/google?redirect=/campaigns/new";
+        window.location.href = "/api/gmail-connect/google?redirect=/campaigns/new";
     };
 
-    // Use upsert to prevent duplicates — the email column has a unique constraint
+    // Use backend endpoint to upsert tokens
     const saveTokens = async (
         session: { provider_token?: string | null; provider_refresh_token?: string | null; user: { id: string; email?: string } },
         currentAccounts: Account[]
@@ -149,19 +130,21 @@ export function Step1Accounts({ onNext }: Step1Props) {
             // Find existing to preserve refresh token if new one is missing
             const existing = currentAccounts.find(a => a.email === userEmail);
 
-            const { error } = await insforge
-                .from("sender_accounts")
-                .upsert([
-                    {
-                        user_id: session.user.id,
-                        email: userEmail,
-                        google_access_token: providerToken,
-                        google_refresh_token: providerRefreshToken || (existing as any)?.google_refresh_token || null,
-                        is_active: true,
-                    }
-                ], { onConflict: "email" });
+            const res = await fetch("/api/accounts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: userEmail,
+                    google_access_token: providerToken,
+                    google_refresh_token: providerRefreshToken || existing?.google_refresh_token || null
+                })
+            });
 
-            if (error) throw error;
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || "Failed to save Gmail tokens");
+            }
+
             toast.success(existing ? "Gmail tokens refreshed!" : "Gmail account connected!");
         } catch (err: unknown) {
             console.error(err);
@@ -188,12 +171,14 @@ export function Step1Accounts({ onNext }: Step1Props) {
         if (!confirmModal.accountId) return;
 
         try {
-            const { error } = await insforge
-                .from("sender_accounts")
-                .delete()
-                .eq("id", confirmModal.accountId);
+            const res = await fetch(`/api/accounts/${confirmModal.accountId}`, {
+                method: "DELETE"
+            });
 
-            if (error) throw error;
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || "Failed to remove account");
+            }
 
             toast.success("Account removed");
             setAccounts(accounts.filter(acc => acc.id !== confirmModal.accountId));
@@ -244,7 +229,7 @@ export function Step1Accounts({ onNext }: Step1Props) {
                                         setIsLoading(false);
                                     }}
                                     className="flex items-center gap-2"
-                                >
+                                map={null}>
                                     <RefreshCw className="h-3.5 w-3.5" />
                                     Check again
                                 </Button>
@@ -292,7 +277,7 @@ export function Step1Accounts({ onNext }: Step1Props) {
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </div>
-                                );
+                                  );
                             })
                         )}
                     </CardContent>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { insforge } from "@/lib/insforge";
 import { useRouter } from "next/navigation";
 import {
     ResponsiveContainer,
@@ -127,70 +126,25 @@ export default function DashboardClient({ user, initialCampaigns, initialStats, 
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const [campaignsRes, statsRes] = await Promise.all([
-                insforge
-                    .from("campaigns")
-                    .select("*")
-                    .eq("user_id", user.id)
-                    .order("created_at", { ascending: false }),
-                fetch("/api/dashboard/stats").then(async (res) => {
-                    if (res.status === 401) {
-                        await handleSessionExpired();
-                        throw new Error("Session expired");
-                    }
-                    return res.json();
-                })
-            ]);
+            const res = await fetch("/api/dashboard/stats");
+            if (res.status === 401) {
+                await handleSessionExpired();
+                throw new Error("Session expired");
+            }
+            if (!res.ok) throw new Error("Failed to fetch dashboard stats");
+            const data = await res.json();
 
-            if (campaignsRes.error) {
-                if (campaignsRes.error.message?.toLowerCase().includes("jwt") || campaignsRes.error.code === "PGRST301") {
-                    await handleSessionExpired();
-                    throw new Error("Session expired");
-                }
-                throw campaignsRes.error;
+            if (data.stats) {
+                setStatsData(data.stats);
+                setChartDataMaster(data.chartData || { "24H": [], "7D": [], "30D": [] });
+                setBestSendDayData(data.sendIntelligence || []);
+                setIntelligenceData(data.sendIntelligence || []);
+                setReplyQualityData(data.replyQuality || { positive: 0, negative: 0, neutral: 0, total: 0, percentages: { positive: 0, negative: 0, neutral: 0 } });
             }
 
-            if (statsRes.stats) {
-                setStatsData(statsRes.stats);
-                setChartDataMaster(statsRes.chartData || { "24H": [], "7D": [], "30D": [] });
-                setBestSendDayData(statsRes.sendIntelligence || []);
-                setIntelligenceData(statsRes.sendIntelligence || []);
-                setReplyQualityData(statsRes.replyQuality || { positive: 0, negative: 0, neutral: 0, total: 0, percentages: { positive: 0, negative: 0, neutral: 0 } });
+            if (data.campaigns) {
+                setCampaigns(data.campaigns);
             }
-
-            const campaignsData = campaignsRes.data || [];
-            const campaignIds = campaignsData.map((c: any) => c.id);
-            const statsMap: Record<string, any> = {};
-
-            if (campaignIds.length > 0) {
-                const { data: campaignStats } = await insforge
-                    .from("campaign_stats")
-                    .select("*")
-                    .in("campaign_id", campaignIds);
-
-                if (campaignStats) {
-                    campaignStats.forEach((s: any) => {
-                        statsMap[s.campaign_id] = s;
-                    });
-                }
-            }
-
-            const enriched: CampaignWithStats[] = campaignsData.map((c: any) => {
-                const s: any = statsMap[c.id] || {};
-                const sent = s.total_sent || 0;
-                const replied = s.total_replied || 0;
-                const replyRate = s.reply_rate || 0;
-
-                return {
-                    ...c,
-                    sent_count: sent,
-                    reply_count: replied,
-                    completion_rate: c.total_leads > 0 ? Math.round((sent / c.total_leads) * 100) : 0,
-                    reply_rate: replyRate,
-                };
-            });
-
-            setCampaigns(enriched);
         } catch (err) {
             console.error("Error in dashboard fetchData:", err);
         } finally {

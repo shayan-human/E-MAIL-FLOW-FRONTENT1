@@ -1,0 +1,806 @@
+{
+  "totalQueries": 149,
+  "resultsByFile": {
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-scheduler/src/app/api/accounts/[id]/route.ts": [
+      {
+        "line": 20,
+        "tableName": "sender_accounts",
+        "queryChain": ".from(\"sender_accounts\") .delete() .eq(\"id\", id);"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-scheduler/src/app/api/accounts/route.ts": [
+      {
+        "line": 15,
+        "tableName": "sender_accounts",
+        "queryChain": ".from(\"sender_accounts\") .select(\"*\") .order(\"created_at\", { ascending: false });"
+      },
+      {
+        "line": 25,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from(\"warmup_accounts\") .select(\"gmail_account_id, status\") .in(\"gmail_account_id\", accountIds)"
+      },
+      {
+        "line": 40,
+        "tableName": "leads",
+        "queryChain": ".from(\"leads\") .select(\"sender_account_id, status\") .gte(\"sent_at\", startOfDay.toISOString()) .in(\"status\", [\"SENT\", \"REPLIED\"]);"
+      },
+      {
+        "line": 88,
+        "tableName": "sender_accounts",
+        "queryChain": ".from(\"sender_accounts\") .select(\"id, user_id\") .eq(\"email\", email) .eq(\"user_id\", user.id) .maybeSingle();"
+      },
+      {
+        "line": 97,
+        "tableName": "sender_accounts",
+        "queryChain": ".from(\"sender_accounts\") .update({"
+      },
+      {
+        "line": 117,
+        "tableName": "sender_accounts",
+        "queryChain": ".from(\"sender_accounts\") .insert([{"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-scheduler/src/app/api/campaign/route.ts": [
+      {
+        "line": 103,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from(\"warmup_accounts\") .select(\"gmail_account_id, status\") .in(\"gmail_account_id\", selectedAccountIds) .eq(\"status\", \"warming\");"
+      },
+      {
+        "line": 123,
+        "tableName": "campaigns",
+        "queryChain": ".from(\"campaigns\") .insert([{"
+      },
+      {
+        "line": 152,
+        "tableName": "campaign_accounts",
+        "queryChain": ".from(\"campaign_accounts\") .insert(accountLinks);"
+      },
+      {
+        "line": 163,
+        "tableName": "drafts",
+        "queryChain": ".from(\"drafts\") .select(\"id, subject, body\") .in(\"id\", selectedDraftIds);"
+      },
+      {
+        "line": 176,
+        "tableName": "sender_accounts",
+        "queryChain": ".from(\"sender_accounts\") .select(\"id, email\") .in(\"id\", selectedAccountIds);"
+      },
+      {
+        "line": 239,
+        "tableName": "leads",
+        "queryChain": ".from(\"leads\") .insert(leadsToInsert);"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-scheduler/src/app/api/campaign/sync-replies/route.ts": [
+      {
+        "line": 26,
+        "tableName": "campaigns",
+        "queryChain": ".from(\"campaigns\") .select(\"id, subject\") .eq(\"user_id\", user.id);"
+      },
+      {
+        "line": 45,
+        "tableName": "sender_accounts",
+        "queryChain": ".from(\"sender_accounts\") .select(\"id, email, google_access_token, google_refresh_token\") .eq(\"user_id\", user.id) .eq(\"is_active\", true),"
+      },
+      {
+        "line": 50,
+        "tableName": "leads",
+        "queryChain": ".from(\"leads\") .select(\"id, campaign_id, email, gmail_thread_id, sent_at, sender_account_id\") .in(\"campaign_id\", campaignIds) .in(\"status\", [\"SENT\", \"REPLIED\"]),"
+      },
+      {
+        "line": 140,
+        "tableName": "leads",
+        "queryChain": ".from(\"leads\") .update({"
+      },
+      {
+        "line": 151,
+        "tableName": "leads",
+        "queryChain": ".from(\"leads\") .select(\"campaign_id, status\") .in(\"campaign_id\", campaignIds) .in(\"status\", [\"SENT\", \"REPLIED\"]);"
+      },
+      {
+        "line": 179,
+        "tableName": "campaign_stats",
+        "queryChain": ".from(\"campaign_stats\") .upsert(upsertData, { onConflict: \"campaign_id\" });"
+      },
+      {
+        "line": 246,
+        "tableName": "sender_accounts",
+        "queryChain": "const { data: senderAcc } = await insforge.from(\"sender_accounts\").select(\"email\").eq(\"id\", senderAccountId).maybeSingle();"
+      },
+      {
+        "line": 261,
+        "tableName": "replies",
+        "queryChain": ".from(\"replies\") .insert([{"
+      },
+      {
+        "line": 326,
+        "tableName": "replies",
+        "queryChain": ".from(\"replies\") .select(\"id\") .eq(\"gmail_message_id\", msg.id) .maybeSingle();"
+      },
+      {
+        "line": 335,
+        "tableName": "replies",
+        "queryChain": ".from(\"replies\") .insert([{"
+      },
+      {
+        "line": 351,
+        "tableName": "leads",
+        "queryChain": ".from(\"leads\") .update({ gmail_thread_id: msg.threadId }) .eq(\"id\", leadId);"
+      },
+      {
+        "line": 408,
+        "tableName": "sender_accounts",
+        "queryChain": ".from(\"sender_accounts\") .update({ google_access_token: encrypt(token) }) .eq(\"id\", senderAccountId);"
+      },
+      {
+        "line": 472,
+        "tableName": "replies",
+        "queryChain": ".from(\"replies\") .select(\"id\") .eq(\"gmail_message_id\", m.id) .maybeSingle();"
+      },
+      {
+        "line": 505,
+        "tableName": "leads",
+        "queryChain": ".from(\"leads\") .select(\"id, campaign_id\") .eq(\"email\", failedEmail) .in(\"status\", [\"SENT\", \"PENDING\"]);"
+      },
+      {
+        "line": 513,
+        "tableName": "leads",
+        "queryChain": ".from(\"leads\") .update({ status: \"BOUNCED\" }) .in(\"id\", leadIds);"
+      },
+      {
+        "line": 521,
+        "tableName": "replies",
+        "queryChain": ".from(\"replies\") .insert([{"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-scheduler/src/app/api/campaigns/[id]/stats/route.ts": [
+      {
+        "line": 20,
+        "tableName": "campaigns",
+        "queryChain": ".from(\"campaigns\") .select(`"
+      },
+      {
+        "line": 44,
+        "tableName": "leads",
+        "queryChain": ".from(\"leads\") .select(\"id, email, status, sent_at, replied_at\") .eq(\"campaign_id\", campaignId) .order(\"sent_at\", { ascending: false, nullsFirst: false }),"
+      },
+      {
+        "line": 51,
+        "tableName": "campaign_stats",
+        "queryChain": ".from(\"campaign_stats\") .select(\"*\") .eq(\"campaign_id\", campaignId) .maybeSingle(),"
+      },
+      {
+        "line": 58,
+        "tableName": "leads",
+        "queryChain": ".from(\"leads\") .select(\"*\") .eq(\"campaign_id\", campaignId) .eq(\"status\", \"REPLIED\") .order(\"replied_at\", { ascending: false }) .limit(5)"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-scheduler/src/app/api/dashboard/stats/route.ts": [
+      {
+        "line": 22,
+        "tableName": "campaigns",
+        "queryChain": ".from(\"campaigns\") .select(\"id\") .eq(\"user_id\", user.id),"
+      },
+      {
+        "line": 26,
+        "tableName": "sender_accounts",
+        "queryChain": ".from(\"sender_accounts\") .select(\"*\", { count: \"exact\", head: true }) .eq(\"user_id\", user.id) .eq(\"is_active\", true)"
+      },
+      {
+        "line": 64,
+        "tableName": "leads",
+        "queryChain": ".from(\"leads\") .select(\"*\", { count: \"exact\", head: true }) .in(\"campaign_id\", campaignIds) .in(\"status\", [\"SENT\", \"REPLIED\"]),"
+      },
+      {
+        "line": 70,
+        "tableName": "leads",
+        "queryChain": ".from(\"leads\") .select(\"*\", { count: \"exact\", head: true }) .in(\"campaign_id\", campaignIds) .eq(\"status\", \"BOUNCED\"),"
+      },
+      {
+        "line": 77,
+        "tableName": "leads",
+        "queryChain": ".from(\"leads\") .select(\"id, status, sent_at, replied_at, email\") .in(\"campaign_id\", campaignIds) .eq(\"status\", \"REPLIED\"),"
+      },
+      {
+        "line": 84,
+        "tableName": "leads",
+        "queryChain": ".from(\"leads\") .select(\"id, sent_at, status\") .in(\"campaign_id\", campaignIds) .gte(\"sent_at\", thirtyDaysAgo.toISOString())"
+      },
+      {
+        "line": 104,
+        "tableName": "replies",
+        "queryChain": ".from(\"replies\") .select(\"lead_id, subject, body, sender_email, timestamp, type\") .in(\"lead_id\", potentialReplyLeadIds);"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-scheduler/src/app/api/debug-gmail/route.ts": [
+      {
+        "line": 13,
+        "tableName": "sender_accounts",
+        "queryChain": ".from(\"sender_accounts\") .select(\"*\");"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-scheduler/src/app/api/drafts/[id]/route.ts": [
+      {
+        "line": 26,
+        "tableName": "drafts",
+        "queryChain": ".from(\"drafts\") .update(updateData) .eq(\"id\", id) .eq(\"user_id\", user.id) .select(\"id, name, subject, body, created_at, folder_id, updated_at\") .single();"
+      },
+      {
+        "line": 60,
+        "tableName": "drafts",
+        "queryChain": ".from(\"drafts\") .delete() .eq(\"id\", id) .eq(\"user_id\", user.id);"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-scheduler/src/app/api/drafts/route.ts": [
+      {
+        "line": 14,
+        "tableName": "drafts",
+        "queryChain": ".from(\"drafts\") .select(\"id, name, subject, body, created_at, folder_id\") .eq(\"user_id\", user.id) .order(\"updated_at\", { ascending: false });"
+      },
+      {
+        "line": 49,
+        "tableName": "drafts",
+        "queryChain": ".from(\"drafts\") .insert([{"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-scheduler/src/app/api/folders/[id]/route.ts": [
+      {
+        "line": 23,
+        "tableName": "draft_folders",
+        "queryChain": ".from(\"draft_folders\") .update(updateData) .eq(\"id\", id) .eq(\"user_id\", user.id) .select(\"id, name, color, created_at\") .single();"
+      },
+      {
+        "line": 57,
+        "tableName": "draft_folders",
+        "queryChain": ".from(\"draft_folders\") .delete() .eq(\"id\", id) .eq(\"user_id\", user.id);"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-scheduler/src/app/api/folders/route.ts": [
+      {
+        "line": 14,
+        "tableName": "draft_folders",
+        "queryChain": ".from(\"draft_folders\") .select(\"id, name, color, created_at\") .eq(\"user_id\", user.id) .order(\"name\", { ascending: true });"
+      },
+      {
+        "line": 46,
+        "tableName": "draft_folders",
+        "queryChain": ".from(\"draft_folders\") .insert([{"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-scheduler/src/app/api/gmail-connect/callback/google/route.ts": [
+      {
+        "line": 91,
+        "tableName": "sender_accounts",
+        "queryChain": ".from(\"sender_accounts\") .select(\"id\") .eq(\"email\", payload.email) .maybeSingle();"
+      },
+      {
+        "line": 98,
+        "tableName": "sender_accounts",
+        "queryChain": ".from(\"sender_accounts\") .update({"
+      },
+      {
+        "line": 112,
+        "tableName": "sender_accounts",
+        "queryChain": ".from(\"sender_accounts\") .insert([payload]);"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-scheduler/src/app/api/inbox/[id]/read/route.ts": [
+      {
+        "line": 19,
+        "tableName": "replies",
+        "queryChain": ".from(\"replies\") .update({ is_read: true }) .eq(\"id\", id);"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-scheduler/src/app/api/inbox/reply/route.ts": [
+      {
+        "line": 28,
+        "tableName": "leads",
+        "queryChain": ".from(\"leads\") .select(`"
+      },
+      {
+        "line": 48,
+        "tableName": "replies",
+        "queryChain": ".from(\"replies\") .select(\"gmail_thread_id\") .eq(\"lead_id\", leadId) .not(\"gmail_thread_id\", \"is\", null) .limit(1) .maybeSingle();"
+      },
+      {
+        "line": 59,
+        "tableName": "leads",
+        "queryChain": ".from(\"leads\") .update({ gmail_thread_id: gmailThreadId }) .eq(\"id\", leadId);"
+      },
+      {
+        "line": 75,
+        "tableName": "sender_accounts",
+        "queryChain": ".from(\"sender_accounts\") .select(\"id\") .eq(\"email\", lead.sender_account_email) .single();"
+      },
+      {
+        "line": 84,
+        "tableName": "leads",
+        "queryChain": ".from(\"leads\") .update({ sender_account_id: fallbackAcc.id }) .eq(\"id\", leadId);"
+      },
+      {
+        "line": 97,
+        "tableName": "sender_accounts",
+        "queryChain": ".from(\"sender_accounts\") .select(`"
+      },
+      {
+        "line": 130,
+        "tableName": "sender_accounts",
+        "queryChain": ".from(\"sender_accounts\") .update({ google_access_token: encrypt(response.newAccessToken) }) .eq(\"id\", lead.sender_account_id);"
+      },
+      {
+        "line": 137,
+        "tableName": "replies",
+        "queryChain": ".from(\"replies\") .insert([{"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-scheduler/src/app/api/inbox/route.ts": [
+      {
+        "line": 17,
+        "tableName": "campaigns",
+        "queryChain": ".from(\"campaigns\") .select(\"id, name\") .eq(\"user_id\", user.id);"
+      },
+      {
+        "line": 32,
+        "tableName": "replies",
+        "queryChain": ".from(\"replies\") .select(`"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-scheduler/src/app/api/leads/route.ts": [
+      {
+        "line": 16,
+        "tableName": "leads",
+        "queryChain": ".from('leads') .select('email') .eq('sender_account_email', user.email);"
+      },
+      {
+        "line": 22,
+        "tableName": "blocked_leads",
+        "queryChain": ".from('blocked_leads') .select('email') .eq('user_id', user.id);"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-backend/lib/email-service.js": [
+      {
+        "line": 122,
+        "tableName": "email_logs",
+        "queryChain": "await insforge.from('email_logs').insert([{"
+      },
+      {
+        "line": 133,
+        "tableName": "leads",
+        "queryChain": "await insforge.from('leads').update({"
+      },
+      {
+        "line": 199,
+        "tableName": "email_logs",
+        "queryChain": "await insforge.from('email_logs').insert([{"
+      },
+      {
+        "line": 209,
+        "tableName": "leads",
+        "queryChain": "await insforge.from('leads').update({"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-backend/lib/reply-service.js": [
+      {
+        "line": 71,
+        "tableName": "blocked_leads",
+        "queryChain": ".from('blocked_leads') .upsert({"
+      },
+      {
+        "line": 88,
+        "tableName": "replies",
+        "queryChain": ".from('replies') .insert({"
+      },
+      {
+        "line": 159,
+        "tableName": "leads",
+        "queryChain": ".from('leads') .select(`"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-backend/lib/spam-rescue-service.js": [
+      {
+        "line": 11,
+        "tableName": "sender_accounts",
+        "queryChain": ".from('sender_accounts') .select('*') .eq('id', warmupAccount.gmail_account_id) .single();"
+      },
+      {
+        "line": 31,
+        "tableName": "sender_accounts",
+        "queryChain": ".from('sender_accounts') .select('id') .eq('email', email.toLowerCase()) .maybeSingle();"
+      },
+      {
+        "line": 39,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .select('id') .eq('gmail_account_id', senderAcc.id) .maybeSingle();"
+      },
+      {
+        "line": 48,
+        "tableName": "warmup_emails",
+        "queryChain": ".from('warmup_emails') .select(`"
+      },
+      {
+        "line": 85,
+        "tableName": "warmup_emails",
+        "queryChain": ".from('warmup_emails') .update({"
+      },
+      {
+        "line": 105,
+        "tableName": "warmup_stats",
+        "queryChain": ".from('warmup_stats') .select('id, spam_rescues') .eq('account_id', accountId) .eq('date', today) .single();"
+      },
+      {
+        "line": 113,
+        "tableName": "warmup_stats",
+        "queryChain": ".from('warmup_stats') .update({"
+      },
+      {
+        "line": 120,
+        "tableName": "warmup_stats",
+        "queryChain": ".from('warmup_stats') .insert({"
+      },
+      {
+        "line": 176,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .select('*') .eq('status', 'warming');"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-backend/lib/token-manager.js": [
+      {
+        "line": 44,
+        "tableName": "sender_accounts",
+        "queryChain": ".from('sender_accounts') .select('refresh_failure_count') .eq('id', accountId) .maybeSingle();"
+      },
+      {
+        "line": 68,
+        "tableName": "sender_accounts",
+        "queryChain": "await insforge.from('sender_accounts').update(updateData).eq('id', accountId);"
+      },
+      {
+        "line": 84,
+        "tableName": "sender_accounts",
+        "queryChain": "await insforge.from('sender_accounts').update({"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-backend/lib/token-refresh-service.js": [
+      {
+        "line": 17,
+        "tableName": "sender_accounts",
+        "queryChain": ".from('sender_accounts') .select('*') .eq('status', 'CONNECTED') .eq('is_active', true);"
+      }
+    ],
+    "/home/shayan/Documents/coding/EMAIL FLOW/campaign-backend/lib/warmup-service.js": [
+      {
+        "line": 74,
+        "tableName": "warmup_jobs",
+        "queryChain": ".from('warmup_jobs') .select('id') .eq('warmup_account_id', warmupAccountRecord.id) .eq('day_number', 1) .eq('status', 'pending');"
+      },
+      {
+        "line": 109,
+        "tableName": "warmup_jobs",
+        "queryChain": "await insforge.from('warmup_jobs').insert(jobsToInsert);"
+      },
+      {
+        "line": 116,
+        "tableName": "sender_accounts",
+        "queryChain": ".from('sender_accounts') .select('id, user_id, email, name, google_access_token, google_refresh_token') .eq('id', gmailAccountId) .single();"
+      },
+      {
+        "line": 126,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .select('*') .eq('gmail_account_id', gmailAccountId) .single();"
+      },
+      {
+        "line": 137,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .update({"
+      },
+      {
+        "line": 163,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .insert({"
+      },
+      {
+        "line": 195,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .update({ status: 'paused' }) .eq('id', warmupAccountId) .select() .single();"
+      },
+      {
+        "line": 210,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .update({ status: 'warming' }) .eq('id', warmupAccountId) .select() .single();"
+      },
+      {
+        "line": 227,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .select(`"
+      },
+      {
+        "line": 258,
+        "tableName": "warmup_stats",
+        "queryChain": ".from('warmup_stats') .select('*') .eq('account_id', accountId) .gte('date', startDate.toISOString().split('T')[0]) .order('date', { ascending: false });"
+      },
+      {
+        "line": 274,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .select('id, status') .eq('user_id', userId);"
+      },
+      {
+        "line": 312,
+        "tableName": "warmup_stats",
+        "queryChain": ".from('warmup_stats') .select('sent, received, replies, spam_rescues') .in('account_id', accountIds);"
+      },
+      {
+        "line": 349,
+        "tableName": "warmup_emails",
+        "queryChain": ".from('warmup_emails') .insert({"
+      },
+      {
+        "line": 375,
+        "tableName": "warmup_stats",
+        "queryChain": ".from('warmup_stats') .select('*') .eq('account_id', accountId) .eq('date', today) .single();"
+      },
+      {
+        "line": 384,
+        "tableName": "warmup_stats",
+        "queryChain": ".from('warmup_stats') .update({"
+      },
+      {
+        "line": 397,
+        "tableName": "warmup_stats",
+        "queryChain": ".from('warmup_stats') .insert({"
+      },
+      {
+        "line": 416,
+        "tableName": "sender_accounts",
+        "queryChain": ".from('sender_accounts') .select('*') .eq('id', warmupAccount.gmail_account_id) .single();"
+      },
+      {
+        "line": 446,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .select('*, sender_accounts(email)') .in('status', ['warming', 'warmed']) .neq('id', fromWarmupAccount.id);"
+      },
+      {
+        "line": 466,
+        "tableName": "user_settings",
+        "queryChain": ".from('user_settings') .select('user_id') .in('user_id', recipientUserIds) .eq('network_opt_in', true);"
+      },
+      {
+        "line": 581,
+        "tableName": "warmup_accounts",
+        "queryChain": "await insforge.from('warmup_accounts').update({ status: 'paused' }).eq('id', fromWarmupAccount.id);"
+      },
+      {
+        "line": 599,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .select('*') .eq('status', 'warming');"
+      },
+      {
+        "line": 613,
+        "tableName": "warmup_emails",
+        "queryChain": ".from('warmup_emails') .select('id, from_account_id, subject, reply_content, rfc_message_id') .eq('to_account_id', account.id) .eq('status', 'sent') .is('reply_scheduled_at', null) .gte('created_at', threeDaysAgo) .limit(30);"
+      },
+      {
+        "line": 632,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .select('id, gmail_account_id, status') .in('id', fromAccountIds) .in('status', ['warming', 'warmed']);"
+      },
+      {
+        "line": 674,
+        "tableName": "warmup_emails",
+        "queryChain": ".from('warmup_emails') .update({ reply_scheduled_at: now.toISOString() }) .eq('id', email.id);"
+      },
+      {
+        "line": 683,
+        "tableName": "pending_replies",
+        "queryChain": ".from('pending_replies') .insert({"
+      },
+      {
+        "line": 715,
+        "tableName": "pending_replies",
+        "queryChain": ".from('pending_replies') .select('*') .eq('status', 'pending') .lt('scheduled_at', now.toISOString()) .limit(20); // Process max 20 at a time"
+      },
+      {
+        "line": 738,
+        "tableName": "pending_replies",
+        "queryChain": ".from('pending_replies') .update({"
+      },
+      {
+        "line": 769,
+        "tableName": "pending_replies",
+        "queryChain": ".from('pending_replies') .update({"
+      },
+      {
+        "line": 782,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .select('*') .eq('id', reply.warmup_account_id) .single();"
+      },
+      {
+        "line": 800,
+        "tableName": "pending_replies",
+        "queryChain": ".from('pending_replies') .update({ last_attempted_at: now.toISOString() }) .eq('id', reply.id);"
+      },
+      {
+        "line": 819,
+        "tableName": "pending_replies",
+        "queryChain": ".from('pending_replies') .update({ gmail_thread_id: bThreadId }) .eq('id', reply.id);"
+      },
+      {
+        "line": 836,
+        "tableName": "pending_replies",
+        "queryChain": ".from('pending_replies') .update({"
+      },
+      {
+        "line": 853,
+        "tableName": "pending_replies",
+        "queryChain": ".from('pending_replies') .update({"
+      },
+      {
+        "line": 876,
+        "tableName": "pending_replies",
+        "queryChain": ".from('pending_replies') .update({ status: 'sent' }) .eq('id', reply.id);"
+      },
+      {
+        "line": 883,
+        "tableName": "warmup_emails",
+        "queryChain": ".from('warmup_emails') .update({ status: 'replied' }) .eq('id', reply.email_record_id);"
+      },
+      {
+        "line": 902,
+        "tableName": "warmup_accounts",
+        "queryChain": "await insforge.from('warmup_accounts').update({ status: 'paused' }).eq('id', reply.warmup_account_id);"
+      },
+      {
+        "line": 907,
+        "tableName": "pending_replies",
+        "queryChain": ".from('pending_replies') .update({"
+      },
+      {
+        "line": 921,
+        "tableName": "pending_replies",
+        "queryChain": ".from('pending_replies') .update({"
+      },
+      {
+        "line": 939,
+        "tableName": "warmup_jobs",
+        "queryChain": ".from('warmup_jobs') .select('*') .eq('status', 'pending') .lte('scheduled_at', now) .limit(50);"
+      },
+      {
+        "line": 961,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .select('*') .eq('id', job.warmup_account_id) .single();"
+      },
+      {
+        "line": 983,
+        "tableName": "warmup_emails",
+        "queryChain": ".from('warmup_emails') .select('*') .eq('gmail_message_id', job.gmail_message_id) .single();"
+      },
+      {
+        "line": 996,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .select('*, sender_accounts(email)') .eq('id', warmupEmail.from_account_id) .single();"
+      },
+      {
+        "line": 1002,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .select('*, sender_accounts(email)') .eq('id', warmupEmail.to_account_id) .single();"
+      },
+      {
+        "line": 1031,
+        "tableName": "warmup_emails",
+        "queryChain": ".from('warmup_emails') .update({ status: 'replied' }) .eq('gmail_message_id', job.gmail_message_id);"
+      },
+      {
+        "line": 1057,
+        "tableName": "warmup_jobs",
+        "queryChain": ".from('warmup_jobs') .update({"
+      },
+      {
+        "line": 1067,
+        "tableName": "warmup_jobs",
+        "queryChain": ".from('warmup_jobs') .update({"
+      },
+      {
+        "line": 1085,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .select('*') .eq('status', 'warming');"
+      },
+      {
+        "line": 1113,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .update({ status: 'warmed', day_number: newDayNumber, warmed_up_at: new Date().toISOString() }) .eq('id', account.id);"
+      },
+      {
+        "line": 1123,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .update({"
+      },
+      {
+        "line": 1133,
+        "tableName": "warmup_jobs",
+        "queryChain": ".from('warmup_jobs') .delete() .eq('warmup_account_id', account.id) .eq('type', 'warmup') .eq('day_number', account.day_number - 2);"
+      },
+      {
+        "line": 1143,
+        "tableName": "warmup_jobs",
+        "queryChain": ".from('warmup_jobs') .select('id') .eq('warmup_account_id', account.id) .eq('type', 'warmup') .eq('status', 'completed') .gte('executed_at', todayStart);"
+      },
+      {
+        "line": 1190,
+        "tableName": "warmup_jobs",
+        "queryChain": ".from('warmup_jobs') .insert(jobsToInsert);"
+      },
+      {
+        "line": 1222,
+        "tableName": "warmup_jobs",
+        "queryChain": ".from('warmup_jobs') .select('*') .eq('type', 'warmup') .eq('status', 'pending') .lte('scheduled_at', now.toISOString()) .limit(50);"
+      },
+      {
+        "line": 1247,
+        "tableName": "warmup_jobs",
+        "queryChain": ".from('warmup_jobs') .update({"
+      },
+      {
+        "line": 1270,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .select('*') .eq('id', job.warmup_account_id) .single();"
+      },
+      {
+        "line": 1283,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .select('*') .eq('id', job.to_account_id) .single();"
+      },
+      {
+        "line": 1302,
+        "tableName": "warmup_jobs",
+        "queryChain": ".from('warmup_jobs') .update({ last_attempted_at: now.toISOString() }) .eq('id', job.id);"
+      },
+      {
+        "line": 1342,
+        "tableName": "warmup_jobs",
+        "queryChain": ".from('warmup_jobs') .update({"
+      },
+      {
+        "line": 1358,
+        "tableName": "warmup_jobs",
+        "queryChain": ".from('warmup_jobs') .update({"
+      },
+      {
+        "line": 1372,
+        "tableName": "warmup_jobs",
+        "queryChain": ".from('warmup_jobs') .update({"
+      },
+      {
+        "line": 1407,
+        "tableName": "warmup_accounts",
+        "queryChain": ".from('warmup_accounts') .update({ mode: mode }) .eq('id', warmupAccountId) .select() .single();"
+      },
+      {
+        "line": 1423,
+        "tableName": "user_settings",
+        "queryChain": ".from('user_settings') .upsert({"
+      },
+      {
+        "line": 1440,
+        "tableName": "user_settings",
+        "queryChain": ".from('user_settings') .update({ network_opt_in: false }) .eq('user_id', userId) .select() .single();"
+      },
+      {
+        "line": 1455,
+        "tableName": "user_settings",
+        "queryChain": ".from('user_settings') .select('network_opt_in') .eq('user_id', userId) .single();"
+      }
+    ]
+  },
+  "otherSupabaseMethods": [
+    {
+      "file": "/home/shayan/Documents/coding/EMAIL FLOW/campaign-scheduler/src/app/api/webhooks/n8n/route.ts",
+      "line": 43,
+      "content": "const { data: rpcResult, error: rpcError } = await insforge.rpc("
+    },
+    {
+      "file": "/home/shayan/Documents/coding/EMAIL FLOW/campaign-backend/lib/reply-service.js",
+      "line": 251,
+      "content": "const { error: rpcError } = await insforge.rpc("
+    }
+  ]
+}

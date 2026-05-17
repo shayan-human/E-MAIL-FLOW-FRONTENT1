@@ -11,7 +11,7 @@ export async function GET(req: Request) {
 
     // Determine the base URL dynamically (works on both localhost and Vercel)
     const origin = new URL(req.url).origin;
-    const redirectUri = `${origin}/api/auth/callback/google`;
+    const redirectUri = `${origin}/api/gmail-connect/callback/google`;
 
     console.log(`[OAuth Init] Origin: ${origin}, Redirect: ${redirectUri}`);
 

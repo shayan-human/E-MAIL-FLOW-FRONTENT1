@@ -6,7 +6,7 @@ import { Loader2, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
-import { insforge } from "@/lib/insforge";
+import { signIn } from "next-auth/react";
 
 const COLORS = {
   page: "#0f0f0f",
@@ -37,26 +37,45 @@ export default function SignUpPage() {
     setErrorMsg("");
     setSuccessMsg("");
 
-    const { error } = await insforge.auth.signUp({
-      email,
-      password,
-    });
+    try {
+      const registerRes = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
 
-    if (error) {
-      setErrorMsg(error.message);
-    } else {
-      setSuccessMsg("Account created! Check your email to confirm your account, then sign in.");
+      const data = await registerRes.json();
+      if (!registerRes.ok) {
+        throw new Error(data.error || "Failed to create account");
+      }
+
+      setSuccessMsg("Account created successfully! Logging you in...");
+
+      // Automatically sign in the user
+      const signinRes = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
+      });
+
+      if (signinRes?.error) {
+        setErrorMsg("Account created, but automatic sign-in failed. Please try signing in manually.");
+      } else {
+        window.location.href = "/dashboard";
+      }
+    } catch (error: any) {
+      setErrorMsg(error.message || "An unexpected error occurred during signup");
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleGoogleSignUp = async () => {
-    await insforge.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: window.location.origin + "/dashboard",
-      }
-    });
+    try {
+      await signIn("google", { callbackUrl: "/dashboard" });
+    } catch (error: any) {
+      setErrorMsg(error.message || "Google sign-up failed");
+    }
   };
 
   return (

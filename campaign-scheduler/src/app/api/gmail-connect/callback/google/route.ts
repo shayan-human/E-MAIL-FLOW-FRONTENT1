@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@/lib/auth-helper";
+import { pool } from "@/lib/db";
 import { encrypt } from "@/lib/encryption";
 
 export async function GET(req: Request) {
     try {
-        const { user, supabase: insforge } = await auth();
+        const { user } = await auth();
         if (!user) {
             return NextResponse.redirect(new URL("/", req.url));
         }
@@ -15,7 +15,7 @@ export async function GET(req: Request) {
         const redirectPath = searchParams.get("state") || "/accounts";
 
         const origin = new URL(req.url).origin;
-        const redirectUri = `${origin}/api/auth/callback/google`;
+        const redirectUri = `${origin}/api/gmail-connect/callback/google`;
 
         console.log(`[OAuth Callback] Code: ${code ? "present" : "missing"}, Redirect Path: ${redirectPath}, URI: ${redirectUri}`);
 
@@ -67,53 +67,57 @@ export async function GET(req: Request) {
             return NextResponse.redirect(new URL(`${redirectPath}?error=no_email`, req.url));
         }
 
-        // Build payload dynamically to avoid overwriting existing refresh tokens
-        const payload: any = {
-            user_id: user.id,
-            email,
-            name: name || null,
-            google_access_token: encrypt(accessToken),
-            is_active: true,
-            status: 'CONNECTED',
-            token_expires_at: tokenExpiresAt,
-        };
+        // Check if sender account already exists for this email and user
+        const existingCheck = await pool.query(
+            "SELECT id FROM sender_accounts WHERE email = $1 AND user_id = $2 LIMIT 1",
+            [email, user.id]
+        );
+        const existing = existingCheck.rows[0];
 
-        if (refreshToken) {
-            console.log(`[OAuth Callback] Saving new refresh token for ${email}`);
-            payload.google_refresh_token = encrypt(refreshToken);
-        } else {
-            console.log(`[OAuth Callback] No new refresh token received for ${email}. Preserving existing one.`);
-        }
-
-        const { data: existing } = await insforge
-            .from("sender_accounts")
-            .select("id")
-            .eq("email", payload.email)
-            .maybeSingle();
+        const encryptedAccess = encrypt(accessToken);
+        const encryptedRefresh = refreshToken ? encrypt(refreshToken) : null;
 
         if (existing) {
-            const { error: updateError } = await insforge
-                .from("sender_accounts")
-                .update({
-                    google_access_token: payload.google_access_token,
-                    google_refresh_token: payload.google_refresh_token,
-                    is_active: true,
-                })
-                .eq("id", existing.id);
-
-            if (updateError) {
-                console.error("[Update Sender Account Error]:", updateError);
-                return NextResponse.redirect(new URL(`${redirectPath}?error=save_failed`, req.url));
+            console.log(`[OAuth Callback] Updating existing sender account ${email} for user ${user.id}`);
+            if (encryptedRefresh) {
+                await pool.query(
+                    `UPDATE sender_accounts 
+                     SET google_access_token = $1, 
+                         google_refresh_token = $2, 
+                         is_active = true, 
+                         status = 'CONNECTED', 
+                         token_expires_at = $3
+                     WHERE id = $4 AND user_id = $5`,
+                    [encryptedAccess, encryptedRefresh, tokenExpiresAt, existing.id, user.id]
+                );
+            } else {
+                await pool.query(
+                    `UPDATE sender_accounts 
+                     SET google_access_token = $1, 
+                         is_active = true, 
+                         status = 'CONNECTED', 
+                         token_expires_at = $2
+                     WHERE id = $3 AND user_id = $4`,
+                    [encryptedAccess, tokenExpiresAt, existing.id, user.id]
+                );
             }
         } else {
-            const { error: insertError } = await insforge
-                .from("sender_accounts")
-                .insert([payload]);
-
-            if (insertError) {
-                console.error("[Insert Sender Account Error]:", insertError);
-                return NextResponse.redirect(new URL(`${redirectPath}?error=save_failed`, req.url));
-            }
+            console.log(`[OAuth Callback] Creating new sender account ${email} for user ${user.id}`);
+            await pool.query(
+                `INSERT INTO sender_accounts 
+                    (user_id, email, name, google_access_token, google_refresh_token, is_active, status, token_expires_at)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                [
+                    user.id,
+                    email,
+                    name || null,
+                    encryptedAccess,
+                    encryptedRefresh,
+                    true,
+                    'CONNECTED',
+                    tokenExpiresAt
+                ]
+            );
         }
 
         console.log(`[OAuth Callback] Successfully connected account: ${email}`);

@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth-helper";
-import { getInsforgeClient } from "@/lib/insforge-server";
+import { pool } from "@/lib/db";
 import WarmupClient from "./WarmupClient";
 import { redirect } from "next/navigation";
 
@@ -10,27 +10,26 @@ export default async function WarmupPage() {
         redirect("/");
     }
 
-    const insforge = await getInsforgeClient();
-
     // Fetch sender accounts (connected Gmail accounts)
-    const { data: senderAccounts } = await insforge
-        .from("sender_accounts")
-        .select("id, email, name")
-        .eq("user_id", user.id)
-        .eq("is_active", true);
+    const senderAccountsResult = await pool.query(
+        "SELECT id, email, name FROM sender_accounts WHERE user_id = $1 AND is_active = true",
+        [user.id]
+    );
+    const senderAccounts = senderAccountsResult.rows;
 
     // Fetch warmup accounts
-    const { data: warmupAccounts } = await insforge
-        .from("warmup_accounts")
-        .select("*")
-        .eq("user_id", user.id);
+    const warmupAccountsResult = await pool.query(
+        "SELECT * FROM warmup_accounts WHERE user_id = $1",
+        [user.id]
+    );
+    const warmupAccounts = warmupAccountsResult.rows;
 
     // Fetch network opt-in status
-    const { data: userSettings } = await insforge
-        .from("user_settings")
-        .select("network_opt_in")
-        .eq("user_id", user.id)
-        .single();
+    const settingsResult = await pool.query(
+        "SELECT network_opt_in FROM user_settings WHERE user_id = $1 LIMIT 1",
+        [user.id]
+    );
+    const userSettings = settingsResult.rows[0];
 
     const networkOptIn = userSettings?.network_opt_in || false;
 

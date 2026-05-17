@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@/lib/auth-helper";
+import { pool } from "@/lib/db";
 import { decrypt } from "@/lib/encryption";
 
 export async function GET() {
@@ -8,12 +8,10 @@ export async function GET() {
         const { user } = await auth();
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const insforge = await getInsforgeClient();
-        const { data: accounts } = await insforge
-            .from("sender_accounts")
-            .select("*");
+        const result = await pool.query("SELECT * FROM sender_accounts");
+        const accounts = result.rows || [];
 
-        if (!accounts || accounts.length === 0) return NextResponse.json({ error: "No accounts" });
+        if (accounts.length === 0) return NextResponse.json({ error: "No accounts" });
 
         const debugInfo: any[] = [];
 

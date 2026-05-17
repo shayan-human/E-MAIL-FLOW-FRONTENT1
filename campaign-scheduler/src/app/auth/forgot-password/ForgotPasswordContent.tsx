@@ -6,7 +6,7 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
-import { insforge } from "@/lib/insforge";
+
 
 const COLORS = {
   page: "#0f0f0f",
@@ -31,16 +31,24 @@ export default function ForgotPasswordContent() {
     e.preventDefault();
     setIsLoading(true);
     
-    const { error } = await insforge.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
-    });
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
 
-    if (error) {
-      alert(error.message);
-    } else {
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to request password reset");
+      }
+
       setIsSubmitted(true);
+    } catch (error: any) {
+      alert(error.message || "An error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (

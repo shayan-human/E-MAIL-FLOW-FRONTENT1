@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@/lib/auth-helper";
+import { pool } from "@/lib/db";
 
 export async function DELETE(
     request: Request,
@@ -14,14 +14,15 @@ export async function DELETE(
         }
 
         const { id } = await context.params;
-        const insforge = await getInsforgeClient();
 
-        const { error } = await insforge
-            .from("sender_accounts")
-            .delete()
-            .eq("id", id);
+        const result = await pool.query(
+            "DELETE FROM sender_accounts WHERE id = $1 AND user_id = $2",
+            [id, user.id]
+        );
 
-        if (error) throw error;
+        if (result.rowCount === 0) {
+            return NextResponse.json({ error: "Account not found or access denied" }, { status: 404 });
+        }
 
         return NextResponse.json({ message: "Account deleted successfully" });
     } catch (error) {

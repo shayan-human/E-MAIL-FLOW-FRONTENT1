@@ -11,7 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/toast-provider";
 import { Account } from "./Step1Accounts";
-import { insforge } from "@/lib/insforge";
 import { useUser } from "@/hooks/use-user";
 import { RotateDraftsSelector } from "@/components/campaign-builder/RotateDraftsSelector";
 import { generateEmailContent } from "@/lib/openrouter";
@@ -84,35 +83,16 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
         if (!user) return;
         setIsLoadingAccounts(true);
         try {
-            const { data, error } = await insforge
-                .from("sender_accounts")
-                .select("*")
-                .eq("user_id", user.id)
-                .order("created_at", { ascending: false });
+            const res = await fetch("/api/accounts");
+            if (!res.ok) {
+                throw new Error("Failed to fetch accounts");
+            }
+            const { data } = await res.json();
+            const accountsList = data || [];
 
-            if (error) throw error;
+            setAccounts(accountsList);
 
-            const accountIds = (data || []).map((a: Account) => a.id);
-            const { data: warmupData } = accountIds.length > 0
-                ? await insforge
-                    .from("warmup_accounts")
-                    .select("gmail_account_id, status")
-                    .in("gmail_account_id", accountIds)
-                : { data: null };
-
-            const warmupStatusMap: Record<string, string> = {};
-            (warmupData || []).forEach((row: { gmail_account_id: string; status: string }) => {
-                warmupStatusMap[row.gmail_account_id] = row.status;
-            });
-
-            const accountsWithWarmup = (data || []).map((a: Account) => ({
-                ...a,
-                warmup_status: warmupStatusMap[a.id] || null,
-            }));
-
-            setAccounts(accountsWithWarmup);
-
-            const nonWarming = accountsWithWarmup.filter((a: Account) => a.warmup_status !== "warming");
+            const nonWarming = accountsList.filter((a: Account) => a.warmup_status !== "warming");
             if (nonWarming.length > 0) {
                 setSelectedAccountIds(nonWarming.map((a: Account) => a.id));
             } else {
@@ -356,13 +336,13 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
                                                     <div className="p-1 max-h-60 overflow-y-auto">
                                                         {PERSONALIZATION_OPTIONS.map((option, idx) => (
                                                             <button
-                                                                key={option.tag}
-                                                                onClick={() => handleSelectOption(option, 'subject')}
-                                                                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between group ${idx === selectedIndex ? 'bg-primary/10 text-primary' : 'text-zinc-300 hover:bg-zinc-800'}`}
-                                                            >
-                                                                <span>{option.label}</span>
-                                                                <span className={`text-xs font-mono opacity-50 ${idx === selectedIndex ? 'text-primary' : 'group-hover:text-zinc-400'}`}>{option.tag}</span>
-                                                            </button>
+                                                                 key={option.tag}
+                                                                 onClick={() => handleSelectOption(option, 'subject')}
+                                                                 className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between group ${idx === selectedIndex ? 'bg-primary/10 text-primary' : 'text-zinc-300 hover:bg-zinc-800'}`}
+                                                             >
+                                                                 <span>{option.label}</span>
+                                                                 <span className={`text-xs font-mono opacity-50 ${idx === selectedIndex ? 'text-primary' : 'group-hover:text-zinc-400'}`}>{option.tag}</span>
+                                                             </button>
                                                         ))}
                                                     </div>
                                                 </div>
@@ -384,7 +364,7 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
                                                 AI Assist
                                             </Button>
                                         </div>
-                                        <div className="relative flex-1 flex flex-col" ref={bodyContainerRef}>
+                                        <div className="relative" ref={bodyContainerRef}>
                                             <Textarea
                                                 id="body"
                                                 placeholder="Hi {{firstName}},&#10;&#10;I noticed you..."
@@ -401,13 +381,13 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
                                                     <div className="p-1 max-h-60 overflow-y-auto">
                                                         {PERSONALIZATION_OPTIONS.map((option, idx) => (
                                                             <button
-                                                                key={option.tag}
-                                                                onClick={() => handleSelectOption(option, 'body')}
-                                                                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between group ${idx === selectedIndex ? 'bg-primary/10 text-primary' : 'text-zinc-300 hover:bg-zinc-800'}`}
-                                                            >
-                                                                <span>{option.label}</span>
-                                                                <span className={`text-xs font-mono opacity-50 ${idx === selectedIndex ? 'text-primary' : 'group-hover:text-zinc-400'}`}>{option.tag}</span>
-                                                            </button>
+                                                                 key={option.tag}
+                                                                 onClick={() => handleSelectOption(option, 'body')}
+                                                                 className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between group ${idx === selectedIndex ? 'bg-primary/10 text-primary' : 'text-zinc-300 hover:bg-zinc-800'}`}
+                                                             >
+                                                                 <span>{option.label}</span>
+                                                                 <span className={`text-xs font-mono opacity-50 ${idx === selectedIndex ? 'text-primary' : 'group-hover:text-zinc-400'}`}>{option.tag}</span>
+                                                             </button>
                                                         ))}
                                                     </div>
                                                 </div>

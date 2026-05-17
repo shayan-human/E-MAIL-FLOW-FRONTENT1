@@ -17,7 +17,7 @@ import {
     FileText,
     Flame,
 } from "lucide-react";
-import { insforge } from "@/lib/insforge";
+import { signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { SimpleConfirmModal } from "@/components/ui/simple-confirm-modal";
 
@@ -59,8 +59,7 @@ export function Sidebar({ user, collapsed, onToggle }: SidebarProps) {
 
     const handleSignOut = async () => {
         setConfirmModalOpen(false);
-        await insforge.auth.signOut();
-        window.location.href = "/";
+        await signOut({ callbackUrl: "/" });
     };
 
     const isExpanded = !collapsed;

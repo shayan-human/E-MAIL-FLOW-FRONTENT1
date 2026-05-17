@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@/lib/auth-helper";
+import { pool } from "@/lib/db";
 import { isBounce } from "@/lib/email-utils";
 
 export async function GET() {
@@ -10,77 +10,86 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const insforge = await getInsforgeClient();
+        // Fetch all replies, their leads, and campaign information in a single query scoped to the user
+        const result = await pool.query(
+            `SELECT 
+                r.id AS reply_id,
+                r.lead_id,
+                r.subject AS reply_subject,
+                r.body AS reply_body,
+                r.sender_email AS reply_sender_email,
+                r.timestamp AS reply_timestamp,
+                r.type AS reply_type,
+                r.is_read AS reply_is_read,
+                r.gmail_message_id AS reply_gmail_message_id,
+                l.id AS lead_id,
+                l.email AS lead_email,
+                l.first_name AS lead_first_name,
+                l.last_name AS lead_last_name,
+                l.business_name AS lead_business_name,
+                l.website AS lead_website,
+                l.phone AS lead_phone,
+                l.custom_fields AS lead_custom_fields,
+                l.gmail_thread_id AS lead_gmail_thread_id,
+                l.sender_account_id AS lead_sender_account_id,
+                l.sender_account_email AS lead_sender_account_email,
+                l.status AS lead_status,
+                c.id AS campaign_id,
+                c.name AS campaign_name
+             FROM replies r
+             JOIN leads l ON r.lead_id = l.id
+             JOIN campaigns c ON l.campaign_id = c.id
+             WHERE c.user_id = $1
+             ORDER BY r.timestamp ASC`,
+            [user.id]
+        );
 
-        // Step 1: Fetch user's campaign IDs first
-        const { data: userCampaigns, error: campaignsError } = await insforge
-            .from("campaigns")
-            .select("id, name")
-            .eq("user_id", user.id);
+        const repliesData = (result.rows || []).map(row => ({
+            id: row.reply_id,
+            lead_id: row.lead_id,
+            subject: row.reply_subject,
+            body: row.reply_body,
+            sender_email: row.reply_sender_email,
+            timestamp: row.reply_timestamp,
+            type: row.reply_type,
+            is_read: row.reply_is_read,
+            gmail_message_id: row.reply_gmail_message_id,
+            lead: {
+                id: row.lead_id,
+                email: row.lead_email,
+                first_name: row.lead_first_name,
+                last_name: row.lead_last_name,
+                business_name: row.lead_business_name,
+                website: row.lead_website,
+                phone: row.lead_phone,
+                custom_fields: row.lead_custom_fields,
+                gmail_thread_id: row.lead_gmail_thread_id,
+                sender_account_id: row.lead_sender_account_id,
+                sender_account_email: row.lead_sender_account_email,
+                campaign_id: row.campaign_id,
+                status: row.lead_status
+            },
+            campaign_name: row.campaign_name,
+            campaign_id: row.campaign_id
+        }));
 
-        if (campaignsError) {
-            console.error("[Fetch Inbox Error - Campaigns]:", campaignsError);
-            return NextResponse.json({ error: campaignsError.message }, { status: 500 });
-        }
-
-        const campaignIds = new Set((userCampaigns || []).map(c => c.id));
-
-        // Step 2: Fetch replies only for user's campaigns via leads join
-        let repliesData: any[] = [];
-        if (campaignIds.size > 0) {
-            const { data, error: repliesError } = await insforge
-                .from("replies")
-                .select(`
-                    *,
-                    lead:leads(
-                        id,
-                        email,
-                        first_name,
-                        last_name,
-                        business_name,
-                        website,
-                        phone,
-                        custom_fields,
-                        gmail_thread_id,
-                        sender_account_id,
-                        sender_account_email,
-                        campaign_id
-                    )
-                `)
-                .in("lead.campaign_id", Array.from(campaignIds))
-                .order("timestamp", { ascending: true });
-
-            if (repliesError) {
-                console.error("[Fetch Inbox Error - Replies]:", repliesError);
-                return NextResponse.json({ error: repliesError.message }, { status: 500 });
-            }
-            repliesData = data || [];
-        }
-
-        // Step 3: Build campaign map from user's campaigns (already fetched)
-        const campaignMap: Record<string, any> = {};
-        (userCampaigns || []).forEach((c: any) => {
-            campaignMap[c.id] = c;
-        });
-
-        // Step 4: Group messages by contact email (unified thread)
+        // Group messages by contact email (unified thread)
         const threadMap: Record<string, any> = {};
 
-        (repliesData || []).forEach((r: any) => {
+        repliesData.forEach((r: any) => {
             const email = r.lead?.email;
             if (!email) return;
 
             const isThisMessageBounce = isBounce(r.subject, r.body, r.sender_email);
             const isIncoming = r.type === 'incoming';
-            const campaign = r.lead?.campaign_id ? campaignMap[r.lead.campaign_id] : null;
 
             if (!threadMap[email]) {
                 threadMap[email] = {
                     email: email,
                     contactEmail: email,
                     contactName: `${r.lead?.first_name || ""} ${r.lead?.last_name || ""}`.trim() || email,
-                    campaignName: campaign?.name || "Unknown Campaign",
-                    campaignId: campaign?.id,
+                    campaignName: r.campaign_name || "Unknown Campaign",
+                    campaignId: r.campaign_id,
                     leadId: r.lead?.id,
                     company: r.lead?.business_name,
                     website: r.lead?.website,
@@ -120,8 +129,8 @@ export async function GET() {
             const messageAt = new Date(r.timestamp).getTime();
 
             if (messageAt >= currentLastAt) {
-                threadMap[email].campaignName = campaign?.name || "Unknown Campaign";
-                threadMap[email].campaignId = campaign?.id;
+                threadMap[email].campaignName = r.campaign_name || "Unknown Campaign";
+                threadMap[email].campaignId = r.campaign_id;
                 threadMap[email].leadId = r.lead?.id;
                 threadMap[email].company = r.lead?.business_name;
                 threadMap[email].website = r.lead?.website;
@@ -129,8 +138,8 @@ export async function GET() {
                 threadMap[email].customFields = r.lead?.custom_fields;
                 threadMap[email].senderAccountId = r.lead?.sender_account_id;
                 threadMap[email].senderAccountEmail = r.lead?.sender_account_email;
-                if (r.lead?.gmail_thread_id || r.gmail_thread_id) {
-                    threadMap[email].gmailThreadId = r.lead?.gmail_thread_id || r.gmail_thread_id;
+                if (r.lead?.gmail_thread_id) {
+                    threadMap[email].gmailThreadId = r.lead?.gmail_thread_id;
                 }
                 threadMap[email].lastMessageAt = r.timestamp;
                 threadMap[email].lastMessagePreview = r.body.slice(0, 100) + (r.body.length > 100 ? "..." : "");

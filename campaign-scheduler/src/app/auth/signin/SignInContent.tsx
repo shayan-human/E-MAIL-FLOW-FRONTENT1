@@ -7,7 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { useSearchParams } from "next/navigation";
-import { insforge } from "@/lib/insforge";
+import { signIn } from "next-auth/react";
 
 const COLORS = {
   page: "#0f0f0f",
@@ -42,32 +42,31 @@ export default function SignInContent() {
     e.preventDefault();
     setIsLoading(true);
     
-    const { error } = await insforge.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) {
-      alert(error.message);
-    } else {
-      window.location.href = "/dashboard";
+    try {
+      const res = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
+      });
+      if (res?.error) {
+        alert("Invalid email or password");
+      } else {
+        window.location.href = "/dashboard";
+      }
+    } catch (err: any) {
+      alert(err.message || "An unexpected error occurred during login");
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      console.log("Forcing direct Supabase OAuth...");
-      const { error } = await insforge.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        }
-      });
-      if (error) throw error;
+      await signIn("google", { callbackUrl: "/dashboard" });
     } catch (error: any) {
       console.error("Direct OAuth failed:", error);
-      alert(`Login Error: ${error.message || "Please check your Supabase/Google configuration"}`);
+      alert(`Login Error: ${error.message || "Please check your configuration"}`);
     } finally {
       setIsGoogleLoading(false);
     }

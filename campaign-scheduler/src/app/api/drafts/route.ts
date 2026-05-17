@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth-helper";
-import { getInsforgeClient, getInsforgeAdminClient } from "@/lib/insforge-server";
+import { pool } from "@/lib/db";
 
 export async function GET() {
     try {
@@ -9,20 +9,15 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const insforge = await getInsforgeClient();
-        const { data, error } = await insforge
-            .from("drafts")
-            .select("id, name, subject, body, created_at, folder_id")
-            .eq("user_id", user.id)
-            .order("updated_at", { ascending: false });
+        const result = await pool.query(
+            `SELECT id, name, subject, body, created_at, folder_id 
+             FROM drafts 
+             WHERE user_id = $1 
+             ORDER BY updated_at DESC`,
+            [user.id]
+        );
 
-        if (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            console.error("[GET Drafts API Error]:", message);
-            return NextResponse.json({ error: "Failed to fetch drafts", details: message }, { status: 500 });
-        }
-
-        return NextResponse.json({ data: data || [] });
+        return NextResponse.json({ data: result.rows || [] });
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
         console.error("[GET Drafts API Error]:", message);
@@ -44,26 +39,20 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Draft name is required" }, { status: 400 });
         }
 
-        const insforge = await getInsforgeAdminClient();
-        const { data, error } = await insforge
-            .from("drafts")
-            .insert([{
-                user_id: user.id,
+        const result = await pool.query(
+            `INSERT INTO drafts (user_id, name, subject, body, folder_id) 
+             VALUES ($1, $2, $3, $4, $5) 
+             RETURNING id, name, subject, body, created_at, folder_id`,
+            [
+                user.id,
                 name,
-                subject: subject || "",
-                body: draftBody || "",
-                folder_id: folder_id || null,
-            }])
-            .select("id, name, subject, body, created_at, folder_id")
-            .single();
+                subject || "",
+                draftBody || "",
+                folder_id || null
+            ]
+        );
 
-        if (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            console.error("[POST Drafts API Error]:", message);
-            return NextResponse.json({ error: "Failed to create draft", details: message }, { status: 500 });
-        }
-
-        return NextResponse.json({ data }, { status: 201 });
+        return NextResponse.json({ data: result.rows[0] }, { status: 201 });
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
         console.error("[POST Drafts API Error]:", message);

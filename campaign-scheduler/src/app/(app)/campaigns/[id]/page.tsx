@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { insforge } from "@/lib/insforge";
 import { toast } from "@/components/ui/toast-provider";
 import Link from "next/link";
 import {
@@ -115,12 +114,13 @@ export default function CampaignDetailPage() {
         const newStatus = campaign.status === "RUNNING" ? "PAUSED" : "RUNNING";
         setSyncing(true);
         try {
-            const { error } = await insforge
-                .from("campaigns")
-                .update({ status: newStatus })
-                .eq("id", campaignId);
+            const res = await fetch(`/api/campaigns/${campaignId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: newStatus })
+            });
 
-            if (error) throw error;
+            if (!res.ok) throw new Error("Failed to update status");
             toast.success(`Campaign ${newStatus === "PAUSED" ? "paused" : "resumed"}`);
             setCampaign({ ...campaign, status: newStatus });
         } catch {
@@ -133,12 +133,11 @@ export default function CampaignDetailPage() {
     const handleDelete = async () => {
         if (!confirm("Are you sure you want to delete this campaign? This action cannot be undone.")) return;
         try {
-            const { error } = await insforge
-                .from("campaigns")
-                .delete()
-                .eq("id", campaignId);
+            const res = await fetch(`/api/campaigns/${campaignId}`, {
+                method: "DELETE"
+            });
 
-            if (error) throw error;
+            if (!res.ok) throw new Error("Failed to delete campaign");
             toast.success("Campaign deleted");
             router.push("/campaigns");
         } catch {
@@ -152,12 +151,13 @@ export default function CampaignDetailPage() {
             return;
         }
         try {
-            const { error } = await insforge
-                .from("campaigns")
-                .update({ name: editedName })
-                .eq("id", campaignId);
+            const res = await fetch(`/api/campaigns/${campaignId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: editedName })
+            });
 
-            if (error) throw error;
+            if (!res.ok) throw new Error("Failed to update name");
             setCampaign({ ...campaign, name: editedName });
             toast.success("Name updated");
         } catch {

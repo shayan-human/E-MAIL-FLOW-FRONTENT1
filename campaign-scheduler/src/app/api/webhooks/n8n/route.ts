@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { z } from "zod";
-import { insforge } from "@/lib/insforge";
+import { pool } from "@/lib/db";
 
 // Webhook payload from n8n when an email is sent or a reply is detected
 const WebhookPayloadSchema = z.object({
@@ -39,24 +39,27 @@ export async function POST(req: Request) {
 
         const { campaignId, event, email, gmailMessageId, gmailThreadId } = validationResult.data;
 
-        // Use RPC to bypass RLS for this system update
-        const { data: rpcResult, error: rpcError } = await insforge.rpc(
-            "update_lead_status_from_webhook",
-            {
-                p_campaign_id: campaignId,
-                p_email: email,
-                p_event: event,
-                p_gmail_message_id: gmailMessageId || null,
-                p_gmail_thread_id: gmailThreadId || null,
-            }
+        // Execute function strictly as required by non-negotiable rules
+        const rpcResult = await pool.query(
+            "SELECT public.update_lead_status_from_webhook($1, $2, $3, $4, $5) AS result",
+            [
+                campaignId,
+                email,
+                event,
+                gmailMessageId || null,
+                gmailThreadId || null,
+            ]
         );
 
-        if (rpcError || (rpcResult as any)?.success === false) {
-            console.error("[Webhook RPC Error]:", rpcError || (rpcResult as any)?.error);
+        const result = rpcResult.rows[0]?.result;
+        const parsedResult = typeof result === "string" ? JSON.parse(result) : result;
+
+        if (!parsedResult || parsedResult.success === false) {
+            console.error("[Webhook RPC Error]:", parsedResult?.error || "Unknown function execution error");
             return NextResponse.json(
                 {
                     error: "Failed to update lead status via RPC",
-                    details: rpcError?.message || (rpcResult as any)?.error
+                    details: parsedResult?.error || "Unknown error"
                 },
                 { status: 500 }
             );

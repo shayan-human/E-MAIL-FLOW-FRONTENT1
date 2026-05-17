@@ -2,21 +2,14 @@
 
 import { motion } from "framer-motion";
 import { Sparkles, ArrowRight, Shield, Globe, Cpu } from "lucide-react";
-import { insforge } from "@/lib/insforge";
+import { signIn } from "next-auth/react";
 import { LampContainer } from "@/components/ui/lamp";
 import { Button } from "@/components/ui/button";
 
 export default function LoginClient() {
     const handleSignIn = async () => {
         try {
-            const { error } = await insforge.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: `${window.location.origin}/auth/callback`,
-                }
-            });
-
-            if (error) throw error;
+            await signIn('google', { callbackUrl: '/dashboard' });
         } catch (error) {
             console.error("Sign in failed:", error);
         }

@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@/lib/auth-helper";
+import { pool } from "@/lib/db";
 import { decrypt, encrypt } from "@/lib/encryption";
-import { type SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * POST /api/campaign/sync-replies
  * 
- * Hybrid reply sync:
+ * Hybrid reply sync using pg pool:
  * - Uses gmail_thread_id when available (fast, reliable)
  * - Falls back to email + date search for leads without thread IDs
  * - Saves refreshed tokens back to DB
@@ -19,21 +18,14 @@ export async function POST() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // 1. Fetch user's campaigns and accounts
-        const insforge = await getInsforgeClient();
+        // 1. Fetch user's campaigns
+        const campaignsResult = await pool.query(
+            "SELECT id, subject FROM campaigns WHERE user_id = $1",
+            [user.id]
+        );
+        const campaigns = campaignsResult.rows || [];
 
-        const { data: userCampaigns, error: campaignsError } = await insforge
-            .from("campaigns")
-            .select("id, subject")
-            .eq("user_id", user.id);
-
-        if (campaignsError) {
-            console.error("[Sync Replies Error]:", campaignsError);
-            return NextResponse.json({ error: "Failed to fetch campaigns" }, { status: 500 });
-        }
-
-        const campaigns = userCampaigns;
-        if (!campaigns || campaigns.length === 0) {
+        if (campaigns.length === 0) {
             return NextResponse.json({ message: "No campaigns found", synced: 0, repliesFound: 0 });
         }
 
@@ -41,25 +33,27 @@ export async function POST() {
 
         // Fetch user's accounts and leads in parallel
         const [accountsRes, leadsRes] = await Promise.all([
-            insforge
-                .from("sender_accounts")
-                .select("id, email, google_access_token, google_refresh_token")
-                .eq("user_id", user.id)
-                .eq("is_active", true),
-            insforge
-                .from("leads")
-                .select("id, campaign_id, email, gmail_thread_id, sent_at, sender_account_id")
-                .in("campaign_id", campaignIds)
-                .in("status", ["SENT", "REPLIED"]),
+            pool.query(
+                "SELECT id, email, google_access_token, google_refresh_token FROM sender_accounts WHERE user_id = $1 AND is_active = true",
+                [user.id]
+            ),
+            pool.query(
+                `SELECT id, campaign_id, email, gmail_thread_id, sent_at, sender_account_id 
+                 FROM leads 
+                 WHERE campaign_id = ANY($1::uuid[]) 
+                 AND status IN ('SENT', 'REPLIED')`,
+                [campaignIds]
+            )
         ]);
 
-        const sentLeads = leadsRes.data;
-        if (!sentLeads || sentLeads.length === 0) {
+        const senderAccounts = accountsRes.rows || [];
+        const sentLeads = leadsRes.rows || [];
+
+        if (sentLeads.length === 0) {
             return NextResponse.json({ message: "No leads to sync", synced: 0, repliesFound: 0 });
         }
 
         // Build sender account map for quick token lookup
-        const senderAccounts = accountsRes.data || [];
         const senderTokenMap: Record<string, { accessToken: string; refreshToken: string | null }> = {};
         for (const sa of senderAccounts) {
             senderTokenMap[sa.id] = {
@@ -91,22 +85,20 @@ export async function POST() {
 
                         if (lead.gmail_thread_id) {
                             hasReply = await checkReplyByThread(
-                                insforge,
                                 tokens.accessToken,
                                 tokens.refreshToken,
                                 lead.gmail_thread_id,
                                 senderId,
-                                lead.id,
+                                lead.id
                             );
                         } else {
                             hasReply = await checkReplyByEmail(
-                                insforge,
                                 tokens.accessToken,
                                 tokens.refreshToken,
                                 lead.email,
                                 lead.sent_at,
                                 senderId,
-                                lead.id,
+                                lead.id
                             );
                         }
 
@@ -136,49 +128,56 @@ export async function POST() {
 
         // 3. Batch update all replied leads at once
         if (repliedLeadIds.length > 0) {
-            await insforge
-                .from("leads")
-                .update({
-                    status: "REPLIED",
-                    replied_at: new Date().toISOString(),
-                    reply_count: 1,
-                })
-                .in("id", repliedLeadIds);
+            await pool.query(
+                `UPDATE leads 
+                 SET status = 'REPLIED', 
+                     replied_at = $1, 
+                     reply_count = 1 
+                 WHERE id = ANY($2::uuid[])`,
+                [new Date().toISOString(), repliedLeadIds]
+            );
         }
 
         // 4. Update campaign_stats efficiently
-        const { data: leadCounts } = await insforge
-            .from("leads")
-            .select("campaign_id, status")
-            .in("campaign_id", campaignIds)
-            .in("status", ["SENT", "REPLIED"]);
+        const leadCountsRes = await pool.query(
+            `SELECT campaign_id, status 
+             FROM leads 
+             WHERE campaign_id = ANY($1::uuid[]) 
+             AND status IN ('SENT', 'REPLIED')`,
+            [campaignIds]
+        );
+        const leadCounts = leadCountsRes.rows || [];
 
-        if (leadCounts) {
-            const statsToUpdate: Record<string, { sent: number; replied: number }> = {};
-            campaignIds.forEach(id => statsToUpdate[id] = { sent: 0, replied: 0 });
+        const statsToUpdate: Record<string, { sent: number; replied: number }> = {};
+        campaignIds.forEach(id => statsToUpdate[id] = { sent: 0, replied: 0 });
 
-            leadCounts.forEach(lc => {
-                if (statsToUpdate[lc.campaign_id]) {
-                    statsToUpdate[lc.campaign_id].sent++;
-                    if (lc.status === "REPLIED") {
-                        statsToUpdate[lc.campaign_id].replied++;
-                    }
+        leadCounts.forEach(lc => {
+            if (statsToUpdate[lc.campaign_id]) {
+                statsToUpdate[lc.campaign_id].sent++;
+                if (lc.status === "REPLIED") {
+                    statsToUpdate[lc.campaign_id].replied++;
                 }
-            });
-
-            const upsertData = Object.entries(statsToUpdate).map(([campaignId, counts]) => ({
-                campaign_id: campaignId,
-                total_sent: counts.sent,
-                total_replied: counts.replied,
-                reply_rate: counts.sent > 0 ? Math.round((counts.replied / counts.sent) * 10000) / 100 : 0,
-                last_synced_at: new Date().toISOString(),
-            }));
-
-            if (upsertData.length > 0) {
-                await insforge
-                    .from("campaign_stats")
-                    .upsert(upsertData, { onConflict: "campaign_id" });
             }
+        });
+
+        for (const [campaignId, counts] of Object.entries(statsToUpdate)) {
+            const replyRate = counts.sent > 0 ? Math.round((counts.replied / counts.sent) * 10000) / 100 : 0;
+            await pool.query(
+                `INSERT INTO campaign_stats (campaign_id, total_sent, total_replied, reply_rate, last_synced_at)
+                 VALUES ($1, $2, $3, $4, $5)
+                 ON CONFLICT (campaign_id) DO UPDATE SET
+                     total_sent = EXCLUDED.total_sent,
+                     total_replied = EXCLUDED.total_replied,
+                     reply_rate = EXCLUDED.reply_rate,
+                     last_synced_at = EXCLUDED.last_synced_at`,
+                [
+                    campaignId,
+                    counts.sent,
+                    counts.replied,
+                    replyRate,
+                    new Date().toISOString()
+                ]
+            );
         }
 
         // 5. Sync Bounces
@@ -187,7 +186,6 @@ export async function POST() {
             for (const sa of senderAccounts) {
                 if (sa.google_access_token) {
                     const count = await syncBounces(
-                        insforge,
                         decrypt(sa.google_access_token),
                         sa.google_refresh_token ? decrypt(sa.google_refresh_token) : null,
                         sa.id,
@@ -220,16 +218,15 @@ export async function POST() {
 
 // ── FAST PATH: Check reply via thread ID ──────────────────────────────
 async function checkReplyByThread(
-    insforge: any,
     accessToken: string,
     refreshToken: string | null,
     threadId: string,
     senderAccountId: string,
-    leadId: string,
+    leadId: string
 ): Promise<boolean> {
     const url = `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}`;
 
-    const { response, token } = await gmailFetchWithRefresh(insforge, url, accessToken, refreshToken, senderAccountId);
+    const { response, token } = await gmailFetchWithRefresh(url, accessToken, refreshToken, senderAccountId);
 
     if (!response.ok) {
         if (response.status === 404) return false;
@@ -243,7 +240,11 @@ async function checkReplyByThread(
     if (messages.length <= 1) return false;
 
     let newRepliesFound = false;
-    const { data: senderAcc } = await insforge.from("sender_accounts").select("email").eq("id", senderAccountId).maybeSingle();
+    const senderAccResult = await pool.query(
+        "SELECT email FROM sender_accounts WHERE id = $1 LIMIT 1",
+        [senderAccountId]
+    );
+    const senderAcc = senderAccResult.rows[0];
 
     for (let i = 1; i < messages.length; i++) {
         const msg = messages[i];
@@ -257,21 +258,27 @@ async function checkReplyByThread(
         const body = extractBody(msg);
         const timestamp = new Date(parseInt(msg.internalDate)).toISOString();
 
-        const { error: replyError } = await insforge
-            .from("replies")
-            .insert([{
-                lead_id: leadId,
-                subject,
-                body,
-                sender_email: fromHeader,
-                timestamp,
-                gmail_message_id: msg.id,
-                gmail_thread_id: threadId,
-                is_read: false,
-            }]);
-
-        if (!replyError) {
+        try {
+            await pool.query(
+                `INSERT INTO replies (lead_id, subject, body, sender_email, timestamp, gmail_message_id, gmail_thread_id, is_read)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                [
+                    leadId,
+                    subject,
+                    body,
+                    fromHeader,
+                    timestamp,
+                    msg.id,
+                    threadId,
+                    false
+                ]
+            );
             newRepliesFound = true;
+        } catch (dbErr: any) {
+            // Unique constraint on gmail_message_id is handled gracefully
+            if (dbErr.code !== '23505') {
+                console.warn("[Replies db save error]:", dbErr);
+            }
         }
     }
 
@@ -280,13 +287,12 @@ async function checkReplyByThread(
 
 // ── FALLBACK: Check reply via email search ────────────────────────────
 async function checkReplyByEmail(
-    insforge: any,
     accessToken: string,
     refreshToken: string | null,
     leadEmail: string,
     sentAt: string | null,
     senderAccountId: string,
-    leadId: string,
+    leadId: string
 ): Promise<boolean> {
     const afterDate = sentAt ? formatGmailDate(sentAt) : null;
     const query = afterDate
@@ -295,7 +301,7 @@ async function checkReplyByEmail(
 
     const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}`;
 
-    const { response, token } = await gmailFetchWithRefresh(insforge, url, accessToken, refreshToken, senderAccountId);
+    const { response, token } = await gmailFetchWithRefresh(url, accessToken, refreshToken, senderAccountId);
 
     if (!response.ok) {
         const errText = await response.text().catch(() => "");
@@ -322,35 +328,40 @@ async function checkReplyByEmail(
         if (sentAt && new Date(internalDate) <= new Date(sentAt)) continue;
 
         // Skip if this exact Gmail message already credited to another lead
-        const { data: existing } = await insforge
-            .from("replies")
-            .select("id")
-            .eq("gmail_message_id", msg.id)
-            .maybeSingle();
-        if (existing) continue;
+        const existingCheck = await pool.query(
+            "SELECT id FROM replies WHERE gmail_message_id = $1 LIMIT 1",
+            [msg.id]
+        );
+        if (existingCheck.rows.length > 0) continue;
 
         const timestamp = new Date(internalDate).toISOString();
 
-        const { error: replyError } = await insforge
-            .from("replies")
-            .insert([{
-                lead_id: leadId,
-                subject,
-                body,
-                sender_email: fromHeader,
-                timestamp,
-                gmail_message_id: msg.id,
-                gmail_thread_id: msg.threadId,
-                is_read: false,
-            }]);
-
-        if (!replyError) {
+        try {
+            await pool.query(
+                `INSERT INTO replies (lead_id, subject, body, sender_email, timestamp, gmail_message_id, gmail_thread_id, is_read)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                [
+                    leadId,
+                    subject,
+                    body,
+                    fromHeader,
+                    timestamp,
+                    msg.id,
+                    msg.threadId,
+                    false
+                ]
+            );
             newRepliesFound = true;
-            // Update lead with threadId if missing
-            await insforge
-                .from("leads")
-                .update({ gmail_thread_id: msg.threadId })
-                .eq("id", leadId);
+            
+            // Update lead with threadId securely
+            await pool.query(
+                "UPDATE leads SET gmail_thread_id = $1 WHERE id = $2",
+                [msg.threadId, leadId]
+            );
+        } catch (dbErr: any) {
+            if (dbErr.code !== '23505') {
+                console.warn("[Replies fallback save error]:", dbErr);
+            }
         }
     }
 
@@ -389,11 +400,10 @@ function extractBody(message: any): string {
 
 // ── Gmail fetch with automatic token refresh + DB save ────────────────
 async function gmailFetchWithRefresh(
-    insforge: any,
     url: string,
     accessToken: string,
     refreshToken: string | null,
-    senderAccountId: string,
+    senderAccountId: string
 ): Promise<{ response: Response; token: string }> {
     let token = accessToken;
     let response = await fetch(url, {
@@ -404,15 +414,16 @@ async function gmailFetchWithRefresh(
         try {
             token = await refreshAccessToken(refreshToken);
 
-            await insforge
-                .from("sender_accounts")
-                .update({ google_access_token: encrypt(token) })
-                .eq("id", senderAccountId);
+            await pool.query(
+                "UPDATE sender_accounts SET google_access_token = $1 WHERE id = $2",
+                [encrypt(token), senderAccountId]
+            );
 
             response = await fetch(url, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-        } catch {
+        } catch (err) {
+            console.error("[Token Refresh Secure Update Failed]:", err);
         }
     }
 
@@ -448,7 +459,6 @@ async function refreshAccessToken(refreshToken: string): Promise<string> {
 
 // ── BOUNCE DETECTION: Check for delivery failures ─────────────────────
 async function syncBounces(
-    insforge: any,
     accessToken: string,
     refreshToken: string | null,
     senderAccountId: string,
@@ -457,7 +467,7 @@ async function syncBounces(
     const query = `from:mailer-daemon@googlemail.com OR subject:"Delivery Status Notification" OR subject:"Mail Delivery Subsystem" newer_than:30d`;
     const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}`;
 
-    const { response, token } = await gmailFetchWithRefresh(insforge, url, accessToken, refreshToken, senderAccountId);
+    const { response, token } = await gmailFetchWithRefresh(url, accessToken, refreshToken, senderAccountId);
     if (!response.ok) return 0;
 
     const data = await response.json();
@@ -468,12 +478,11 @@ async function syncBounces(
 
     for (const m of messages) {
         // Skip if this bounce message already credited
-        const { data: existing } = await insforge
-            .from("replies")
-            .select("id")
-            .eq("gmail_message_id", m.id)
-            .maybeSingle();
-        if (existing) continue;
+        const existingCheck = await pool.query(
+            "SELECT id FROM replies WHERE gmail_message_id = $1 LIMIT 1",
+            [m.id]
+        );
+        if (existingCheck.rows.length > 0) continue;
 
         const msgUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}`;
         const msgRes = await fetch(msgUrl, { headers: { Authorization: `Bearer ${token}` } });
@@ -490,44 +499,55 @@ async function syncBounces(
         if (failedHeader) {
             failedEmail = failedHeader.trim();
         } else {
-            // Regex match for common bounce patterns in body
             const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi;
             const matches = body.match(emailRegex);
             if (matches && matches.length > 0) {
-                // Usually the first email mentioned as a target in a bounce body is the failed recipient
                 failedEmail = matches.find(email => !email.includes("google") && !email.includes("mailer-daemon")) || "";
             }
         }
 
         if (failedEmail) {
-            // Find the lead associated with this failed email for this user's campaigns
-            const { data: leads } = await insforge
-                .from("leads")
-                .select("id, campaign_id")
-                .eq("email", failedEmail)
-                .in("status", ["SENT", "PENDING"]);
+            // Securely join leads with campaigns to verify ownership before bounce mapping
+            const leadsResult = await pool.query(
+                `SELECT l.id, l.campaign_id 
+                 FROM leads l
+                 JOIN campaigns c ON l.campaign_id = c.id
+                 WHERE l.email = $1 
+                 AND l.status IN ('SENT', 'PENDING') 
+                 AND c.user_id = $2`,
+                [failedEmail, userId]
+            );
+            const leads = leadsResult.rows || [];
 
-            if (leads && leads.length > 0) {
+            if (leads.length > 0) {
                 const leadIds = leads.map((l: any) => l.id);
-                const { error: updateError } = await insforge
-                    .from("leads")
-                    .update({ status: "BOUNCED" })
-                    .in("id", leadIds);
+                
+                await pool.query(
+                    "UPDATE leads SET status = 'BOUNCED' WHERE id = ANY($1::uuid[])",
+                    [leadIds]
+                );
 
-                if (!updateError) {
-                    bouncesCount++;
-                    // Also save the bounce message as a "reply" record to mark it as processed
-                    await insforge
-                        .from("replies")
-                        .insert([{
-                            lead_id: leads[0].id,
-                            subject: `BOUNCE: ${subject}`,
-                            body: body.slice(0, 1000), // Trim long bounce logs
-                            sender_email: "mailer-daemon@googlemail.com",
-                            timestamp: new Date(parseInt(msg.internalDate)).toISOString(),
-                            gmail_message_id: msg.id,
-                            is_read: true,
-                        }]);
+                bouncesCount++;
+                
+                // Save bounce reply
+                try {
+                    await pool.query(
+                        `INSERT INTO replies (lead_id, subject, body, sender_email, timestamp, gmail_message_id, is_read)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                        [
+                            leads[0].id,
+                            `BOUNCE: ${subject}`,
+                            body.slice(0, 1000),
+                            "mailer-daemon@googlemail.com",
+                            new Date(parseInt(msg.internalDate)).toISOString(),
+                            msg.id,
+                            true
+                        ]
+                    );
+                } catch (dbErr: any) {
+                    if (dbErr.code !== '23505') {
+                        console.warn("[Replies bounce save error]:", dbErr);
+                    }
                 }
             }
         }
@@ -535,4 +555,3 @@ async function syncBounces(
 
     return bouncesCount;
 }
-

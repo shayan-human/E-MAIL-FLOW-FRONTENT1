@@ -1,5 +1,5 @@
 import { toast } from "@/components/ui/toast-provider";
-import { insforge as supabase } from "@/lib/insforge";
+import { signOut } from "next-auth/react";
 
 const AUTH_KEYS = [
     'sb-access-token',
@@ -34,7 +34,7 @@ export function useSessionExpired() {
         });
 
         try {
-            await supabase.auth.signOut();
+            await signOut({ redirect: false });
         } catch {
         }
 

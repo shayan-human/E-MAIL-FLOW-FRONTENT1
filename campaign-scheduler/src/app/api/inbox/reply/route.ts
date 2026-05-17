@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getInsforgeClient } from "@/lib/insforge-server";
 import { auth } from "@/lib/auth-helper";
+import { pool } from "@/lib/db";
 import { sendGmailEmail } from "@/lib/gmail";
 import { encrypt, decrypt } from "@/lib/encryption";
 
@@ -21,22 +21,22 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        const insforge = await getInsforgeClient();
+        // 1. Get lead and ensure it belongs to the user's campaign
+        const leadResult = await pool.query(
+            `SELECT 
+                l.email,
+                l.sender_account_id,
+                l.sender_account_email,
+                l.gmail_thread_id
+             FROM leads l
+             JOIN campaigns c ON l.campaign_id = c.id
+             WHERE l.id = $1 AND c.user_id = $2`,
+            [leadId, user.id]
+        );
+        const lead = leadResult.rows[0];
 
-        // 1. Get lead and sender account ID
-        const { data: lead, error: leadError } = await insforge
-            .from("leads")
-            .select(`
-                email,
-                sender_account_id,
-                sender_account_email,
-                gmail_thread_id
-            `)
-            .eq("id", leadId)
-            .single();
-
-        if (leadError || !lead) {
-            console.error("[Reply API Error]: Failed to fetch lead", leadError);
+        if (!lead) {
+            console.error("[Reply API Error]: Failed to fetch lead or access denied");
             return NextResponse.json({ error: "Lead not found" }, { status: 404 });
         }
 
@@ -44,21 +44,29 @@ export async function POST(req: Request) {
 
         if (!gmailThreadId) {
             console.log(`[Reply API]: Thread ID missing on lead ${leadId}, checking replies table...`);
-            const { data: lastReply } = await insforge
-                .from("replies")
-                .select("gmail_thread_id")
-                .eq("lead_id", leadId)
-                .not("gmail_thread_id", "is", null)
-                .limit(1)
-                .maybeSingle();
+            
+            const repliesResult = await pool.query(
+                `SELECT r.gmail_thread_id 
+                 FROM replies r
+                 JOIN leads l ON r.lead_id = l.id
+                 JOIN campaigns c ON l.campaign_id = c.id
+                 WHERE r.lead_id = $1 AND c.user_id = $2 AND r.gmail_thread_id IS NOT NULL 
+                 LIMIT 1`,
+                [leadId, user.id]
+            );
+            const lastReply = repliesResult.rows[0];
 
             if (lastReply?.gmail_thread_id) {
                 gmailThreadId = lastReply.gmail_thread_id;
-                // Backfill lead for future
-                await insforge
-                    .from("leads")
-                    .update({ gmail_thread_id: gmailThreadId })
-                    .eq("id", leadId);
+                
+                // Backfill lead gmail_thread_id securely
+                await pool.query(
+                    `UPDATE leads l
+                     SET gmail_thread_id = $1
+                     FROM campaigns c
+                     WHERE l.campaign_id = c.id AND l.id = $2 AND c.user_id = $3`,
+                    [gmailThreadId, leadId, user.id]
+                );
             }
         }
 
@@ -66,45 +74,45 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Missing thread ID: Please sync your inbox first" }, { status: 400 });
         }
 
-        if (senderAccountId) {
-            lead.sender_account_id = senderAccountId;
-        } else if (!lead.sender_account_id) {
+        let activeSenderAccountId = senderAccountId || lead.sender_account_id;
+
+        if (!activeSenderAccountId) {
             if (lead.sender_account_email) {
                 console.log(`[Reply API]: Falling back to email lookup for lead ${leadId}`);
-                const { data: fallbackAcc } = await insforge
-                    .from("sender_accounts")
-                    .select("id")
-                    .eq("email", lead.sender_account_email)
-                    .single();
+                
+                const fallbackResult = await pool.query(
+                    "SELECT id FROM sender_accounts WHERE email = $1 AND user_id = $2 LIMIT 1",
+                    [lead.sender_account_email, user.id]
+                );
+                const fallbackAcc = fallbackResult.rows[0];
 
                 if (fallbackAcc) {
-                    lead.sender_account_id = fallbackAcc.id;
-                    // Link it in DB for future efficiency
-                    await insforge
-                        .from("leads")
-                        .update({ sender_account_id: fallbackAcc.id })
-                        .eq("id", leadId);
+                    activeSenderAccountId = fallbackAcc.id;
+                    // Link it in DB securely for future efficiency
+                    await pool.query(
+                        `UPDATE leads l
+                         SET sender_account_id = $1
+                         FROM campaigns c
+                         WHERE l.campaign_id = c.id AND l.id = $2 AND c.user_id = $3`,
+                        [activeSenderAccountId, leadId, user.id]
+                    );
                 }
             }
         }
 
-        if (!lead.sender_account_id) {
+        if (!activeSenderAccountId) {
             return NextResponse.json({ error: "No sender account associated with this lead" }, { status: 400 });
         }
 
         // 2. Get sender account credentials
-        const { data: sender, error: senderError } = await insforge
-            .from("sender_accounts")
-            .select(`
-                email,
-                google_access_token,
-                google_refresh_token
-            `)
-            .eq("id", lead.sender_account_id)
-            .single();
+        const senderResult = await pool.query(
+            "SELECT email, google_access_token, google_refresh_token FROM sender_accounts WHERE id = $1 AND user_id = $2",
+            [activeSenderAccountId, user.id]
+        );
+        const sender = senderResult.rows[0];
 
-        if (senderError || !sender) {
-            console.error("[Reply API Error]: Failed to fetch sender account", senderError);
+        if (!sender) {
+            console.error("[Reply API Error]: Failed to fetch sender account");
             return NextResponse.json({ error: "Sender account not found" }, { status: 404 });
         }
 
@@ -126,27 +134,29 @@ export async function POST(req: Request) {
 
         // 4. Update the sender account with the new access token if it was refreshed
         if (response.newAccessToken) {
-            await insforge
-                .from("sender_accounts")
-                .update({ google_access_token: encrypt(response.newAccessToken) })
-                .eq("id", lead.sender_account_id);
+            await pool.query(
+                "UPDATE sender_accounts SET google_access_token = $1 WHERE id = $2 AND user_id = $3",
+                [encrypt(response.newAccessToken), activeSenderAccountId, user.id]
+            );
         }
 
         // 5. Save the outgoing reply to the database
-        const { error: insertError } = await insforge
-            .from("replies")
-            .insert([{
-                lead_id: leadId,
-                subject: subject.startsWith("Re: ") ? subject : `Re: ${subject}`,
-                body: body,
-                sender_email: sender.email,
-                type: 'outgoing',
-                gmail_message_id: response.messageId,
-                is_read: true,
-                timestamp: new Date().toISOString(),
-            }]);
-
-        if (insertError) {
+        try {
+            await pool.query(
+                `INSERT INTO replies (lead_id, subject, body, sender_email, type, gmail_message_id, is_read, timestamp)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                [
+                    leadId,
+                    subject.startsWith("Re: ") ? subject : `Re: ${subject}`,
+                    body,
+                    sender.email,
+                    'outgoing',
+                    response.messageId,
+                    true,
+                    new Date().toISOString()
+                ]
+            );
+        } catch (insertError) {
             console.warn("[Reply API]: Failed to save outgoing reply to DB", insertError);
         }
 

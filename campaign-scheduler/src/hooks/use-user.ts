@@ -1,29 +1,20 @@
-import { useEffect, useState } from 'react';
-import { insforge as supabase } from '@/lib/insforge';
-import type { User } from '@supabase/supabase-js';
+import { useSession } from 'next-auth/react';
 
 export function useUser() {
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoaded, setIsLoaded] = useState(false);
-
-    useEffect(() => {
-        const getUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            setUser(session?.user ?? null);
-            setIsLoaded(true);
-        };
-        getUser();
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
-            setIsLoaded(true);
-        });
-
-        return () => subscription.unsubscribe();
-    }, []);
-
-    return { user, isLoaded };
+    const { data: session, status } = useSession();
+    
+    return {
+        user: session?.user ? {
+            id: (session.user as any).id,
+            email: session.user.email,
+            name: session.user.name,
+            image: session.user.image,
+            // Keep provider token support in case it's used in the app
+            provider_token: (session as any).provider_token ?? null,
+            provider_refresh_token: (session as any).provider_refresh_token ?? null,
+        } : null,
+        isLoaded: status !== 'loading',
+    };
 }
 
-// Alias for files that expect useAuth
 export const useAuth = useUser;
