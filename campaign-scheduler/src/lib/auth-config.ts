@@ -45,4 +45,5 @@ export const authOptions = {
   pages: {
     signIn: '/auth/signin',
   },
+  secret: process.env.NEXTAUTH_SECRET || 'e670498b2c2869501db671239c0ad52f854a50e95bc49ba41fa6e9b466184aef',
 };
