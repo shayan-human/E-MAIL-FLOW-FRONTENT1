@@ -127,7 +127,9 @@ export async function GET(req: Request) {
                     }
                 } else {
                     // This was marked REPLIED but only contains bounces
-                    additionalBouncedCount++;
+                    if (leadReplies.length > 0) {
+                        additionalBouncedCount++;
+                    }
                 }
             });
         }

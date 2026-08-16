@@ -83,7 +83,7 @@ function extractFilters(cleanText: string, params: any[] = []): string {
   }
 
   // 3. Literal equalities: column = 'value' or column = true/false or column = number
-  const eqLiteralRegex = /\b(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+)\s*=\s*(?:'([^']+)'|(true|false|\d+))\b/g;
+  const eqLiteralRegex = /\b(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+)\s*=\s*(?:'([^']+)'|(true|false|\d+)\b)/g;
   while ((match = eqLiteralRegex.exec(cleanText)) !== null) {
     const column = match[1].toLowerCase();
     if (filters.includes(`&${column}=`)) {
