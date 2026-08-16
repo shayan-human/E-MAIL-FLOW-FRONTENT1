@@ -1,12 +1,12 @@
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import PostgresAdapter from '@auth/pg-adapter';
-import { pool } from '@/lib/db';
+import { SupabaseRestAdapter } from '@/lib/supabase-adapter';
 import bcrypt from 'bcryptjs';
 
+const supabaseAdapter = SupabaseRestAdapter();
+
 export const authOptions = {
-  // @ts-ignore - Ignore type mismatches in @auth/pg-adapter for Next.js 15 compilation
-  adapter: PostgresAdapter(pool),
+  adapter: supabaseAdapter,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -19,13 +19,10 @@ export const authOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        const result = await pool.query(
-          'SELECT * FROM users WHERE email = $1',
-          [credentials?.email]
-        );
-        const user = result.rows[0];
+        if (!credentials?.email || !credentials?.password) return null;
+        const user = await supabaseAdapter.getUserByEmail(credentials.email);
         if (!user || !user.password) return null;
-        const valid = await bcrypt.compare(credentials!.password, user.password);
+        const valid = await bcrypt.compare(credentials.password, user.password);
         if (!valid) return null;
         return { id: user.id, email: user.email, name: user.name };
       },
@@ -47,3 +44,4 @@ export const authOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET || 'e670498b2c2869501db671239c0ad52f854a50e95bc49ba41fa6e9b466184aef',
 };
+
