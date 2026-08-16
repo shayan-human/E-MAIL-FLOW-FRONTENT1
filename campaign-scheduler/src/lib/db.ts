@@ -14,17 +14,23 @@ function getConnectionString(): string | undefined {
 
   try {
     const parsed = new URL(url);
-    // Supabase direct host `db.<ref>.supabase.co` only has IPv6 addresses.
-    // Replace with Supabase IPv4 Pooler host to prevent ENETUNREACH on Render.
-    if (parsed.hostname.startsWith('db.') && parsed.hostname.endsWith('.supabase.co')) {
-      const ref = parsed.hostname.split('.')[1];
-      if (ref) {
-        parsed.hostname = 'aws-0-ap-northeast-2.pooler.supabase.com';
-        if (!parsed.username.includes('.')) {
-          parsed.username = `${parsed.username}.${ref}`;
-        }
-        return parsed.toString();
+    const fallbackRef = 'myagqulgddhnxrxkvvia';
+
+    // Direct Supabase host `db.<ref>.supabase.co` resolves only to IPv6 addresses.
+    // Replace with Supabase IPv4 Pooler host and pooler tenant username postgres.<ref>
+    if (parsed.hostname.endsWith('.supabase.co')) {
+      const parts = parsed.hostname.split('.');
+      const projRef = (parts[0] === 'db' ? parts[1] : parts[0]) || fallbackRef;
+      parsed.hostname = 'aws-0-ap-northeast-2.pooler.supabase.com';
+      parsed.username = `postgres.${projRef}`;
+      return parsed.toString();
+    }
+
+    if (parsed.hostname.includes('pooler.supabase.com')) {
+      if (!parsed.username.startsWith('postgres.')) {
+        parsed.username = `postgres.${fallbackRef}`;
       }
+      return parsed.toString();
     }
   } catch (err) {
     // If URL parsing fails, return raw DATABASE_URL
@@ -48,5 +54,6 @@ export const pool =
   });
 
 if (process.env.NODE_ENV !== 'production') globalForDb.pool = pool;
+
 
 
