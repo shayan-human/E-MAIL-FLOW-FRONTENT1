@@ -1,12 +1,45 @@
 import { Pool } from 'pg';
+import dns from 'dns';
+
+// Render web services only support IPv4 egress. Force Node.js to resolve IPv4 addresses first.
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 const globalForDb = global as unknown as { pool: Pool };
+
+function getConnectionString(): string | undefined {
+  const url = process.env.DATABASE_URL;
+  if (!url) return undefined;
+
+  try {
+    const parsed = new URL(url);
+    // Supabase direct host `db.<ref>.supabase.co` only has IPv6 addresses.
+    // Replace with Supabase IPv4 Pooler host to prevent ENETUNREACH on Render.
+    if (parsed.hostname.startsWith('db.') && parsed.hostname.endsWith('.supabase.co')) {
+      const ref = parsed.hostname.split('.')[1];
+      if (ref) {
+        parsed.hostname = 'aws-0-ap-northeast-2.pooler.supabase.com';
+        if (!parsed.username.includes('.')) {
+          parsed.username = `${parsed.username}.${ref}`;
+        }
+        return parsed.toString();
+      }
+    }
+  } catch (err) {
+    // If URL parsing fails, return raw DATABASE_URL
+  }
+
+  return url;
+}
+
+const connectionString = getConnectionString();
 
 export const pool =
   globalForDb.pool ||
   new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.DATABASE_URL?.includes('supabase') || process.env.NODE_ENV === 'production'
+    connectionString,
+    ssl: connectionString?.includes('supabase') || process.env.NODE_ENV === 'production'
       ? { rejectUnauthorized: false }
       : undefined,
     max: 20, // Limit maximum connections to prevent database exhaustion
@@ -15,4 +48,5 @@ export const pool =
   });
 
 if (process.env.NODE_ENV !== 'production') globalForDb.pool = pool;
+
 
