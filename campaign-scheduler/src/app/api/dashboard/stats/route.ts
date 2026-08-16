@@ -133,7 +133,7 @@ export async function GET(req: Request) {
         }
 
         const genuineReplyCount = genuineReplyEmails.size;
-        const totalBounced = additionalBouncedCount > 0 ? additionalBouncedCount : baseBouncedCount;
+        const totalBounced = baseBouncedCount + additionalBouncedCount;
         const avgReplyRate = sentCount > 0 ? Math.round((genuineReplyCount / sentCount) * 100) : 0;
         const avgTime = genuineReplyTimes.length > 0
             ? Math.round(genuineReplyTimes.reduce((a, b) => a + b, 0) / genuineReplyTimes.length)
