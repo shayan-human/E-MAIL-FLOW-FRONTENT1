@@ -53,87 +53,86 @@ const rawPool = new Pool({
 function extractFilters(cleanText: string, params: any[] = []): string {
   let filters = '';
 
-  // 1. user_id filter
-  const userIdMatch = cleanText.match(/user_id\s*=\s*\$(\d+)/i);
-  if (userIdMatch) {
-    const val = params[parseInt(userIdMatch[1], 10) - 1];
-    if (val !== undefined) {
-      filters += `&user_id=eq.${encodeURIComponent(String(val))}`;
-    }
-  }
-
-  // 2. campaign_id filter
-  const campaignIdMatch = cleanText.match(/campaign_id\s*=\s*ANY\(\$(\d+)(?:::uuid\[\])?\)/i);
-  if (campaignIdMatch) {
-    const arr = params[parseInt(campaignIdMatch[1], 10) - 1];
+  // 1. ANY array parameters: column = ANY($X) or column = ANY($X::uuid[])
+  const anyParamRegex = /\b([a-zA-Z0-9_]+)\s*=\s*ANY\(\$(\d+)(?:::uuid\[\])?\)/gi;
+  let match;
+  while ((match = anyParamRegex.exec(cleanText)) !== null) {
+    const column = match[1].toLowerCase();
+    const paramIndex = parseInt(match[2], 10);
+    const arr = params[paramIndex - 1];
     if (Array.isArray(arr)) {
-      if (arr.length === 0) return 'EMPTY_CAMPAIGN_ID';
-      filters += `&campaign_id=in.(${arr.map(x => encodeURIComponent(String(x))).join(',')})`;
-    }
-  }
-
-  // 3. lead_id filter
-  const leadIdMatch = cleanText.match(/lead_id\s*=\s*ANY\(\$(\d+)(?:::uuid\[\])?\)/i);
-  if (leadIdMatch) {
-    const arr = params[parseInt(leadIdMatch[1], 10) - 1];
-    if (Array.isArray(arr)) {
-      if (arr.length === 0) return 'EMPTY_LEAD_ID';
-      filters += `&lead_id=in.(${arr.map(x => encodeURIComponent(String(x))).join(',')})`;
-    }
-  }
-
-  // 4. status filter
-  const statusLiteralMatch = cleanText.match(/status\s*=\s*'([A-Z_]+)'/i);
-  if (statusLiteralMatch) {
-    filters += `&status=eq.${statusLiteralMatch[1]}`;
-  } else {
-    const statusParamMatch = cleanText.match(/status\s*=\s*\$(\d+)/i);
-    if (statusParamMatch) {
-      const val = params[parseInt(statusParamMatch[1], 10) - 1];
-      if (val !== undefined) {
-        filters += `&status=eq.${encodeURIComponent(String(val))}`;
+      if (arr.length === 0) {
+        return `EMPTY_${column.toUpperCase()}`;
       }
+      filters += `&${column}=in.(${arr.map(x => encodeURIComponent(String(x))).join(',')})`;
     }
   }
 
-  const statusInMatch = cleanText.match(/status\s+in\s*\(([^)]+)\)/i);
-  if (statusInMatch) {
-    const content = statusInMatch[1].trim();
+  // 2. Parameter equality: column = $X
+  const eqParamRegex = /\b(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+)\s*=\s*\$(\d+)\b/g;
+  while ((match = eqParamRegex.exec(cleanText)) !== null) {
+    const column = match[1].toLowerCase();
+    if (filters.includes(`&${column}=`)) {
+      continue;
+    }
+    const paramIndex = parseInt(match[2], 10);
+    const val = params[paramIndex - 1];
+    if (val !== undefined && val !== null) {
+      filters += `&${column}=eq.${encodeURIComponent(String(val))}`;
+    }
+  }
+
+  // 3. Literal equalities: column = 'value' or column = true/false or column = number
+  const eqLiteralRegex = /\b(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+)\s*=\s*(?:'([^']+)'|(true|false|\d+))\b/g;
+  while ((match = eqLiteralRegex.exec(cleanText)) !== null) {
+    const column = match[1].toLowerCase();
+    if (filters.includes(`&${column}=`)) {
+      continue;
+    }
+    const val = match[2] !== undefined ? match[2] : match[3];
+    filters += `&${column}=eq.${encodeURIComponent(val)}`;
+  }
+
+  // 4. IN list expressions: column IN ('val1', 'val2') or column IN ($1)
+  const inRegex = /\b(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+)\s+in\s*\(([^)]+)\)/gi;
+  while ((match = inRegex.exec(cleanText)) !== null) {
+    const column = match[1].toLowerCase();
+    if (filters.includes(`&${column}=`)) {
+      continue;
+    }
+    const content = match[2].trim();
     if (content.startsWith('$')) {
       const paramIndex = parseInt(content.substring(1), 10);
       const val = params[paramIndex - 1];
       if (Array.isArray(val)) {
-        filters += `&status=in.(${val.map(x => encodeURIComponent(String(x))).join(',')})`;
+        filters += `&${column}=in.(${val.map(x => encodeURIComponent(String(x))).join(',')})`;
       }
     } else {
       const cleaned = content.replace(/['"\s]/g, '');
-      filters += `&status=in.(${cleaned})`;
+      filters += `&${column}=in.(${cleaned})`;
     }
   }
 
-  // 5. is_active filter
-  if (cleanText.includes('is_active = true')) {
-    filters += `&is_active=eq.true`;
-  } else {
-    const isActiveParamMatch = cleanText.match(/is_active\s*=\s*\$(\d+)/i);
-    if (isActiveParamMatch) {
-      const val = params[parseInt(isActiveParamMatch[1], 10) - 1];
-      if (val !== undefined) {
-        filters += `&is_active=eq.${val ? 'true' : 'false'}`;
-      }
-    }
-  }
-
-  // 6. sent_at filter
-  const sentAtMatch = cleanText.match(/sent_at\s*>=\s*\$(\d+)/i);
-  if (sentAtMatch) {
-    const val = params[parseInt(sentAtMatch[1], 10) - 1];
-    if (val !== undefined) {
-      filters += `&sent_at=gte.${encodeURIComponent(String(val))}`;
+  // 5. GTE comparison: column >= $X
+  const gteRegex = /\b(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+)\s*>=\s*\$(\d+)\b/g;
+  while ((match = gteRegex.exec(cleanText)) !== null) {
+    const column = match[1].toLowerCase();
+    const paramIndex = parseInt(match[2], 10);
+    const val = params[paramIndex - 1];
+    if (val !== undefined && val !== null) {
+      filters += `&${column}=gte.${encodeURIComponent(String(val))}`;
     }
   }
 
   return filters;
+}
+
+function chunkArray<T>(array: T[], chunkSize: number): T[][] {
+  const results: T[][] = [];
+  for (let i = 0; i < array.length; i += chunkSize) {
+    results.push(array.slice(i, i + chunkSize));
+  }
+  return results;
 }
 
 async function restQueryFallback(text: string, params: any[] = []): Promise<{ rows: any[]; rowCount: number }> {
@@ -147,14 +146,70 @@ async function restQueryFallback(text: string, params: any[] = []): Promise<{ ro
     };
     const restUrl = `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1`;
 
+    // 1. SELECT Query fallback
     if (/^SELECT/i.test(cleanText)) {
       const fromMatch = cleanText.match(/FROM\s+([a-zA-Z0-9_"]+)/i);
       if (!fromMatch) return { rows: [], rowCount: 0 };
       
       const rawTable = fromMatch[1].replace(/"/g, '');
+
+      // Check if there is a large array parameter (> 50 items) that could cause HTTP 400 URL length errors
+      let arrayParamIndex = -1;
+      let largeArray: any[] = [];
+      params.forEach((p, idx) => {
+        if (Array.isArray(p) && p.length > 50 && arrayParamIndex === -1) {
+          arrayParamIndex = idx;
+          largeArray = p;
+        }
+      });
+
+      if (arrayParamIndex !== -1 && largeArray.length > 50) {
+        const chunks = chunkArray(largeArray, 50);
+        const isCount = /COUNT\(\*\)/i.test(cleanText);
+
+        const chunkPromises = chunks.map(async (chunk) => {
+          const subParams = [...params];
+          subParams[arrayParamIndex] = chunk;
+          return restQueryFallback(cleanText, subParams);
+        });
+
+        const chunkResults = await Promise.all(chunkPromises);
+
+        if (isCount) {
+          const totalCount = chunkResults.reduce((acc, res) => {
+            const cnt = parseInt(res.rows[0]?.count, 10) || 0;
+            return acc + cnt;
+          }, 0);
+          return { rows: [{ count: totalCount }], rowCount: 1 };
+        } else {
+          let combinedRows = chunkResults.flatMap(res => res.rows);
+
+          const orderMatch = cleanText.match(/ORDER BY\s+(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+)(?:\s+(ASC|DESC))?/i);
+          if (orderMatch) {
+            const col = orderMatch[1].toLowerCase();
+            const isDesc = (orderMatch[2] || 'ASC').toUpperCase() === 'DESC';
+            combinedRows.sort((a, b) => {
+              const valA = a[col] ?? '';
+              const valB = b[col] ?? '';
+              if (valA < valB) return isDesc ? 1 : -1;
+              if (valA > valB) return isDesc ? -1 : 1;
+              return 0;
+            });
+          }
+
+          const limitMatch = cleanText.match(/\bLIMIT\s+(\d+)\b/i);
+          if (limitMatch) {
+            const limitVal = parseInt(limitMatch[1], 10);
+            combinedRows = combinedRows.slice(0, limitVal);
+          }
+
+          return { rows: combinedRows, rowCount: combinedRows.length };
+        }
+      }
+
       const filters = extractFilters(cleanText, params);
 
-      if (filters === 'EMPTY_CAMPAIGN_ID' || filters === 'EMPTY_LEAD_ID') {
+      if (filters.startsWith('EMPTY_')) {
         if (/COUNT\(\*\)/i.test(cleanText)) {
           return { rows: [{ count: 0 }], rowCount: 1 };
         }
@@ -179,20 +234,149 @@ async function restQueryFallback(text: string, params: any[] = []): Promise<{ ro
 
       let endpoint = `${restUrl}/${rawTable}?select=*${filters}`;
 
-      if (cleanText.includes('ORDER BY created_at DESC')) {
-        endpoint += `&order=created_at.desc`;
-      } else if (cleanText.includes('ORDER BY sent_at DESC')) {
-        endpoint += `&order=sent_at.desc`;
-      } else if (cleanText.includes('ORDER BY replied_at DESC')) {
-        endpoint += `&order=replied_at.desc`;
+      // Dynamic ORDER BY extraction
+      const orderMatch = cleanText.match(/ORDER BY\s+(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+)(?:\s+(ASC|DESC))?/i);
+      if (orderMatch) {
+        const column = orderMatch[1].toLowerCase();
+        const direction = (orderMatch[2] || 'ASC').toLowerCase();
+        endpoint += `&order=${column}.${direction}`;
+      }
+
+      // Dynamic LIMIT extraction
+      const limitMatch = cleanText.match(/\bLIMIT\s+(\d+)\b/i);
+      if (limitMatch) {
+        endpoint += `&limit=${limitMatch[1]}`;
+      }
+
+      // Dynamic OFFSET extraction
+      const offsetMatch = cleanText.match(/\bOFFSET\s+(\d+)\b/i);
+      if (offsetMatch) {
+        endpoint += `&offset=${offsetMatch[1]}`;
       }
 
       const res = await fetch(endpoint, { headers });
       if (res.ok) {
         const rows = await res.json();
         return { rows: Array.isArray(rows) ? rows : [], rowCount: Array.isArray(rows) ? rows.length : 0 };
+      } else {
+        console.error('[DB Rest Fallback Error] SELECT failed:', res.status, await res.text());
       }
     }
+
+    // 2. UPDATE Query fallback
+    if (/^UPDATE/i.test(cleanText)) {
+      const tableMatch = cleanText.match(/UPDATE\s+([a-zA-Z0-9_"]+)/i);
+      if (!tableMatch) return { rows: [], rowCount: 0 };
+      const rawTable = tableMatch[1].replace(/"/g, '');
+
+      // Parse SET fields
+      const setMatch = cleanText.match(/SET\s+(.*?)\s+(?:WHERE|$)/i);
+      const payload: Record<string, any> = {};
+      if (setMatch) {
+        const setAssignments = setMatch[1].split(',');
+        for (const assignment of setAssignments) {
+          const parts = assignment.split('=');
+          if (parts.length === 2) {
+            const col = parts[0].trim().replace(/"/g, '');
+            const paramMatch = parts[1].trim().match(/\$(\d+)/);
+            if (paramMatch) {
+              const paramIndex = parseInt(paramMatch[1], 10);
+              payload[col] = params[paramIndex - 1];
+            } else {
+              const literalVal = parts[1].trim().replace(/['"]/g, '');
+              if (literalVal === 'true') payload[col] = true;
+              else if (literalVal === 'false') payload[col] = false;
+              else if (!isNaN(Number(literalVal))) payload[col] = Number(literalVal);
+              else payload[col] = literalVal;
+            }
+          }
+        }
+      }
+
+      const filters = extractFilters(cleanText, params);
+      const endpoint = `${restUrl}/${rawTable}?${filters.replace(/^&/, '')}`;
+
+      const res = await fetch(endpoint, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        const rows = await res.json();
+        return { rows: Array.isArray(rows) ? rows : [], rowCount: Array.isArray(rows) ? rows.length : 0 };
+      } else {
+        console.error('[DB Rest Fallback Error] UPDATE failed:', res.status, await res.text());
+      }
+    }
+
+    // 3. DELETE Query fallback
+    if (/^DELETE/i.test(cleanText)) {
+      const tableMatch = cleanText.match(/DELETE\s+FROM\s+([a-zA-Z0-9_"]+)/i);
+      if (!tableMatch) return { rows: [], rowCount: 0 };
+      const rawTable = tableMatch[1].replace(/"/g, '');
+
+      const filters = extractFilters(cleanText, params);
+      const endpoint = `${restUrl}/${rawTable}?${filters.replace(/^&/, '')}`;
+
+      const res = await fetch(endpoint, {
+        method: 'DELETE',
+        headers
+      });
+
+      if (res.ok) {
+        const rows = await res.json();
+        return { rows: Array.isArray(rows) ? rows : [], rowCount: Array.isArray(rows) ? rows.length : 0 };
+      } else {
+        console.error('[DB Rest Fallback Error] DELETE failed:', res.status, await res.text());
+      }
+    }
+
+    // 4. INSERT Query fallback
+    if (/^INSERT/i.test(cleanText)) {
+      const tableMatch = cleanText.match(/INSERT\s+INTO\s+([a-zA-Z0-9_"]+)/i);
+      if (!tableMatch) return { rows: [], rowCount: 0 };
+      const rawTable = tableMatch[1].replace(/"/g, '');
+
+      const columnsMatch = cleanText.match(/\(([^)]+)\)\s*VALUES/i);
+      const valuesMatch = cleanText.match(/VALUES\s*\(([^)]+)\)/i);
+
+      if (columnsMatch && valuesMatch) {
+        const columns = columnsMatch[1].split(',').map(c => c.trim().replace(/"/g, ''));
+        const values = valuesMatch[1].split(',').map(v => v.trim());
+
+        const payload: Record<string, any> = {};
+        columns.forEach((col, index) => {
+          const valStr = values[index];
+          const paramMatch = valStr.match(/\$(\d+)/);
+          if (paramMatch) {
+            const paramIndex = parseInt(paramMatch[1], 10);
+            payload[col] = params[paramIndex - 1];
+          } else {
+            const literalVal = valStr.replace(/['"]/g, '');
+            if (literalVal === 'true') payload[col] = true;
+            else if (literalVal === 'false') payload[col] = false;
+            else if (!isNaN(Number(literalVal))) payload[col] = Number(literalVal);
+            else payload[col] = literalVal;
+          }
+        });
+
+        const endpoint = `${restUrl}/${rawTable}`;
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          const rows = await res.json();
+          return { rows: Array.isArray(rows) ? rows : [], rowCount: Array.isArray(rows) ? rows.length : 0 };
+        } else {
+          console.error('[DB Rest Fallback Error] INSERT failed:', res.status, await res.text());
+        }
+      }
+    }
+
   } catch (e) {
     console.error('[DB Rest Fallback Error]:', e);
   }

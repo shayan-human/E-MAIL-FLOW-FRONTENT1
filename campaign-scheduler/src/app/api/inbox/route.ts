@@ -44,7 +44,67 @@ export async function GET() {
             [user.id]
         );
 
-        const repliesData = (result.rows || []).map(row => ({
+        let rawRows = result.rows || [];
+        if (rawRows.length === 0) {
+            // Multi-step fallback for REST mode where SQL JOIN across 3 tables fails
+            const campaignsRes = await pool.query(
+                "SELECT id, name FROM campaigns WHERE user_id = $1",
+                [user.id]
+            );
+            const userCampaigns = campaignsRes.rows || [];
+            const campaignIds = userCampaigns.map((c: any) => c.id);
+
+            if (campaignIds.length > 0) {
+                const leadsRes = await pool.query(
+                    "SELECT * FROM leads WHERE campaign_id = ANY($1::uuid[])",
+                    [campaignIds]
+                );
+                const userLeads = leadsRes.rows || [];
+                const leadIds = userLeads.map((l: any) => l.id);
+
+                if (leadIds.length > 0) {
+                    const repliesRes = await pool.query(
+                        "SELECT * FROM replies WHERE lead_id = ANY($1::uuid[])",
+                        [leadIds]
+                    );
+                    const userReplies = repliesRes.rows || [];
+
+                    const campaignsMap = new Map(userCampaigns.map((c: any) => [c.id, c]));
+                    const leadsMap = new Map(userLeads.map((l: any) => [l.id, l]));
+
+                    rawRows = userReplies.map((r: any) => {
+                        const lead = leadsMap.get(r.lead_id) || {};
+                        const campaign = campaignsMap.get(lead.campaign_id) || {};
+                        return {
+                            reply_id: r.id,
+                            lead_id: r.lead_id,
+                            reply_subject: r.subject,
+                            reply_body: r.body,
+                            reply_sender_email: r.sender_email,
+                            reply_timestamp: r.timestamp,
+                            reply_type: r.type,
+                            reply_is_read: r.is_read,
+                            reply_gmail_message_id: r.gmail_message_id,
+                            lead_email: lead.email,
+                            lead_first_name: lead.first_name,
+                            lead_last_name: lead.last_name,
+                            lead_business_name: lead.business_name,
+                            lead_website: lead.website,
+                            lead_phone: lead.phone,
+                            lead_custom_fields: lead.custom_fields,
+                            lead_gmail_thread_id: lead.gmail_thread_id,
+                            lead_sender_account_id: lead.sender_account_id,
+                            lead_sender_account_email: lead.sender_account_email,
+                            lead_status: lead.status,
+                            campaign_id: campaign.id,
+                            campaign_name: campaign.name
+                        };
+                    });
+                }
+            }
+        }
+
+        const repliesData = rawRows.map(row => ({
             id: row.reply_id,
             lead_id: row.lead_id,
             subject: row.reply_subject,
