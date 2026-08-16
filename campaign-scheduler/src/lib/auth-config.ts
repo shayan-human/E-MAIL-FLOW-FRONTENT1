@@ -43,11 +43,33 @@ export const authOptions = {
   session: { strategy: 'jwt' as const },
   callbacks: {
     async jwt({ token, user }: any) {
-      if (user) token.id = user.id || token.sub;
+      if (token?.email) {
+        try {
+          const res = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/users?email=eq.${encodeURIComponent(token.email)}`, {
+            headers: {
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            },
+          });
+          if (res.ok) {
+            const users = await res.json();
+            if (users && users.length > 0) {
+              token.id = users[0].id;
+            }
+          }
+        } catch (e) {
+          console.error('JWT user lookup error:', e);
+        }
+      }
+      if (!token.id && user) {
+        token.id = user.id || token.sub;
+      }
       return token;
     },
     async session({ session, token }: any) {
-      if (session.user) session.user.id = (token.id || token.sub) as string;
+      if (session?.user) {
+        session.user.id = (token.id || token.sub) as string;
+      }
       return session;
     },
   },

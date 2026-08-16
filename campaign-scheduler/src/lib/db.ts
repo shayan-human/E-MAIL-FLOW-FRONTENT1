@@ -47,7 +47,7 @@ const rawPool = new Pool({
     : undefined,
   max: 10,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: 500, // Fast 500ms timeout for TCP attempts
 });
 
 async function restQueryFallback(text: string, params: any[] = []): Promise<{ rows: any[]; rowCount: number }> {
@@ -70,7 +70,7 @@ async function restQueryFallback(text: string, params: any[] = []): Promise<{ ro
       if (/COUNT\(\*\)/i.test(cleanText)) {
         let endpoint = `${restUrl}/${rawTable}?select=id`;
         
-        if (cleanText.includes('user_id = $1') && params[0]) {
+        if ((cleanText.includes('user_id = $1') || cleanText.includes('WHERE user_id = $1')) && params[0]) {
           endpoint += `&user_id=eq.${encodeURIComponent(params[0])}`;
         }
         if (cleanText.includes('is_active = true')) {
@@ -82,9 +82,10 @@ async function restQueryFallback(text: string, params: any[] = []): Promise<{ ro
         if (cleanText.includes("status IN ('SENT', 'REPLIED')")) {
           endpoint += `&status=in.(SENT,REPLIED)`;
         }
-        if (cleanText.includes('campaign_id = ANY($1)') && Array.isArray(params[0])) {
-          if (params[0].length === 0) return { rows: [{ count: 0 }], rowCount: 1 };
-          endpoint += `&campaign_id=in.(${params[0].join(',')})`;
+        if (cleanText.includes('campaign_id = ANY($1)')) {
+          const arr = Array.isArray(params[0]) ? params[0] : (Array.isArray(params[1]) ? params[1] : []);
+          if (arr.length === 0) return { rows: [{ count: 0 }], rowCount: 1 };
+          endpoint += `&campaign_id=in.(${arr.join(',')})`;
         }
 
         const countRes = await fetch(endpoint, {
@@ -103,16 +104,21 @@ async function restQueryFallback(text: string, params: any[] = []): Promise<{ ro
 
       let endpoint = `${restUrl}/${rawTable}?select=*`;
       
-      if (cleanText.includes('WHERE user_id = $1') && params[0]) {
+      if ((cleanText.includes('user_id = $1') || cleanText.includes('WHERE user_id = $1')) && params[0]) {
         endpoint += `&user_id=eq.${encodeURIComponent(params[0])}`;
       }
-      if (cleanText.includes('campaign_id = ANY($1)') && Array.isArray(params[0])) {
-        if (params[0].length === 0) return { rows: [], rowCount: 0 };
-        endpoint += `&campaign_id=in.(${params[0].join(',')})`;
+      if (cleanText.includes('campaign_id = ANY($1)')) {
+        const arr = Array.isArray(params[0]) ? params[0] : [];
+        if (arr.length === 0) return { rows: [], rowCount: 0 };
+        endpoint += `&campaign_id=in.(${arr.join(',')})`;
       }
-      if (cleanText.includes('lead_id = ANY($1)') && Array.isArray(params[0])) {
-        if (params[0].length === 0) return { rows: [], rowCount: 0 };
-        endpoint += `&lead_id=in.(${params[0].join(',')})`;
+      if (cleanText.includes('lead_id = ANY($1)')) {
+        const arr = Array.isArray(params[0]) ? params[0] : [];
+        if (arr.length === 0) return { rows: [], rowCount: 0 };
+        endpoint += `&lead_id=in.(${arr.join(',')})`;
+      }
+      if (cleanText.includes('sent_at >= $2') && params[1]) {
+        endpoint += `&sent_at=gte.${encodeURIComponent(params[1])}`;
       }
       if (cleanText.includes('ORDER BY created_at DESC')) {
         endpoint += `&order=created_at.desc`;
@@ -135,12 +141,21 @@ export const pool = {
   async query(text: string | any, params?: any[]) {
     const queryText = typeof text === 'string' ? text : text.text;
     const queryParams = typeof text === 'string' ? params : text.values;
+
+    const timeoutPromise = new Promise<{ timeout: true }>((resolve) => setTimeout(() => resolve({ timeout: true }), 250));
     try {
-      return await rawPool.query(queryText, queryParams);
-    } catch (err: any) {
-      console.warn(`[DB Pool Warning] ${err.message}. Falling back to Supabase REST API...`);
-      return await restQueryFallback(queryText, queryParams);
+      const result: any = await Promise.race([
+        rawPool.query(queryText, queryParams),
+        timeoutPromise
+      ]);
+      if (result && !result.timeout) {
+        return result;
+      }
+    } catch (err) {
+      // TCP query failed immediately
     }
+
+    return await restQueryFallback(queryText, queryParams);
   },
   on(event: string, listener: (...args: any[]) => void) {
     return rawPool.on(event, listener);
