@@ -147,6 +147,33 @@ async function restQueryFallback(text: string, params: any[] = []): Promise<{ ro
     };
     const restUrl = `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1`;
 
+    // 0. RPC Function fallback (specifically for update_lead_status_from_webhook)
+    if (/update_lead_status_from_webhook/i.test(cleanText)) {
+      const payload = {
+        p_campaign_id: params[0],
+        p_email: params[1],
+        p_event: params[2],
+        p_gmail_message_id: params[3] || null,
+        p_gmail_thread_id: params[4] || null
+      };
+      
+      const endpoint = `${restUrl}/rpc/update_lead_status_from_webhook`;
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      });
+      
+      if (res.ok) {
+        const val = await res.json();
+        return { rows: [{ result: val }], rowCount: 1 };
+      } else {
+        const errorText = await res.text();
+        console.error('[DB Rest Fallback Error] RPC update_lead_status_from_webhook failed:', res.status, errorText);
+        return { rows: [], rowCount: 0 };
+      }
+    }
+
     // 1. SELECT Query fallback
     if (/^SELECT/i.test(cleanText)) {
       const fromMatch = cleanText.match(/FROM\s+([a-zA-Z0-9_"]+)/i);

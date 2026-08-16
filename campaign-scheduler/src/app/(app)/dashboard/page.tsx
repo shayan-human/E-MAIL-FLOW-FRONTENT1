@@ -131,7 +131,9 @@ export default async function DashboardPage() {
                     }
                 } else {
                     // This was marked REPLIED but only contains bounces
-                    additionalBouncedCount++;
+                    if (leadReplies.length > 0) {
+                        additionalBouncedCount++;
+                    }
                 }
             });
         }

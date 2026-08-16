@@ -6,7 +6,7 @@ import { pool } from "@/lib/db";
 // Webhook payload from n8n when an email is sent or a reply is detected
 const WebhookPayloadSchema = z.object({
     campaignId: z.string().uuid(),
-    event: z.enum(["EMAIL_SENT", "EMAIL_REPLY", "EMAIL_FAILED"]),
+    event: z.enum(["EMAIL_SENT", "EMAIL_REPLY", "EMAIL_FAILED", "EMAIL_BOUNCED"]),
     email: z.string().email(),
     timestamp: z.string().datetime().optional(),
     gmailMessageId: z.string().optional(),
