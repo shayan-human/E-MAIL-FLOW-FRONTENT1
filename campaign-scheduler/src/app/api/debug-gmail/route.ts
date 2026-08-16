@@ -16,7 +16,7 @@ export async function GET() {
         const debugInfo: any[] = [];
 
         for (const account of accounts) {
-            const url = "https://gmail.googleapis.com/gmail/v1/users/me/messages?q=from:demgrowonline@gmail.com";
+            const url = "https://gmail.googleapis.com/gmail/v1/users/me/messages?q=in:inbox";
             const res = await fetch(url, {
                 headers: { Authorization: `Bearer ${decrypt(account.google_access_token)}` }
             });

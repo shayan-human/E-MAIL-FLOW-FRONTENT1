@@ -76,9 +76,7 @@ export async function GET(req: Request) {
 
         const encryptedAccess = encrypt(accessToken);
         const encryptedRefresh = refreshToken ? encrypt(refreshToken) : null;
-
         if (existing) {
-            console.log(`[OAuth Callback] Updating existing sender account ${email} for user ${user.id}`);
             if (encryptedRefresh) {
                 await pool.query(
                     `UPDATE sender_accounts 
@@ -102,7 +100,6 @@ export async function GET(req: Request) {
                 );
             }
         } else {
-            console.log(`[OAuth Callback] Creating new sender account ${email} for user ${user.id}`);
             await pool.query(
                 `INSERT INTO sender_accounts 
                     (user_id, email, name, google_access_token, google_refresh_token, is_active, status, token_expires_at)
@@ -120,7 +117,7 @@ export async function GET(req: Request) {
             );
         }
 
-        console.log(`[OAuth Callback] Successfully connected account: ${email}`);
+
         return NextResponse.redirect(new URL(`${redirectPath}?success=account_connected`, req.url));
 
     } catch (error) {

@@ -250,7 +250,7 @@ export default function WarmupClient({
             const data = await response.json();
 
             if (data.success) {
-                toast.success(`Mode changed to ${mode === "network" ? "DemGrow Network" : "Own Accounts"}`);
+                toast.success(`Mode changed to ${mode === "network" ? "EmailFlow Network" : "Own Accounts"}`);
                 fetchAccounts();
             } else {
                 throw new Error(data.error);
@@ -372,7 +372,7 @@ export default function WarmupClient({
                 </div>
                 <div className={styles.headerRight}>
                     <div className={styles.toggleContainer}>
-                        <span className={styles.toggleLabel}>DemGrow Network Opt-In</span>
+                        <span className={styles.toggleLabel}>EmailFlow Network Opt-In</span>
                         <div
                             className={`${styles.toggle} ${networkOptIn ? styles.active : ""}`}
                             onClick={handleNetworkOptInToggle}
@@ -384,7 +384,7 @@ export default function WarmupClient({
                         </div>
                     </div>
                     <div className={styles.toggleHelper}>
-                        Allow your accounts to be used as warmup partners for other DemGrow users.
+                        Allow your accounts to be used as warmup partners for other EmailFlow users.
                     </div>
                 </div>
             </div>
@@ -555,14 +555,14 @@ export default function WarmupClient({
                                         }}
                                         disabled={!account.id}
                                     >
-                                        DemGrow Network
+                                        EmailFlow Network
                                         <Info 
                                             size={13} 
                                             className={styles.infoIcon}
                                             onMouseEnter={(e) => {
                                                 const rect = e.currentTarget.getBoundingClientRect();
                                                 setTooltip({ 
-                                                    text: "Your accounts are paired with other DemGrow users' accounts for a larger, more realistic warmup network. Your email address may be used as a warmup partner.", 
+                                                    text: "Your accounts are paired with other EmailFlow users' accounts for a larger, more realistic warmup network. Your email address may be used as a warmup partner.", 
                                                     x: rect.left + rect.width / 2, 
                                                     y: rect.top 
                                                 });

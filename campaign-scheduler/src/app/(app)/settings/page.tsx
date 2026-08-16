@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Settings as SettingsIcon, Sun, Moon, Monitor, Bell, BellOff, LogOut, Save, X } from "lucide-react";
 
-import { useUser, useAuth } from "@/hooks/use-user";
+import { useUser } from "@/hooks/use-user";
+import { signOut } from "next-auth/react";
 import { toast } from "@/components/ui/toast-provider";
 import { SimpleConfirmModal } from "@/components/ui/simple-confirm-modal";
 import { formatInTimezone, getBrowserTimezone } from "@/lib/utils";
@@ -40,7 +41,6 @@ interface UserSettings {
 
 export default function SettingsPage() {
   const { user, isLoaded } = useUser();
-  const { signOut } = useAuth();
   const [settings, setSettings] = useState<UserSettings>({
     user_id: "",
     timezone: getBrowserTimezone(),

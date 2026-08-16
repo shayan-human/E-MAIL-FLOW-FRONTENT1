@@ -229,7 +229,7 @@ export function Step1Accounts({ onNext }: Step1Props) {
                                         setIsLoading(false);
                                     }}
                                     className="flex items-center gap-2"
-                                map={null}>
+                                >
                                     <RefreshCw className="h-3.5 w-3.5" />
                                     Check again
                                 </Button>

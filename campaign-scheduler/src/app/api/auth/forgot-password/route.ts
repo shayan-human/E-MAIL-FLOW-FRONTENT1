@@ -15,7 +15,6 @@ export async function POST(req: Request) {
 
     // In a production setup, a reset token would be generated here and emailed via nodemailer.
     // For Phase 1 validation, returning success keeps the flow working without throwing errors.
-    console.log(`[Password Reset Request] Reset link requested for ${email}`);
     return NextResponse.json({ message: 'Password reset link sent' });
   } catch (err: any) {
     console.error('[Forgot Password Error]:', err);

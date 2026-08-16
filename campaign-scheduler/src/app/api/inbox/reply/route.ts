@@ -10,10 +10,7 @@ export async function POST(req: Request) {
         if (!user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-
         const payload = await req.json();
-        console.log("[Reply API] Received payload:", JSON.stringify(payload, null, 2));
-
         const { leadId, gmailThreadId: reqThreadId, subject, body, senderAccountId } = payload;
 
         if (!leadId || !body) {

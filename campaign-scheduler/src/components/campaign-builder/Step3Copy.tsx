@@ -578,7 +578,7 @@ export function Step3Copy({ onNext, onBack }: Step3Props) {
                                 <Label htmlFor="customSenderName" className="text-sm font-medium">Display Name</Label>
                                 <Input
                                     id="customSenderName"
-                                    placeholder="e.g. DemGrow"
+                                    placeholder="e.g. EmailFlow"
                                     value={customSenderName}
                                     onChange={(e) => setCustomSenderName(e.target.value)}
                                     className="text-base"

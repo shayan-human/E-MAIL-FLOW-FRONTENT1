@@ -35,7 +35,7 @@ export default function LoginClient() {
 
                         <div>
                             <h1 className="text-4xl font-extrabold text-white tracking-tighter mb-2">
-                                DemGrow <span className="text-orange-500 font-light">Engine</span>
+                                EmailFlow <span className="text-orange-500 font-light">Engine</span>
                             </h1>
                             <p className="text-slate-400 text-[14px] font-medium leading-relaxed max-w-[280px]">
                                 Industrial-grade email orchestration for outbound specialists.
