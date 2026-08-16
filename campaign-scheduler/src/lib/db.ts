@@ -47,8 +47,94 @@ const rawPool = new Pool({
     : undefined,
   max: 10,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 500, // Fast 500ms timeout for TCP attempts
+  connectionTimeoutMillis: 5000, // 5s connection timeout to accommodate Oregon-Seoul latency
 });
+
+function extractFilters(cleanText: string, params: any[] = []): string {
+  let filters = '';
+
+  // 1. user_id filter
+  const userIdMatch = cleanText.match(/user_id\s*=\s*\$(\d+)/i);
+  if (userIdMatch) {
+    const val = params[parseInt(userIdMatch[1], 10) - 1];
+    if (val !== undefined) {
+      filters += `&user_id=eq.${encodeURIComponent(String(val))}`;
+    }
+  }
+
+  // 2. campaign_id filter
+  const campaignIdMatch = cleanText.match(/campaign_id\s*=\s*ANY\(\$(\d+)(?:::uuid\[\])?\)/i);
+  if (campaignIdMatch) {
+    const arr = params[parseInt(campaignIdMatch[1], 10) - 1];
+    if (Array.isArray(arr)) {
+      if (arr.length === 0) return 'EMPTY_CAMPAIGN_ID';
+      filters += `&campaign_id=in.(${arr.map(x => encodeURIComponent(String(x))).join(',')})`;
+    }
+  }
+
+  // 3. lead_id filter
+  const leadIdMatch = cleanText.match(/lead_id\s*=\s*ANY\(\$(\d+)(?:::uuid\[\])?\)/i);
+  if (leadIdMatch) {
+    const arr = params[parseInt(leadIdMatch[1], 10) - 1];
+    if (Array.isArray(arr)) {
+      if (arr.length === 0) return 'EMPTY_LEAD_ID';
+      filters += `&lead_id=in.(${arr.map(x => encodeURIComponent(String(x))).join(',')})`;
+    }
+  }
+
+  // 4. status filter
+  const statusLiteralMatch = cleanText.match(/status\s*=\s*'([A-Z_]+)'/i);
+  if (statusLiteralMatch) {
+    filters += `&status=eq.${statusLiteralMatch[1]}`;
+  } else {
+    const statusParamMatch = cleanText.match(/status\s*=\s*\$(\d+)/i);
+    if (statusParamMatch) {
+      const val = params[parseInt(statusParamMatch[1], 10) - 1];
+      if (val !== undefined) {
+        filters += `&status=eq.${encodeURIComponent(String(val))}`;
+      }
+    }
+  }
+
+  const statusInMatch = cleanText.match(/status\s+in\s*\(([^)]+)\)/i);
+  if (statusInMatch) {
+    const content = statusInMatch[1].trim();
+    if (content.startsWith('$')) {
+      const paramIndex = parseInt(content.substring(1), 10);
+      const val = params[paramIndex - 1];
+      if (Array.isArray(val)) {
+        filters += `&status=in.(${val.map(x => encodeURIComponent(String(x))).join(',')})`;
+      }
+    } else {
+      const cleaned = content.replace(/['"\s]/g, '');
+      filters += `&status=in.(${cleaned})`;
+    }
+  }
+
+  // 5. is_active filter
+  if (cleanText.includes('is_active = true')) {
+    filters += `&is_active=eq.true`;
+  } else {
+    const isActiveParamMatch = cleanText.match(/is_active\s*=\s*\$(\d+)/i);
+    if (isActiveParamMatch) {
+      const val = params[parseInt(isActiveParamMatch[1], 10) - 1];
+      if (val !== undefined) {
+        filters += `&is_active=eq.${val ? 'true' : 'false'}`;
+      }
+    }
+  }
+
+  // 6. sent_at filter
+  const sentAtMatch = cleanText.match(/sent_at\s*>=\s*\$(\d+)/i);
+  if (sentAtMatch) {
+    const val = params[parseInt(sentAtMatch[1], 10) - 1];
+    if (val !== undefined) {
+      filters += `&sent_at=gte.${encodeURIComponent(String(val))}`;
+    }
+  }
+
+  return filters;
+}
 
 async function restQueryFallback(text: string, params: any[] = []): Promise<{ rows: any[]; rowCount: number }> {
   try {
@@ -66,35 +152,24 @@ async function restQueryFallback(text: string, params: any[] = []): Promise<{ ro
       if (!fromMatch) return { rows: [], rowCount: 0 };
       
       const rawTable = fromMatch[1].replace(/"/g, '');
-      
-      if (/COUNT\(\*\)/i.test(cleanText)) {
-        let endpoint = `${restUrl}/${rawTable}?select=id`;
-        
-        if ((cleanText.includes('user_id = $1') || cleanText.includes('WHERE user_id = $1')) && params[0]) {
-          endpoint += `&user_id=eq.${encodeURIComponent(params[0])}`;
-        }
-        if (cleanText.includes('is_active = true')) {
-          endpoint += `&is_active=eq.true`;
-        }
-        if (cleanText.includes("status = 'BOUNCED'")) {
-          endpoint += `&status=eq.BOUNCED`;
-        }
-        if (cleanText.includes("status IN ('SENT', 'REPLIED')")) {
-          endpoint += `&status=in.(SENT,REPLIED)`;
-        }
-        if (cleanText.includes('campaign_id = ANY($1)')) {
-          const arr = Array.isArray(params[0]) ? params[0] : (Array.isArray(params[1]) ? params[1] : []);
-          if (arr.length === 0) return { rows: [{ count: 0 }], rowCount: 1 };
-          endpoint += `&campaign_id=in.(${arr.join(',')})`;
-        }
+      const filters = extractFilters(cleanText, params);
 
+      if (filters === 'EMPTY_CAMPAIGN_ID' || filters === 'EMPTY_LEAD_ID') {
+        if (/COUNT\(\*\)/i.test(cleanText)) {
+          return { rows: [{ count: 0 }], rowCount: 1 };
+        }
+        return { rows: [], rowCount: 0 };
+      }
+
+      if (/COUNT\(\*\)/i.test(cleanText)) {
+        const endpoint = `${restUrl}/${rawTable}?select=id${filters}`;
         const countRes = await fetch(endpoint, {
           headers: { ...headers, 'Prefer': 'count=exact' }
         });
         const contentRange = countRes.headers.get('content-range');
         let count = 0;
         if (contentRange && contentRange.includes('/')) {
-          count = parseInt(contentRange.split('/')[1]) || 0;
+          count = parseInt(contentRange.split('/')[1], 10) || 0;
         } else if (countRes.ok) {
           const data = await countRes.json();
           count = Array.isArray(data) ? data.length : 0;
@@ -102,26 +177,14 @@ async function restQueryFallback(text: string, params: any[] = []): Promise<{ ro
         return { rows: [{ count }], rowCount: 1 };
       }
 
-      let endpoint = `${restUrl}/${rawTable}?select=*`;
-      
-      if ((cleanText.includes('user_id = $1') || cleanText.includes('WHERE user_id = $1')) && params[0]) {
-        endpoint += `&user_id=eq.${encodeURIComponent(params[0])}`;
-      }
-      if (cleanText.includes('campaign_id = ANY($1)')) {
-        const arr = Array.isArray(params[0]) ? params[0] : [];
-        if (arr.length === 0) return { rows: [], rowCount: 0 };
-        endpoint += `&campaign_id=in.(${arr.join(',')})`;
-      }
-      if (cleanText.includes('lead_id = ANY($1)')) {
-        const arr = Array.isArray(params[0]) ? params[0] : [];
-        if (arr.length === 0) return { rows: [], rowCount: 0 };
-        endpoint += `&lead_id=in.(${arr.join(',')})`;
-      }
-      if (cleanText.includes('sent_at >= $2') && params[1]) {
-        endpoint += `&sent_at=gte.${encodeURIComponent(params[1])}`;
-      }
+      let endpoint = `${restUrl}/${rawTable}?select=*${filters}`;
+
       if (cleanText.includes('ORDER BY created_at DESC')) {
         endpoint += `&order=created_at.desc`;
+      } else if (cleanText.includes('ORDER BY sent_at DESC')) {
+        endpoint += `&order=sent_at.desc`;
+      } else if (cleanText.includes('ORDER BY replied_at DESC')) {
+        endpoint += `&order=replied_at.desc`;
       }
 
       const res = await fetch(endpoint, { headers });
@@ -139,23 +202,36 @@ async function restQueryFallback(text: string, params: any[] = []): Promise<{ ro
 
 export const pool = {
   async query(text: string | any, params?: any[]) {
+    const start = Date.now();
     const queryText = typeof text === 'string' ? text : text.text;
     const queryParams = typeof text === 'string' ? params : text.values;
 
-    const timeoutPromise = new Promise<{ timeout: true }>((resolve) => setTimeout(() => resolve({ timeout: true }), 250));
+    const timeoutPromise = new Promise<{ timeout: true }>((resolve) => setTimeout(() => resolve({ timeout: true }), 2000));
+    let result: any = null;
+    let method = 'TCP';
+
     try {
-      const result: any = await Promise.race([
+      const raceResult: any = await Promise.race([
         rawPool.query(queryText, queryParams),
         timeoutPromise
       ]);
-      if (result && !result.timeout) {
-        return result;
+      if (raceResult && !raceResult.timeout) {
+        result = raceResult;
+      } else {
+        method = 'REST_FALLBACK';
       }
     } catch (err) {
-      // TCP query failed immediately
+      console.error('[DB PG Connection Error]:', err);
+      method = 'REST_FALLBACK';
     }
 
-    return await restQueryFallback(queryText, queryParams);
+    if (method === 'REST_FALLBACK') {
+      result = await restQueryFallback(queryText, queryParams);
+    }
+
+    const duration = Date.now() - start;
+    console.log(`[DB Query] method=${method} duration=${duration}ms rows=${result?.rowCount ?? 0} sql="${queryText.trim().replace(/\s+/g, ' ').substring(0, 120)}..."`);
+    return result;
   },
   on(event: string, listener: (...args: any[]) => void) {
     return rawPool.on(event, listener);

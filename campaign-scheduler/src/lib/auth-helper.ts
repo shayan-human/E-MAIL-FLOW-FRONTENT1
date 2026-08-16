@@ -23,6 +23,7 @@ async function resolveDbUserId(email: string): Promise<string | null> {
       const users = await res.json();
       if (users && users.length > 0 && users[0].id) {
         userUuidCache.set(email, users[0].id);
+        console.log(`[auth-helper] Resolved ${email} to DB user ID: ${users[0].id}`);
         return users[0].id;
       }
     }
@@ -34,10 +35,16 @@ async function resolveDbUserId(email: string): Promise<string | null> {
 
 export async function getUser() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return null;
+  console.log('[auth-helper] Active session user email:', session?.user?.email);
+
+  if (!session?.user?.email) {
+    console.log('[auth-helper] No active user email in session');
+    return null;
+  }
 
   const dbUserId = await resolveDbUserId(session.user.email);
   const userId = dbUserId || (session.user as any).id as string;
+  console.log(`[auth-helper] Using user ID: ${userId} for session`);
 
   return {
     id: userId,
