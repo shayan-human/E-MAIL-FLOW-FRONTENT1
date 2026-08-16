@@ -13,7 +13,7 @@ export async function GET() {
             `SELECT id, name, subject, body, created_at, folder_id 
              FROM drafts 
              WHERE user_id = $1 
-             ORDER BY updated_at DESC`,
+             ORDER BY created_at DESC`,
             [user.id]
         );
 

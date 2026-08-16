@@ -42,10 +42,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             return NextResponse.json({ error: "No fields to update" }, { status: 400 });
         }
 
-        updateFields.push(`updated_at = $${valIdx}`);
-        values.push(new Date().toISOString());
-        valIdx++;
-
         // Append ID and User ID parameters for WHERE clause
         values.push(id);
         const idIdx = valIdx;
@@ -58,7 +54,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             UPDATE drafts 
             SET ${updateFields.join(", ")} 
             WHERE id = $${idIdx} AND user_id = $${userIdIdx} 
-            RETURNING id, name, subject, body, created_at, folder_id, updated_at
+            RETURNING id, name, subject, body, created_at, folder_id
         `;
 
         const result = await pool.query(queryText, values);
