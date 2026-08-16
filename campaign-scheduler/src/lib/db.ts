@@ -138,9 +138,10 @@ function chunkArray<T>(array: T[], chunkSize: number): T[][] {
 async function restQueryFallback(text: string, params: any[] = []): Promise<{ rows: any[]; rowCount: number }> {
   try {
     const cleanText = text.trim();
+    const token = process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
     const headers = {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'apikey': token,
+      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=representation',
     };
