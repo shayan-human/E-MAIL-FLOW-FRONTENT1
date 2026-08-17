@@ -1,11 +1,11 @@
 import { randomUUID } from 'crypto';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://myagqulgddhnxrxkvvia.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15YWdxdWxnZGRobnhyeGt2dmlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMDM0NDQsImV4cCI6MjA5Mjc3OTQ0NH0.yz9h3IXnCQFbQ4ltj68dgkH3buFkL_oKcGptfYvZNUs';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15YWdxdWxnZGRobnhyeGt2dmlhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NzIwMzQ0NCwiZXhwIjoyMDkyNzc5NDQ0fQ.w3MyQEpnPUyyVfyh_YTBKETvX171ChAqOCK8vAEGXWk';
 
 const headers = {
-  'apikey': SUPABASE_ANON_KEY,
-  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+  'apikey': SUPABASE_SERVICE_ROLE_KEY,
+  'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
   'Content-Type': 'application/json',
   'Prefer': 'return=representation',
 };
