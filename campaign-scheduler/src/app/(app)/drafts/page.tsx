@@ -112,12 +112,14 @@ export default function DraftsPage() {
     options: PERSONALIZATION_OPTIONS,
     value: draftForm.subject,
     onChange: (val) => setDraftForm(prev => ({ ...prev, subject: val })),
+    inputRef: subjectInputRef,
   });
 
   const bodySlash = useSlashCommand({
     options: PERSONALIZATION_OPTIONS,
     value: draftForm.body,
     onChange: (val) => setDraftForm(prev => ({ ...prev, body: val })),
+    inputRef: bodyTextareaRef,
   });
 
   const fetchData = useCallback(async () => {
@@ -690,7 +692,7 @@ export default function DraftsPage() {
                         onBlur={(e) => (e.currentTarget.style.borderColor = "#2a2a2a")}
                       />
                     </div>
-                    <div className="relative" ref={subjectSlash.popupRef}>
+                    <div className="relative z-20" ref={subjectSlash.popupRef}>
                       <label className="text-sm mb-1.5 block" style={{ color: "#888888" }}>Subject</label>
                       <Input
                         ref={subjectInputRef}
@@ -698,21 +700,24 @@ export default function DraftsPage() {
                         onChange={(e) => subjectSlash.handleInputChange(e.target.value, e.target.selectionStart ?? undefined)}
                         onKeyDown={subjectSlash.handleKeyDown}
                         placeholder="Email subject..."
-                        className="w-full placeholder:text-[#444444]"
+                        className="w-full relative z-10 placeholder:text-[#444444]"
                         style={{ backgroundColor: "#0f0f0f", border: "1px solid #2a2a2a", borderRadius: "8px", color: "#f0f0f0" }}
                         onFocus={(e) => (e.currentTarget.style.borderColor = "#F59E0B")}
                         onBlur={(e) => (e.currentTarget.style.borderColor = "#2a2a2a")}
                       />
                       {subjectSlash.activePopup && (
-                        <div className="absolute top-full left-0 mt-2 w-56 rounded-xl border shadow-xl z-[60] overflow-hidden" style={{ backgroundColor: "#141414", borderColor: "#222" }}>
+                        <div className="absolute top-full left-0 mt-1 w-64 rounded-xl border shadow-2xl z-30 overflow-hidden" style={{ backgroundColor: "#141414", borderColor: "#222" }}>
                           <div className="px-3 py-2 border-b text-xs font-semibold uppercase" style={{ borderColor: "#222", color: "#888888" }}>
                             Insert Personalization
                           </div>
                           <div className="p-1 max-h-60 overflow-y-auto">
-                            {PERSONALIZATION_OPTIONS.map((option, idx) => (
+                            {subjectSlash.filteredOptions.map((option, idx) => (
                               <button
                                 key={option.tag}
-                                onClick={() => subjectSlash.handleSelectOption(option)}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  subjectSlash.handleSelectOption(option);
+                                }}
                                 className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${idx === subjectSlash.selectedIndex ? 'bg-[#F59E0B]/10 text-[#F59E0B]' : 'text-zinc-300 hover:bg-zinc-800'}`}
                               >
                                 <span>{option.label}</span>
@@ -723,7 +728,7 @@ export default function DraftsPage() {
                         </div>
                       )}
                     </div>
-                    <div className="relative" ref={bodySlash.popupRef}>
+                    <div className="relative z-20" ref={bodySlash.popupRef}>
                       <label className="text-sm mb-1.5 block" style={{ color: "#888888" }}>Body</label>
                       <textarea
                         ref={bodyTextareaRef}
@@ -731,7 +736,7 @@ export default function DraftsPage() {
                         onChange={(e) => bodySlash.handleInputChange(e.target.value, e.target.selectionStart ?? undefined)}
                         onKeyDown={bodySlash.handleKeyDown}
                         placeholder="Email body..."
-                        className="w-full px-3 py-2.5 text-sm resize-y placeholder:text-[#444444]"
+                        className="w-full relative z-10 px-3 py-2.5 text-sm resize-y placeholder:text-[#444444]"
                         style={{
                           backgroundColor: "#0f0f0f",
                           border: "1px solid #2a2a2a",
@@ -743,15 +748,18 @@ export default function DraftsPage() {
                         onBlur={(e) => (e.currentTarget.style.borderColor = "#2a2a2a")}
                       />
                       {bodySlash.activePopup && (
-                        <div className="absolute top-full left-0 mt-2 w-56 rounded-xl border shadow-xl z-[60] overflow-hidden" style={{ backgroundColor: "#141414", borderColor: "#222" }}>
+                        <div className="absolute top-8 left-2.5 w-64 rounded-xl border shadow-2xl z-30 overflow-hidden" style={{ backgroundColor: "#141414", borderColor: "#222" }}>
                           <div className="px-3 py-2 border-b text-xs font-semibold uppercase" style={{ borderColor: "#222", color: "#888888" }}>
                             Insert Personalization
                           </div>
                           <div className="p-1 max-h-60 overflow-y-auto">
-                            {PERSONALIZATION_OPTIONS.map((option, idx) => (
+                            {bodySlash.filteredOptions.map((option, idx) => (
                               <button
                                 key={option.tag}
-                                onClick={() => bodySlash.handleSelectOption(option)}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  bodySlash.handleSelectOption(option);
+                                }}
                                 className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${idx === bodySlash.selectedIndex ? 'bg-[#F59E0B]/10 text-[#F59E0B]' : 'text-zinc-300 hover:bg-zinc-800'}`}
                               >
                                 <span>{option.label}</span>
